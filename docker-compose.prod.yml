@@ -1,0 +1,34 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: ./services/api
+      target: production
+    volumes: []
+    environment:
+      NODE_ENV: production
+
+  web:
+    build:
+      context: ./services/web
+      target: production
+    volumes: []
+    environment:
+      NODE_ENV: production
+
+  image-gen:
+    environment:
+      FLASK_ENV: production
+
+  worker:
+    build:
+      context: ./services/worker
+      target: production
+    volumes: []
+    environment:
+      NODE_ENV: production
+
+  search:
+    environment:
+      MEILI_ENV: production

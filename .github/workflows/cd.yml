@@ -1,0 +1,28 @@
+name: CD
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    name: Build images & deploy to staging
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build API image
+        run: docker build -t alexandria-api:${{ github.sha }} ./services/api
+
+      - name: Build Web image
+        run: docker build -t alexandria-web:${{ github.sha }} ./services/web
+
+      - name: Build Worker image
+        run: docker build -t alexandria-worker:${{ github.sha }} ./services/worker
+
+      - name: Build Image-Gen image
+        run: docker build -t alexandria-image-gen:${{ github.sha }} ./services/image-gen
+
+      - name: Deploy to staging
+        run: echo "deploy to staging — configure when staging server is provisioned"
