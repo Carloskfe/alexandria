@@ -10,9 +10,10 @@ function CallbackHandler() {
 
   useEffect(() => {
     const token = params.get('token');
+    const next = params.get('next') ?? '/onboarding';
     if (token) {
       saveToken(token);
-      router.replace('/library');
+      router.replace(next);
     } else {
       router.replace('/login');
     }

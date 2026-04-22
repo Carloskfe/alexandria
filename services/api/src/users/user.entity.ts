@@ -13,6 +13,12 @@ export enum AuthProvider {
   APPLE = 'apple',
 }
 
+export enum UserType {
+  PERSONAL = 'personal',
+  AUTHOR = 'author',
+  EDITORIAL = 'editorial',
+}
+
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -35,6 +41,9 @@ export class User {
 
   @Column({ type: 'varchar', nullable: true })
   avatarUrl: string | null;
+
+  @Column({ type: 'enum', enum: UserType, nullable: true })
+  userType: UserType | null;
 
   @CreateDateColumn()
   createdAt: Date;

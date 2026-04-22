@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { apiFetch, saveToken } from '@/lib/api';
+import { apiFetch, saveToken, saveUserType, postAuthRedirect } from '@/lib/api';
 import SocialAuthButtons from '@/components/SocialAuthButtons';
 
 const schema = z.object({
@@ -32,7 +32,8 @@ export default function RegisterPage() {
         body: JSON.stringify(values),
       });
       saveToken(data.accessToken);
-      router.push('/library');
+      saveUserType(data.user?.userType ?? null);
+      router.push(postAuthRedirect(data.user?.userType ?? null));
     } catch (err: any) {
       setError('root', { message: err.message ?? 'Registration failed' });
     }

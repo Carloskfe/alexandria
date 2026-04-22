@@ -1,4 +1,5 @@
-import { IsOptional, IsString, IsUrl } from 'class-validator';
+import { IsEnum, IsOptional, IsString, IsUrl } from 'class-validator';
+import { UserType } from '../user.entity';
 
 export class UpdateUserDto {
   @IsOptional()
@@ -8,4 +9,8 @@ export class UpdateUserDto {
   @IsOptional()
   @IsUrl()
   avatarUrl?: string;
+
+  @IsOptional()
+  @IsEnum(UserType)
+  userType?: UserType;
 }

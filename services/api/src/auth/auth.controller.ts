@@ -31,6 +31,10 @@ function setRefreshCookie(res: Response, tokenId: string, userId: string) {
   });
 }
 
+function safeUser(user: any) {
+  return { id: user.id, email: user.email, name: user.name, userType: user.userType ?? null };
+}
+
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -46,7 +50,7 @@ export class AuthController {
       dto.password,
     );
     setRefreshCookie(res, refreshTokenId, user.id);
-    return { accessToken, user: { id: user.id, email: user.email, name: user.name } };
+    return { accessToken, user: safeUser(user) };
   }
 
   @Post('login')
@@ -55,7 +59,7 @@ export class AuthController {
   async login(@Request() req: any, @Res({ passthrough: true }) res: Response) {
     const { accessToken, refreshTokenId, user } = await this.authService.issueTokens(req.user);
     setRefreshCookie(res, refreshTokenId, user.id);
-    return { accessToken, user: { id: user.id, email: user.email, name: user.name } };
+    return { accessToken, user: safeUser(user) };
   }
 
   @Post('refresh')
@@ -75,7 +79,7 @@ export class AuthController {
     const accessToken = this.tokenService.generateAccessToken({ sub: user.id, email: user.email });
     const newTokenId = await this.tokenService.generateRefreshToken(user.id);
     setRefreshCookie(res, newTokenId, user.id);
-    return { accessToken };
+    return { accessToken, user: safeUser(user) };
   }
 
   @Post('logout')
@@ -118,7 +122,8 @@ export class AuthController {
   async googleCallback(@Request() req: any, @Res() res: Response) {
     const { accessToken, refreshTokenId, user } = await this.authService.issueTokens(req.user);
     setRefreshCookie(res, refreshTokenId, user.id);
-    res.redirect(`${WEB_URL}/auth/callback?token=${accessToken}`);
+    const next = user.userType ? '/library' : '/onboarding';
+    res.redirect(`${WEB_URL}/auth/callback?token=${accessToken}&next=${next}`);
   }
 
   // ─── Facebook OAuth ────────────────────────────────────────────────────────
@@ -132,7 +137,8 @@ export class AuthController {
   async facebookCallback(@Request() req: any, @Res() res: Response) {
     const { accessToken, refreshTokenId, user } = await this.authService.issueTokens(req.user);
     setRefreshCookie(res, refreshTokenId, user.id);
-    res.redirect(`${WEB_URL}/auth/callback?token=${accessToken}`);
+    const next = user.userType ? '/library' : '/onboarding';
+    res.redirect(`${WEB_URL}/auth/callback?token=${accessToken}&next=${next}`);
   }
 
   // ─── Apple Sign-In ─────────────────────────────────────────────────────────
@@ -146,6 +152,7 @@ export class AuthController {
   async appleCallback(@Request() req: any, @Res() res: Response) {
     const { accessToken, refreshTokenId, user } = await this.authService.issueTokens(req.user);
     setRefreshCookie(res, refreshTokenId, user.id);
-    res.redirect(`${WEB_URL}/auth/callback?token=${accessToken}`);
+    const next = user.userType ? '/library' : '/onboarding';
+    res.redirect(`${WEB_URL}/auth/callback?token=${accessToken}&next=${next}`);
   }
 }

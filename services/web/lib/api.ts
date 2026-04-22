@@ -25,3 +25,16 @@ export function saveToken(token: string) {
 export function clearToken() {
   sessionStorage.removeItem('access_token');
 }
+
+export function saveUserType(userType: string | null) {
+  if (userType) sessionStorage.setItem('user_type', userType);
+  else sessionStorage.removeItem('user_type');
+}
+
+export function getUserType(): string | null {
+  return typeof window !== 'undefined' ? sessionStorage.getItem('user_type') : null;
+}
+
+export function postAuthRedirect(userType: string | null): string {
+  return userType ? '/library' : '/onboarding';
+}
