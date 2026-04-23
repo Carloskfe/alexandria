@@ -24,8 +24,8 @@
 
 ## 4. Database Migration
 
-- [ ] 4.1 Run migration against the dev database: `pnpm --filter @alexandria/api migration:run`
-- [ ] 4.2 Verify `books` table exists and `users.isAdmin` column is present in the DB
+- [x] 4.1 Run migration against the dev database: `pnpm --filter @alexandria/api migration:run`
+- [x] 4.2 Verify `books` table exists and `users.isAdmin` column is present in the DB
 
 ## 5. Web — Library Page
 
@@ -49,11 +49,11 @@
 
 ## 8. Verification
 
-- [ ] 8.1 `POST /books` with admin JWT and files returns 201 and book appears in DB
-- [ ] 8.2 `GET /books` returns the seeded book with `isPublished = true`
-- [ ] 8.3 `GET /books/:id` returns presigned `textFileUrl` and `audioFileUrl`
-- [ ] 8.4 `POST /books` with non-admin JWT returns 403
-- [ ] 8.5 Library page at `http://localhost:3000/library` shows books from API (not empty array)
-- [ ] 8.6 Discover page category tabs filter correctly
-- [ ] 8.7 Admin page at `http://localhost:3000/admin` uploads a book successfully
-- [ ] 8.8 Commit and push all changes to GitHub
+- [x] 8.1 `POST /books` with admin JWT and files returns 201 and book appears in DB
+- [x] 8.2 `GET /books` returns the seeded book with `isPublished = true`
+- [x] 8.3 `GET /books/:id` returns presigned `textFileUrl` and `audioFileUrl`
+- [x] 8.4 `POST /books` with non-admin JWT returns 403
+- [x] 8.5 Library page at `http://localhost:3000/library` shows books from API (not empty array)
+- [x] 8.6 Discover page category tabs filter correctly
+- [x] 8.7 Admin page at `http://localhost:3000/admin` uploads a book successfully
+- [x] 8.8 Commit and push all changes to GitHub
