@@ -58,5 +58,8 @@ export class User {
   createdAt: Date;
 
   @UpdateDateColumn()
-  lastLoginAt: Date;
+  updatedAt: Date;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  lastLoginAt: Date | null;
 }

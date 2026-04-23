@@ -45,6 +45,7 @@ export default function OnboardingPage() {
       saveUserType(selected);
       router.push(selected === 'personal' ? '/onboarding/preferences' : '/library');
     } catch (err: any) {
+      if (err.status === 401) { router.replace('/login'); return; }
       setError(err.message ?? 'Something went wrong. Please try again.');
       setLoading(false);
     }

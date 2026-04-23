@@ -20,6 +20,7 @@ export class AuthService {
   }
 
   async issueTokens(user: User) {
+    await this.usersService.update(user.id, { lastLoginAt: new Date() });
     const accessToken = this.tokenService.generateAccessToken({ sub: user.id, email: user.email });
     const refreshTokenId = await this.tokenService.generateRefreshToken(user.id);
     return { accessToken, refreshTokenId, user };
@@ -42,7 +43,6 @@ export class AuthService {
         avatarUrl: data.avatarUrl ?? null,
       });
     } else {
-      await this.usersService.update(user.id, { lastLoginAt: new Date() });
       user = (await this.usersService.findById(user.id))!;
     }
     return user;

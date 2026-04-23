@@ -17,6 +17,7 @@ import { RegisterDto } from './dto/register.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { TokenService } from './token.service';
+import { UsersService } from '../users/users.service';
 
 const isProd = process.env.NODE_ENV === 'production';
 const WEB_URL = process.env.WEB_URL ?? 'http://localhost:3000';
@@ -40,6 +41,7 @@ export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly tokenService: TokenService,
+    private readonly usersService: UsersService,
   ) {}
 
   @Post('register')
@@ -74,7 +76,7 @@ export class AuthController {
       throw new UnauthorizedException();
     }
     await this.tokenService.deleteRefreshToken(userId, tokenId);
-    const user = await this.authService['usersService'].findById(userId);
+    const user = await this.usersService.findById(userId);
     if (!user) throw new UnauthorizedException();
     const accessToken = this.tokenService.generateAccessToken({ sub: user.id, email: user.email });
     const newTokenId = await this.tokenService.generateRefreshToken(user.id);

@@ -18,8 +18,8 @@ import { AppleStrategy } from './strategies/apple.strategy';
     UsersModule,
     PassportModule,
     JwtModule.register({
-      secret: process.env.JWT_SECRET ?? 'change-me',
-      signOptions: { expiresIn: '15m' },
+      secret: process.env.JWT_SECRET ?? 'changeme',
+      signOptions: { expiresIn: process.env.JWT_EXPIRES_IN ?? '15m' },
     }),
   ],
   providers: [

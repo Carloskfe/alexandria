@@ -59,6 +59,7 @@ export default function PreferencesPage() {
       });
       router.push('/onboarding/interests');
     } catch (err: any) {
+      if (err.status === 401) { router.replace('/login'); return; }
       setError(err.message ?? 'Something went wrong.');
       setLoading(false);
     }
