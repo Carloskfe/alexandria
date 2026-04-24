@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { Fragment } from '@/lib/reader-utils';
+import SharePicker from './SharePicker';
+import SharePreviewModal from './SharePreviewModal';
 
 type Props = {
   fragments: Fragment[];
@@ -16,6 +18,8 @@ export default function FragmentSheet({ fragments, onClose, onDelete, onCombine,
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteValue, setNoteValue] = useState('');
+  const [sharingFragmentId, setSharingFragmentId] = useState<string | null>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
 
   function toggleSelect(id: string) {
     setSelected((prev) => {
@@ -103,13 +107,22 @@ export default function FragmentSheet({ fragments, onClose, onDelete, onCombine,
                   )}
                   <p className="flex-1 text-sm text-gray-800 leading-snug line-clamp-3">{f.text}</p>
                   {!multiSelect && (
-                    <button
-                      onClick={() => onDelete(f.id)}
-                      className="text-gray-300 hover:text-red-400 transition flex-shrink-0"
-                      aria-label="Eliminar fragmento"
-                    >
-                      <TrashIcon />
-                    </button>
+                    <div className="flex flex-col gap-1 flex-shrink-0">
+                      <button
+                        onClick={() => setSharingFragmentId(f.id)}
+                        className="text-gray-300 hover:text-blue-500 transition"
+                        aria-label="Compartir fragmento"
+                      >
+                        <ShareIcon />
+                      </button>
+                      <button
+                        onClick={() => onDelete(f.id)}
+                        className="text-gray-300 hover:text-red-400 transition"
+                        aria-label="Eliminar fragmento"
+                      >
+                        <TrashIcon />
+                      </button>
+                    </div>
                   )}
                 </div>
 
@@ -163,6 +176,24 @@ export default function FragmentSheet({ fragments, onClose, onDelete, onCombine,
           </div>
         )}
       </aside>
+
+      {sharingFragmentId && (
+        <SharePicker
+          fragmentId={sharingFragmentId}
+          onClose={() => setSharingFragmentId(null)}
+          onSuccess={(url) => {
+            setSharingFragmentId(null);
+            setShareUrl(url);
+          }}
+        />
+      )}
+
+      {shareUrl && (
+        <SharePreviewModal
+          url={shareUrl}
+          onClose={() => setShareUrl(null)}
+        />
+      )}
     </>
   );
 }
@@ -171,6 +202,14 @@ function XIcon() {
   return (
     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  );
+}
+
+function ShareIcon() {
+  return (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
     </svg>
   );
 }

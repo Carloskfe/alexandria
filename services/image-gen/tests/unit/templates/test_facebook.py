@@ -1,5 +1,8 @@
 import struct
+from unittest.mock import MagicMock, patch
+
 import pytest
+
 from templates.facebook import render
 
 
@@ -33,7 +36,7 @@ def test_render_dimensions_are_1200x630():
 
 
 def test_render_accepts_populated_fragment():
-    fragment = {"text": "Compartir en Facebook.", "author": "Autor", "book": "Libro"}
+    fragment = {"text": "Compartir en Facebook.", "author": "Autor", "title": "Libro"}
     result = render(fragment)
     assert isinstance(result, bytes)
     assert len(result) > 0
@@ -42,3 +45,26 @@ def test_render_accepts_populated_fragment():
 def test_render_accepts_empty_fragment():
     result = render({})
     assert isinstance(result, bytes)
+
+
+def test_render_draws_quote_text():
+    fragment = {"text": "Cita Facebook", "author": "Autor", "title": "Libro"}
+    with patch("templates.base.ImageDraw") as mock_draw_module:
+        mock_draw = MagicMock()
+        mock_draw.textbbox.return_value = (0, 0, 100, 20)
+        mock_draw_module.Draw.return_value = mock_draw
+        render(fragment)
+    all_text = " ".join(str(c) for c in mock_draw.text.call_args_list)
+    assert "Cita" in all_text or "Facebook" in all_text
+
+
+def test_render_draws_attribution():
+    fragment = {"text": "Quote", "author": "Autor FB", "title": "Libro FB"}
+    with patch("templates.base.ImageDraw") as mock_draw_module:
+        mock_draw = MagicMock()
+        mock_draw.textbbox.return_value = (0, 0, 100, 20)
+        mock_draw_module.Draw.return_value = mock_draw
+        render(fragment)
+    all_text = " ".join(str(c) for c in mock_draw.text.call_args_list)
+    assert "Autor FB" in all_text
+    assert "Libro FB" in all_text

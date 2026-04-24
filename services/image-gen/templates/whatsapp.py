@@ -1,10 +1,6 @@
-import io
-from PIL import Image
+from templates.base import render_card
 
 
 def render(fragment: dict) -> bytes:
     """WhatsApp quote card — 800x800px."""
-    img = Image.new("RGB", (800, 800), color=(255, 255, 255))
-    buf = io.BytesIO()
-    img.save(buf, format="PNG")
-    return buf.getvalue()
+    return render_card(fragment, 800, 800)

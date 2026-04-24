@@ -1,5 +1,8 @@
 import struct
+from unittest.mock import MagicMock, patch
+
 import pytest
+
 from templates.linkedin import render
 
 
@@ -33,7 +36,7 @@ def test_render_dimensions_are_1200x627():
 
 
 def test_render_accepts_populated_fragment():
-    fragment = {"text": "Una cita poderosa.", "author": "Autor", "book": "Mi Libro"}
+    fragment = {"text": "Una cita poderosa.", "author": "Autor", "title": "Mi Libro"}
     result = render(fragment)
     assert isinstance(result, bytes)
     assert len(result) > 0
@@ -42,3 +45,29 @@ def test_render_accepts_populated_fragment():
 def test_render_accepts_empty_fragment():
     result = render({})
     assert isinstance(result, bytes)
+
+
+def test_render_draws_quote_text():
+    fragment = {"text": "Texto de prueba", "author": "Autor", "title": "Libro"}
+    with patch("templates.base.ImageDraw") as mock_draw_module:
+        mock_draw = MagicMock()
+        mock_draw.textbbox.return_value = (0, 0, 100, 20)
+        mock_draw_module.Draw.return_value = mock_draw
+        render(fragment)
+    calls = [str(c) for c in mock_draw.text.call_args_list]
+    all_text = " ".join(calls)
+    assert "Texto de prueba" in all_text or any(
+        "Texto" in str(c) or "prueba" in str(c) for c in mock_draw.text.call_args_list
+    )
+
+
+def test_render_draws_attribution():
+    fragment = {"text": "Quote", "author": "Mi Autor", "title": "Mi Titulo"}
+    with patch("templates.base.ImageDraw") as mock_draw_module:
+        mock_draw = MagicMock()
+        mock_draw.textbbox.return_value = (0, 0, 100, 20)
+        mock_draw_module.Draw.return_value = mock_draw
+        render(fragment)
+    all_text = " ".join(str(c) for c in mock_draw.text.call_args_list)
+    assert "Mi Autor" in all_text
+    assert "Mi Titulo" in all_text
