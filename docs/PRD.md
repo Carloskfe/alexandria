@@ -13,11 +13,12 @@ Alexandria is a multimodal reading platform that synchronizes text and audio at 
 3. [MVP Scope](#mvp-scope)
 4. [Core Features](#core-features)
 5. [Security & DRM](#security--drm)
-6. [Key Metrics (KPIs)](#key-metrics-kpis)
-7. [Risks](#risks)
-8. [Growth Strategy](#growth-strategy)
-9. [Roadmap](#roadmap)
-10. [Future Enhancements](#future-enhancements)
+6. [Engineering Quality](#engineering-quality)
+7. [Key Metrics (KPIs)](#key-metrics-kpis)
+8. [Risks](#risks)
+9. [Growth Strategy](#growth-strategy)
+10. [Roadmap](#roadmap)
+11. [Future Enhancements](#future-enhancements)
 
 ---
 
@@ -120,6 +121,21 @@ To become the leading platform where knowledge is not only consumed but expresse
 
 ---
 
+## Engineering Quality
+
+Every backend service shipped as part of Alexandria must meet the following non-negotiable quality gates before it is considered production-ready:
+
+- **Unit test coverage ≥ 80%** per service, verified by CI on every pull request.
+- **No real I/O in unit tests** — all external dependencies (database, MinIO, Stripe, Meilisearch, image-gen HTTP) must be mocked.
+- **Test-driven Definition of Done** — a feature is not complete until its service tests pass and coverage is above threshold.
+- **End-to-end tests** (Playwright) cover the three critical user flows: sign-up → read, highlight → share, subscribe → unlock.
+
+These standards directly reduce the risks identified in the [Risks](#risks) section and protect the phrase-level sync engine and DRM implementation — the two highest-complexity areas — from regressions during rapid iteration.
+
+For implementation details (file structure, naming conventions, run commands per service) see [CLAUDE.md — Testing](../CLAUDE.md#testing).
+
+---
+
 ## Key Metrics (KPIs)
 
 ### User
@@ -146,11 +162,11 @@ To become the leading platform where knowledge is not only consumed but expresse
 
 ## Risks
 
-| Area      | Risk                                                  |
-|-----------|-------------------------------------------------------|
-| Market    | Competition from Kindle/Audible, Spotify, Apple Books |
-| Technical | Complexity of phrase-level sync; mobile performance   |
-| Business  | Content licensing costs; user acquisition cost        |
+| Area      | Risk                                                  | Mitigation                                        |
+|-----------|-------------------------------------------------------|---------------------------------------------------|
+| Market    | Competition from Kindle/Audible, Spotify, Apple Books | Focus on social-sharing differentiator            |
+| Technical | Complexity of phrase-level sync; mobile performance   | Mandatory unit tests (≥ 80% coverage) + CI gate   |
+| Business  | Content licensing costs; user acquisition cost        | Author partnership model; referral program        |
 
 ---
 
