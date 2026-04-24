@@ -1,0 +1,184 @@
+'use client';
+
+import { useState } from 'react';
+import { Fragment } from '@/lib/reader-utils';
+
+type Props = {
+  fragments: Fragment[];
+  onClose: () => void;
+  onDelete: (id: string) => void;
+  onCombine: (ids: string[]) => void;
+  onNoteUpdate: (id: string, note: string) => void;
+};
+
+export default function FragmentSheet({ fragments, onClose, onDelete, onCombine, onNoteUpdate }: Props) {
+  const [multiSelect, setMultiSelect] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
+  const [noteValue, setNoteValue] = useState('');
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function exitMultiSelect() {
+    setMultiSelect(false);
+    setSelected(new Set());
+  }
+
+  function handleCombine() {
+    onCombine([...selected]);
+    exitMultiSelect();
+  }
+
+  function startEditNote(f: Fragment) {
+    setEditingNoteId(f.id);
+    setNoteValue(f.note ?? '');
+  }
+
+  function saveNote(id: string) {
+    onNoteUpdate(id, noteValue);
+    setEditingNoteId(null);
+  }
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-black/20 z-40"
+        onClick={onClose}
+      />
+
+      {/* Drawer */}
+      <aside className="fixed top-0 right-0 h-full w-80 bg-white shadow-xl z-50 flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h2 className="text-base font-semibold text-gray-900">Fragmentos</h2>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                if (multiSelect) exitMultiSelect();
+                else setMultiSelect(true);
+              }}
+              className={[
+                'text-xs px-2.5 py-1 rounded-full border transition',
+                multiSelect
+                  ? 'border-blue-600 text-blue-600 bg-blue-50'
+                  : 'border-gray-200 text-gray-600 hover:bg-gray-50',
+              ].join(' ')}
+            >
+              {multiSelect ? 'Cancelar' : 'Seleccionar'}
+            </button>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
+              <XIcon />
+            </button>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+          {fragments.length === 0 ? (
+            <p className="text-gray-400 text-sm text-center mt-8">
+              No hay fragmentos guardados para este libro.
+            </p>
+          ) : (
+            fragments.map((f) => (
+              <div
+                key={f.id}
+                className="border border-gray-100 rounded-xl p-3 bg-gray-50 space-y-2"
+              >
+                <div className="flex items-start gap-2">
+                  {multiSelect && (
+                    <input
+                      type="checkbox"
+                      checked={selected.has(f.id)}
+                      onChange={() => toggleSelect(f.id)}
+                      className="mt-1 accent-blue-600"
+                    />
+                  )}
+                  <p className="flex-1 text-sm text-gray-800 leading-snug line-clamp-3">{f.text}</p>
+                  {!multiSelect && (
+                    <button
+                      onClick={() => onDelete(f.id)}
+                      className="text-gray-300 hover:text-red-400 transition flex-shrink-0"
+                      aria-label="Eliminar fragmento"
+                    >
+                      <TrashIcon />
+                    </button>
+                  )}
+                </div>
+
+                {/* Note */}
+                {editingNoteId === f.id ? (
+                  <div className="space-y-1">
+                    <textarea
+                      value={noteValue}
+                      onChange={(e) => setNoteValue(e.target.value)}
+                      className="w-full text-xs border border-gray-200 rounded-lg p-2 resize-none focus:outline-none focus:ring-1 focus:ring-blue-400"
+                      rows={2}
+                      autoFocus
+                    />
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => saveNote(f.id)}
+                        className="text-xs text-blue-600 hover:underline"
+                      >
+                        Guardar
+                      </button>
+                      <button
+                        onClick={() => setEditingNoteId(null)}
+                        className="text-xs text-gray-400 hover:underline"
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => startEditNote(f)}
+                    className="text-xs text-gray-400 hover:text-blue-500 transition text-left"
+                  >
+                    {f.note ? f.note : '+ Añadir nota'}
+                  </button>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Combine button */}
+        {multiSelect && selected.size >= 2 && (
+          <div className="px-4 py-3 border-t border-gray-100">
+            <button
+              onClick={handleCombine}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium py-2.5 rounded-xl transition"
+            >
+              Combinar ({selected.size})
+            </button>
+          </div>
+        )}
+      </aside>
+    </>
+  );
+}
+
+function XIcon() {
+  return (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+    </svg>
+  );
+}

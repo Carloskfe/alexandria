@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
-import { phraseAt, seekToPhrase, Phrase } from '@/lib/reader-utils';
+import { phraseAt, seekToPhrase, buildSavedPhraseSet, Phrase, Fragment } from '@/lib/reader-utils';
+import FragmentPopover from '@/components/FragmentPopover';
+import FragmentSheet from '@/components/FragmentSheet';
 
 type Book = {
   id: string;
@@ -40,6 +42,15 @@ export default function ReaderPage() {
   const [duration, setDuration] = useState(0);
   const [speed, setSpeed] = useState(1);
 
+  // Fragment state
+  const [fragments, setFragments] = useState<Fragment[]>([]);
+  const [selectionStart, setSelectionStart] = useState<number | null>(null);
+  const [selectionEnd, setSelectionEnd] = useState<number | null>(null);
+  const [showPopover, setShowPopover] = useState(false);
+  const [showDrawer, setShowDrawer] = useState(false);
+
+  const savedPhraseSet = useMemo(() => buildSavedPhraseSet(fragments), [fragments]);
+
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const phraseRefs = useRef<(HTMLSpanElement | null)[]>([]);
@@ -49,17 +60,21 @@ export default function ReaderPage() {
   useEffect(() => {
     if (!bookId) return;
 
+    const token = typeof window !== 'undefined' ? sessionStorage.getItem('access_token') : null;
+
     Promise.all([
       apiFetch(`/books/${bookId}`),
       apiFetch(`/books/${bookId}/sync-map`).catch(() => null),
       apiFetch(`/books/${bookId}/progress`).catch(() => ({ phraseIndex: 0 })),
+      token ? apiFetch(`/books/${bookId}/fragments`).catch(() => []) : Promise.resolve([]),
     ])
-      .then(([bookData, syncMapData, progressData]) => {
+      .then(([bookData, syncMapData, progressData, fragmentsData]) => {
         setBook(bookData);
         if (syncMapData?.phrases) setPhrases(syncMapData.phrases);
         const saved = progressData?.phraseIndex ?? 0;
         setSavedPhraseIndex(saved);
         setActivePhraseIndex(saved > 0 ? saved : -1);
+        setFragments(fragmentsData ?? []);
 
         if (bookData.textFileUrl && !syncMapData?.phrases?.length) {
           fetch(bookData.textFileUrl)
@@ -99,7 +114,6 @@ export default function ReaderPage() {
     const onPlay = () => setPlaying(true);
     const onPause = () => setPlaying(false);
     const onError = () => {
-      // Presigned URL may have expired — re-fetch book to get fresh URLs
       apiFetch(`/books/${bookId}`)
         .then((data) => setBook(data))
         .catch(() => {});
@@ -175,12 +189,108 @@ export default function ReaderPage() {
     audio.currentTime = seekToPhrase(phrases, idx);
   }, [phrases]);
 
+  // ── Phrase click handler with selection logic ─────────────────────────────
+
+  const handlePhraseClick = useCallback((idx: number) => {
+    if (selectionStart === null) {
+      seekToIndex(idx);
+      return;
+    }
+    if (idx === selectionStart) {
+      setSelectionStart(null);
+      setSelectionEnd(null);
+      setShowPopover(false);
+      return;
+    }
+    setSelectionEnd(idx);
+    setShowPopover(true);
+  }, [selectionStart, seekToIndex]);
+
+  const handleStartSelection = useCallback((idx: number, e: React.MouseEvent) => {
+    e.preventDefault();
+    setSelectionStart(idx);
+    setSelectionEnd(null);
+    setShowPopover(false);
+  }, []);
+
+  // ── Fragment CRUD callbacks ───────────────────────────────────────────────
+
+  const handleSaveFragment = useCallback(async () => {
+    if (selectionStart === null || selectionEnd === null || !bookId) return;
+    const start = Math.min(selectionStart, selectionEnd);
+    const end = Math.max(selectionStart, selectionEnd);
+    const text = phrases.slice(start, end + 1).map((p) => p.text).join(' ');
+    try {
+      const created = await apiFetch('/fragments', {
+        method: 'POST',
+        body: JSON.stringify({ bookId, startPhraseIndex: start, endPhraseIndex: end, text }),
+      });
+      setFragments((prev) => [...prev, created].sort((a, b) => a.startPhraseIndex - b.startPhraseIndex));
+    } catch {}
+    setSelectionStart(null);
+    setSelectionEnd(null);
+    setShowPopover(false);
+  }, [selectionStart, selectionEnd, bookId, phrases]);
+
+  const handleCancelPopover = useCallback(() => {
+    setSelectionStart(null);
+    setSelectionEnd(null);
+    setShowPopover(false);
+  }, []);
+
+  const handleDeleteFragment = useCallback(async (id: string) => {
+    try {
+      await apiFetch(`/fragments/${id}`, { method: 'DELETE' });
+      setFragments((prev) => prev.filter((f) => f.id !== id));
+    } catch {}
+  }, []);
+
+  const handleCombineFragments = useCallback(async (ids: string[]) => {
+    try {
+      const combined = await apiFetch('/fragments/combine', {
+        method: 'POST',
+        body: JSON.stringify({ fragmentIds: ids }),
+      });
+      setFragments((prev) =>
+        [...prev.filter((f) => !ids.includes(f.id)), combined].sort(
+          (a, b) => a.startPhraseIndex - b.startPhraseIndex,
+        ),
+      );
+    } catch {}
+  }, []);
+
+  const handleNoteUpdate = useCallback(async (id: string, note: string) => {
+    try {
+      const updated = await apiFetch(`/fragments/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ note }),
+      });
+      setFragments((prev) => prev.map((f) => (f.id === id ? updated : f)));
+    } catch {}
+  }, []);
+
+  // ── Span CSS helper ───────────────────────────────────────────────────────
+
+  const getSpanClass = useCallback((i: number) => {
+    const selStart = selectionStart !== null ? Math.min(selectionStart, selectionEnd ?? selectionStart) : null;
+    const selEnd = selectionStart !== null ? Math.max(selectionStart, selectionEnd ?? selectionStart) : null;
+    const inSelection = selStart !== null && selEnd !== null && i >= selStart && i <= selEnd;
+
+    if (activePhraseIndex === i) return 'bg-yellow-200 text-gray-900';
+    if (inSelection) return 'bg-indigo-200';
+    if (savedPhraseSet.has(i)) return 'bg-blue-100';
+    return 'hover:bg-gray-100';
+  }, [activePhraseIndex, selectionStart, selectionEnd, savedPhraseSet]);
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   if (loading) return <LoadingScreen />;
   if (error || !book) return <ErrorScreen message={error || 'Book not found'} />;
 
   const hasSync = phrases.length > 0;
+  const selStart = selectionStart !== null ? Math.min(selectionStart, selectionEnd ?? selectionStart) : null;
+  const selEnd = selectionStart !== null ? Math.max(selectionStart, selectionEnd ?? selectionStart) : null;
+  const selectedCount = selStart !== null && selEnd !== null ? selEnd - selStart + 1 : 0;
 
   return (
     <div className="flex flex-col md:flex-row min-h-screen bg-white">
@@ -203,12 +313,11 @@ export default function ReaderPage() {
                 key={i}
                 ref={(el) => { phraseRefs.current[i] = el; }}
                 data-phrase-index={i}
-                onClick={() => seekToIndex(i)}
+                onClick={() => handlePhraseClick(i)}
+                onContextMenu={(e) => handleStartSelection(i, e)}
                 className={[
                   'cursor-pointer rounded px-0.5 transition-colors',
-                  activePhraseIndex === i
-                    ? 'bg-yellow-200 text-gray-900'
-                    : 'hover:bg-gray-100',
+                  getSpanClass(i),
                 ].join(' ')}
               >
                 {phrase.text}{' '}
@@ -225,7 +334,7 @@ export default function ReaderPage() {
       {/* ── Audio sidebar / bottom bar ───────────────────────────────────── */}
       {book.audioFileUrl && (
         <>
-          {/* Floating play button — always visible in Reading mode */}
+          {/* Floating play button */}
           <button
             onClick={togglePlay}
             className={[
@@ -237,7 +346,7 @@ export default function ReaderPage() {
             {playing ? <PauseIcon /> : <PlayIcon />}
           </button>
 
-          {/* Full controls panel — shown in Listening mode */}
+          {/* Full controls panel */}
           <aside
             className={[
               'border-t md:border-t-0 md:border-l border-gray-200 bg-gray-50',
@@ -251,7 +360,6 @@ export default function ReaderPage() {
                 <p className="text-xs text-gray-500 truncate">{book.author}</p>
               </div>
 
-              {/* Play / Pause */}
               <button
                 onClick={togglePlay}
                 className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium transition mb-4"
@@ -260,7 +368,6 @@ export default function ReaderPage() {
                 {playing ? 'Pausar' : 'Reproducir'}
               </button>
 
-              {/* Scrub */}
               <div className="mb-2">
                 <input
                   type="range"
@@ -277,7 +384,6 @@ export default function ReaderPage() {
                 </div>
               </div>
 
-              {/* Speed */}
               <div className="flex items-center gap-2 mt-4">
                 <span className="text-xs text-gray-500">Velocidad</span>
                 <select
@@ -293,26 +399,56 @@ export default function ReaderPage() {
             </div>
           </aside>
 
-          {/* Mode toggle */}
-          <div className="fixed top-4 right-4 z-40">
+          {/* Top controls */}
+          <div className="fixed top-4 right-4 z-40 flex items-center gap-2">
+            {/* Fragments button */}
+            <button
+              onClick={() => setShowDrawer((v) => !v)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-white border border-gray-200 shadow-sm hover:bg-gray-50 transition"
+              aria-label="Fragmentos"
+            >
+              <BookmarkIcon />
+              Fragmentos
+              {fragments.length > 0 && (
+                <span className="ml-1 bg-blue-600 text-white text-[10px] rounded-full w-4 h-4 flex items-center justify-center">
+                  {fragments.length}
+                </span>
+              )}
+            </button>
+
+            {/* Mode toggle */}
             <button
               onClick={() => setMode((m) => m === 'reading' ? 'listening' : 'reading')}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium bg-white border border-gray-200 shadow-sm hover:bg-gray-50 transition"
             >
               {mode === 'reading' ? (
-                <>
-                  <HeadphonesIcon />
-                  Modo escucha
-                </>
+                <><HeadphonesIcon />Modo escucha</>
               ) : (
-                <>
-                  <BookIcon />
-                  Modo lectura
-                </>
+                <><BookIcon />Modo lectura</>
               )}
             </button>
           </div>
         </>
+      )}
+
+      {/* ── Fragment Popover ─────────────────────────────────────────────── */}
+      {showPopover && selectedCount > 0 && (
+        <FragmentPopover
+          phraseCount={selectedCount}
+          onSave={handleSaveFragment}
+          onCancel={handleCancelPopover}
+        />
+      )}
+
+      {/* ── Fragment Sheet Drawer ────────────────────────────────────────── */}
+      {showDrawer && (
+        <FragmentSheet
+          fragments={fragments}
+          onClose={() => setShowDrawer(false)}
+          onDelete={handleDeleteFragment}
+          onCombine={handleCombineFragments}
+          onNoteUpdate={handleNoteUpdate}
+        />
       )}
     </div>
   );
@@ -367,6 +503,14 @@ function BookIcon() {
     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
       <path d="M4 19.5A2.5 2.5 0 016.5 17H20" />
       <path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
+    </svg>
+  );
+}
+
+function BookmarkIcon() {
+  return (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
     </svg>
   );
 }

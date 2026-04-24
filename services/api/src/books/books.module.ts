@@ -7,9 +7,10 @@ import { BooksController } from './books.controller';
 import { BooksService } from './books.service';
 import { SyncMapService } from './sync-map.service';
 import { ReadingProgressService } from './reading-progress.service';
+import { FragmentsModule } from '../fragments/fragments.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Book, SyncMap, ReadingProgress])],
+  imports: [TypeOrmModule.forFeature([Book, SyncMap, ReadingProgress]), FragmentsModule],
   controllers: [BooksController],
   providers: [BooksService, SyncMapService, ReadingProgressService],
   exports: [BooksService],

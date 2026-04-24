@@ -5,6 +5,28 @@ export interface Phrase {
   endTime: number;
 }
 
+export interface Fragment {
+  id: string;
+  bookId: string;
+  userId: string;
+  startPhraseIndex: number;
+  endPhraseIndex: number;
+  text: string;
+  note: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export function buildSavedPhraseSet(fragments: Fragment[]): Set<number> {
+  const set = new Set<number>();
+  for (const f of fragments) {
+    for (let i = f.startPhraseIndex; i <= f.endPhraseIndex; i++) {
+      set.add(i);
+    }
+  }
+  return set;
+}
+
 export function phraseAt(phrases: Phrase[], currentTime: number): number {
   if (!phrases.length) return -1;
 

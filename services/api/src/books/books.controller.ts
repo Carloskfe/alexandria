@@ -24,6 +24,7 @@ import { CreateBookDto } from './dto/create-book.dto';
 import { SyncMapService } from './sync-map.service';
 import { SyncPhrase } from './sync-map.entity';
 import { ReadingProgressService } from './reading-progress.service';
+import { FragmentsService } from '../fragments/fragments.service';
 
 const PRESIGN_TTL = 60 * 15; // 15 minutes
 
@@ -34,6 +35,7 @@ export class BooksController {
     private readonly storageService: StorageService,
     private readonly syncMapService: SyncMapService,
     private readonly readingProgressService: ReadingProgressService,
+    private readonly fragmentsService: FragmentsService,
   ) {}
 
   @Get()
@@ -89,6 +91,14 @@ export class BooksController {
     }
 
     return this.booksService.create(dto, textFileKey, audioFileKey);
+  }
+
+  // ── Fragments ─────────────────────────────────────────────────────────────
+
+  @Get(':id/fragments')
+  @UseGuards(JwtAuthGuard)
+  getFragments(@Param('id') id: string, @Request() req: any) {
+    return this.fragmentsService.findByUserAndBook(req.user.id, id);
   }
 
   // ── Sync Map ──────────────────────────────────────────────────────────────
