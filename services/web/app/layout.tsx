@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import CookieBanner from '@/components/CookieBanner';
+import Footer from '@/components/Footer';
 
 export const metadata: Metadata = {
   title: 'Alexandria',
@@ -9,7 +11,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body>{children}</body>
+      <body>
+        {children}
+        <Footer />
+        <CookieBanner />
+      </body>
     </html>
   );
 }

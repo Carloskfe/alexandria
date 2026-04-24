@@ -6,6 +6,10 @@ module.exports = {
   transform: {
     '^.+\\.tsx?$': ['ts-jest', { tsconfig: '<rootDir>/tsconfig.test.json' }],
   },
+  moduleNameMapper: {
+    '@react-native-async-storage/async-storage':
+      '<rootDir>/tests/__mocks__/@react-native-async-storage/async-storage.ts',
+  },
   collectCoverageFrom: ['src/**/*.ts', '!src/**/*.tsx'],
   coverageDirectory: 'coverage',
   testEnvironment: 'node',
