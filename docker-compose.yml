@@ -59,6 +59,7 @@ services:
     volumes:
       - ./services/web/app:/app/app:ro
       - ./services/web/components:/app/components:ro
+      - ./services/web/lib:/app/lib:ro
     networks:
       - alexandria_net
     restart: unless-stopped
