@@ -68,7 +68,7 @@
 - [x] 9.4 `PATCH /fragments/:id` with note → returns 200 with updated note
 - [x] 9.5 `DELETE /fragments/:id` → returns 204; subsequent GET no longer includes it
 - [x] 9.6 `POST /fragments/combine` with two IDs → returns 201 new fragment; originals gone
-- [ ] 9.7 Open reader in browser: click one phrase then another → popover appears; save → spans turn blue
-- [ ] 9.8 Open Fragment Sheet drawer → saved fragment appears; delete works; combine works
+- [x] 9.7 Open reader in browser: click one phrase then another → popover appears; save → spans turn blue
+- [x] 9.8 Open Fragment Sheet drawer → saved fragment appears; delete works; combine works
 - [x] 9.9 All api and web tests still pass after all changes
 - [x] 9.10 Commit and push all changes to GitHub
