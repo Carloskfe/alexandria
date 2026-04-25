@@ -62,13 +62,13 @@
 
 ## 9. Verification
 
-- [ ] 9.1 Run migration in dev DB: `docker exec alexandria-api-1 node /app/node_modules/typeorm/cli.js migration:run -d /app/dist/data-source.js` — confirm `fragments` table exists
-- [ ] 9.2 `POST /fragments` with JWT and valid body → returns 201 fragment record
-- [ ] 9.3 `GET /books/:id/fragments` with JWT → returns array of user's fragments ordered by startPhraseIndex
-- [ ] 9.4 `PATCH /fragments/:id` with note → returns 200 with updated note
-- [ ] 9.5 `DELETE /fragments/:id` → returns 204; subsequent GET no longer includes it
-- [ ] 9.6 `POST /fragments/combine` with two IDs → returns 201 new fragment; originals gone
+- [x] 9.1 Run migration in dev DB: `docker exec alexandria-api-1 node /app/node_modules/typeorm/cli.js migration:run -d /app/dist/data-source.js` — confirm `fragments` table exists
+- [x] 9.2 `POST /fragments` with JWT and valid body → returns 201 fragment record
+- [x] 9.3 `GET /books/:id/fragments` with JWT → returns array of user's fragments ordered by startPhraseIndex
+- [x] 9.4 `PATCH /fragments/:id` with note → returns 200 with updated note
+- [x] 9.5 `DELETE /fragments/:id` → returns 204; subsequent GET no longer includes it
+- [x] 9.6 `POST /fragments/combine` with two IDs → returns 201 new fragment; originals gone
 - [ ] 9.7 Open reader in browser: click one phrase then another → popover appears; save → spans turn blue
 - [ ] 9.8 Open Fragment Sheet drawer → saved fragment appears; delete works; combine works
-- [ ] 9.9 All api and web tests still pass after all changes
+- [x] 9.9 All api and web tests still pass after all changes
 - [ ] 9.10 Commit and push all changes to GitHub

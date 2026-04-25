@@ -7,11 +7,12 @@ import { BooksController } from './books.controller';
 import { BooksService } from './books.service';
 import { SyncMapService } from './sync-map.service';
 import { ReadingProgressService } from './reading-progress.service';
+import { Subscription } from '../subscriptions/subscription.entity';
 import { FragmentsModule } from '../fragments/fragments.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Book, SyncMap, ReadingProgress]), FragmentsModule, SubscriptionsModule],
+  imports: [TypeOrmModule.forFeature([Book, SyncMap, ReadingProgress, Subscription]), FragmentsModule, SubscriptionsModule],
   controllers: [BooksController],
   providers: [BooksService, SyncMapService, ReadingProgressService],
   exports: [BooksService],

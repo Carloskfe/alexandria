@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { User } from '../users/user.entity';
 import { UsersModule } from '../users/users.module';
 import { Plan } from './plan.entity';
 import { PlansService } from './plans.service';
@@ -11,7 +12,7 @@ import { WebhooksController } from './webhooks.controller';
 import { WebhooksService } from './webhooks.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Subscription, Plan]), UsersModule],
+  imports: [TypeOrmModule.forFeature([Subscription, Plan, User]), UsersModule],
   providers: [SubscriptionsService, PlansService, WebhooksService, SubscriptionGuard],
   controllers: [SubscriptionsController, WebhooksController],
   exports: [SubscriptionsService, SubscriptionGuard],
