@@ -17,6 +17,7 @@ import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { extname } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { SubscriptionGuard } from '../subscriptions/subscription.guard';
 import { StorageService } from '../storage/storage.service';
 import { BookCategory } from './book.entity';
 import { BooksService } from './books.service';
@@ -44,6 +45,7 @@ export class BooksController {
   }
 
   @Get(':id')
+  @UseGuards(JwtAuthGuard, SubscriptionGuard)
   async findOne(@Param('id') id: string) {
     const book = await this.booksService.findById(id);
     const textFileUrl = book.textFileKey
@@ -133,7 +135,7 @@ export class BooksController {
   }
 
   @Post(':id/progress')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, SubscriptionGuard)
   async saveProgress(
     @Param('id') id: string,
     @Request() req: any,

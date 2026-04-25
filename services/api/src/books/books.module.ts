@@ -8,9 +8,10 @@ import { BooksService } from './books.service';
 import { SyncMapService } from './sync-map.service';
 import { ReadingProgressService } from './reading-progress.service';
 import { FragmentsModule } from '../fragments/fragments.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Book, SyncMap, ReadingProgress]), FragmentsModule],
+  imports: [TypeOrmModule.forFeature([Book, SyncMap, ReadingProgress]), FragmentsModule, SubscriptionsModule],
   controllers: [BooksController],
   providers: [BooksService, SyncMapService, ReadingProgressService],
   exports: [BooksService],
