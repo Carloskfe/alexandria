@@ -17,6 +17,13 @@ The reader SHALL register a click handler on each phrase span that operates in t
 
 ## ADDED Requirements
 
+### Requirement: Reader top bar replaces fixed top-right controls
+The reader page SHALL render a full-width fixed top bar in place of the previous fixed top-right button cluster. The top bar SHALL contain (left to right): back button, book title, font size controls (A− / A+), dark mode toggle, discover button, and the Fragments drawer button. The mode toggle (Reading / Listening) SHALL remain accessible within the top bar or be relocated to a consistent position within it.
+
+#### Scenario: All controls visible in top bar
+- **WHEN** the reader page loads with a book
+- **THEN** the top bar shows the back button, book title, A−, A+, dark mode icon, discover icon, and Fragments button
+
 ### Requirement: Phrase spans indicate saved fragment membership
 The reader SHALL fetch the user's Fragment Sheet for the current book on mount (authenticated only). Phrase spans whose index falls within any saved fragment's `startPhraseIndex`–`endPhraseIndex` range SHALL render with a distinct saved-highlight CSS class (blue tint), visually distinguishing them from unsaved and active phrases.
 
@@ -40,7 +47,7 @@ After a phrase selection is completed, the reader SHALL display a small popover 
 - **THEN** the selection highlight clears and the popover closes without creating a fragment
 
 ### Requirement: Fragment Sheet drawer is accessible from the reader
-The reader page SHALL display a "Fragments" icon button in the top controls. Clicking it SHALL open the Fragment Sheet drawer (see fragment-sheet spec). The drawer SHALL be closable by clicking outside it or a close button.
+The reader page SHALL display a "Fragments" icon button in the top bar. Clicking it SHALL open the Fragment Sheet drawer (see fragment-sheet spec). The drawer SHALL be closable by clicking outside it or a close button.
 
 #### Scenario: User opens the Fragment Sheet from the reader
 - **WHEN** the user clicks the Fragments button
