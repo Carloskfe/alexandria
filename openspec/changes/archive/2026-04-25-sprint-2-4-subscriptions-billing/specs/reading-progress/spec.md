@@ -1,4 +1,4 @@
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Authenticated user can save reading progress
 The system SHALL allow an authenticated user with an active subscription (`status` in `['active', 'trialing', 'canceling']`) to record their last-read phrase index for a book via `POST /books/:id/progress` with body `{ phraseIndex: number }`. The endpoint SHALL upsert — one record per user+book pair. Users without an active subscription SHALL be rejected with 403.
