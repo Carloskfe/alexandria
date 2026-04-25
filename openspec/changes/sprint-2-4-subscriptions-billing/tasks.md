@@ -44,29 +44,29 @@
 ## 7. Web — Billing Settings
 
 - [x] 7.1 Create `services/web/app/(account)/account/billing/page.tsx` — fetches subscription status from `GET /api/subscriptions/me`; renders current plan, status badge, renewal date; "Manage billing" and "Refresh status" actions
-- [ ] 7.2 Add billing link to account navigation / settings layout
+- [x] 7.2 Add billing link to account navigation / settings layout
 
 ## 8. Web — Unit Tests
 
-- [ ] 8.1 Create `services/web/tests/unit/components/PlanCard.spec.ts` — test renders correct price, savings badge for annual plans, calls onSelect on CTA click
-- [ ] 8.2 Create `services/web/tests/unit/app/billing/success.spec.ts` — mock fetch; test that sync is called on mount and confirmation is shown
-- [ ] 8.3 Run `npm run test` in `services/web` — all tests pass; run `npm run test:cov` — coverage ≥ 80%
+- [x] 8.1 Create `services/web/tests/unit/components/PlanCard.spec.ts` — test renders correct price, savings badge for annual plans, calls onSelect on CTA click
+- [x] 8.2 Create `services/web/tests/unit/app/billing/success.spec.ts` — mock fetch; test that sync is called on mount and confirmation is shown
+- [x] 8.3 Run `npm run test` in `services/web` — all tests pass; run `npm run test:cov` — coverage ≥ 80%
 
 ## 9. Mobile — Paywall Screen
 
-- [ ] 9.1 Create `services/mobile/src/screens/PaywallScreen.tsx` — React Native screen; displays plan summary (Individual $9.99/mo, Dual Reader $14.99/mo) and feature list; "Subscribe now" button calls `Linking.openURL('https://alexandria.app/pricing')`
-- [ ] 9.2 Update root navigator (`services/mobile/src/screens/`) — on app start, call `GET /api/subscriptions/me`; if `status` is `none` or `canceled`, render `PaywallScreen`; if `active` or `trialing`, render main stack
-- [ ] 9.3 Create `services/mobile/src/screens/PaywallScreen.tsx` subscription status hook — `useSubscriptionStatus()` returning `{ status, isLoading }`; caches result in memory for the session
+- [x] 9.1 Create `services/mobile/src/screens/PaywallScreen.tsx` — React Native screen; displays plan summary (Individual $9.99/mo, Dual Reader $14.99/mo) and feature list; "Subscribe now" button calls `Linking.openURL('https://alexandria.app/pricing')`
+- [x] 9.2 Update root navigator (`services/mobile/src/screens/`) — on app start, call `GET /api/subscriptions/me`; if `status` is `none` or `canceled`, render `PaywallScreen`; if `active` or `trialing`, render main stack
+- [x] 9.3 Create `services/mobile/src/screens/PaywallScreen.tsx` subscription status hook — `useSubscriptionStatus()` returning `{ status, isLoading }`; caches result in memory for the session
 
 ## 10. Mobile — Unit Tests
 
-- [ ] 10.1 Create `services/mobile/tests/unit/screens/PaywallScreen.spec.ts` — mock `Linking`; test plan info renders, "Subscribe now" calls `Linking.openURL` with correct URL
-- [ ] 10.2 Run `npm run test` in `services/mobile` — all tests pass
+- [x] 10.1 Create `services/mobile/tests/unit/screens/PaywallScreen.spec.ts` — mock `Linking`; test plan info renders, "Subscribe now" calls `Linking.openURL` with correct URL
+- [x] 10.2 Run `npm run test` in `services/mobile` — all tests pass
 
 ## 11. Environment & Configuration
 
 - [x] 11.1 Add to `.env.example`: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_ID_INDIVIDUAL_MONTHLY`, `STRIPE_PRICE_ID_INDIVIDUAL_ANNUAL`, `STRIPE_PRICE_ID_DUAL_MONTHLY`, `STRIPE_PRICE_ID_DUAL_ANNUAL`
-- [ ] 11.2 Add Stripe webhook endpoint registration instructions to `docs/stripe-setup.md` (test mode and live mode)
+- [x] 11.2 Add Stripe webhook endpoint registration instructions to `docs/stripe-setup.md` (test mode and live mode)
 
 ## 12. Verification
 
@@ -75,5 +75,5 @@
 - [ ] 12.3 Verify subscription guard: call a premium route without subscription; confirm 403 returned
 - [ ] 12.4 Open `/account/billing`; verify plan name, renewal date, "Manage billing" redirects to Stripe portal
 - [ ] 12.5 Test cancel flow: cancel from Stripe portal; verify status updates to `canceling` or `canceled` after webhook
-- [ ] 12.6 All API, web, and mobile tests pass
+- [x] 12.6 All API, web, and mobile tests pass
 - [ ] 12.7 Commit and push all changes to GitHub

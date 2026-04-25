@@ -1,43 +1,23 @@
 'use client';
 
 import { useState } from 'react';
+import { Plan, formatPrice, getPlanFeatures, savingsBadge } from '@/lib/plan-utils';
 
-export interface Plan {
-  id: string;
-  name: string;
-  amountCents: number;
-  interval: string;
-  maxProfiles: number;
-}
+export type { Plan };
 
 interface PlanCardProps {
   plan: Plan;
+  allPlans?: Plan[];
   isCurrentPlan?: boolean;
   onSelect: (planId: string) => void;
 }
 
-function savingsBadge(plan: Plan, allPlans: Plan[]): string | null {
-  if (plan.interval !== 'year') return null;
-  const monthly = allPlans.find(
-    (p) => p.interval === 'month' && p.maxProfiles === plan.maxProfiles,
-  );
-  if (!monthly) return null;
-  const annualMonthly = plan.amountCents / 12;
-  const saving = Math.round((1 - annualMonthly / monthly.amountCents) * 100);
-  return saving > 0 ? `Save ${saving}%` : null;
-}
-
-const FEATURES: Record<number, string[]> = {
-  1: ['Unlimited books', 'Phrase-sync reader', 'Fragment sheets', 'Quote card sharing'],
-  2: ['Everything in Individual', '2 simultaneous profiles', 'Shared library'],
-};
-
-export default function PlanCard({ plan, isCurrentPlan = false, onSelect }: PlanCardProps) {
+export default function PlanCard({ plan, allPlans = [], isCurrentPlan = false, onSelect }: PlanCardProps) {
   const [loading, setLoading] = useState(false);
 
-  const price = (plan.amountCents / 100).toFixed(2);
-  const period = plan.interval === 'year' ? '/yr' : '/mo';
-  const features = FEATURES[plan.maxProfiles] ?? FEATURES[1];
+  const { price, period } = formatPrice(plan.amountCents, plan.interval);
+  const features = getPlanFeatures(plan.maxProfiles);
+  const badge = allPlans.length ? savingsBadge(plan, allPlans) : null;
 
   async function handleSelect() {
     setLoading(true);
@@ -53,6 +33,11 @@ export default function PlanCard({ plan, isCurrentPlan = false, onSelect }: Plan
       {isCurrentPlan && (
         <span className="absolute top-3 right-3 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
           Current plan
+        </span>
+      )}
+      {badge && (
+        <span className="absolute top-3 left-3 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+          {badge}
         </span>
       )}
       <div>
