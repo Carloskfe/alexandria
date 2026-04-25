@@ -71,4 +71,4 @@
 - [ ] 9.7 Open reader in browser: click one phrase then another → popover appears; save → spans turn blue
 - [ ] 9.8 Open Fragment Sheet drawer → saved fragment appears; delete works; combine works
 - [x] 9.9 All api and web tests still pass after all changes
-- [ ] 9.10 Commit and push all changes to GitHub
+- [x] 9.10 Commit and push all changes to GitHub
