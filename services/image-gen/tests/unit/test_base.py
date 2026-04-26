@@ -169,6 +169,26 @@ def test_render_card_dark_bg_uses_light_text():
     assert _png_dimensions(result) == (800, 800)
 
 
+def test_render_card_text_color_override_bypasses_luminance():
+    result = render_card(_FRAGMENT, 800, 800, bg_colors=['#FFFFFF'], text_color_override='#FF0000')
+    assert _png_dimensions(result) == (800, 800)
+
+
+def test_render_card_text_color_override_on_dark_bg():
+    result = render_card(_FRAGMENT, 800, 800, bg_colors=['#000000'], text_color_override='#FF6B6B')
+    assert _png_dimensions(result) == (800, 800)
+
+
+def test_render_card_no_override_preserves_auto_luminance_dark():
+    result = render_card(_FRAGMENT, 800, 800, bg_colors=['#000000'], text_color_override=None)
+    assert _png_dimensions(result) == (800, 800)
+
+
+def test_render_card_no_override_preserves_auto_luminance_light():
+    result = render_card(_FRAGMENT, 800, 800, bg_colors=['#FFFFFF'], text_color_override=None)
+    assert _png_dimensions(result) == (800, 800)
+
+
 def test_render_card_falls_back_to_default_font_on_missing_file():
     from templates import base as base_module
     original = base_module.VALID_FONTS.copy()

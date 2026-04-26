@@ -42,6 +42,13 @@ def test_render_story_falls_back_to_post_dimensions():
     assert h == 627
 
 
+def test_render_twitter_card_dimensions_are_1200x675():
+    result = render({}, format='twitter-card')
+    w, h = _png_dimensions(result)
+    assert w == 1200
+    assert h == 675
+
+
 def test_render_default_format_is_post():
     result = render({})
     w, h = _png_dimensions(result)

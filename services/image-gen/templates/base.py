@@ -80,12 +80,13 @@ def render_card(
     font: str = 'lato',
     bg_type: str = 'solid',
     bg_colors: list | None = None,
+    text_color_override: str | None = None,
 ) -> bytes:
     if bg_colors is None:
         bg_colors = ['#0D1B2A']
 
     font_path = VALID_FONTS.get(font, VALID_FONTS['lato'])
-    text_color = text_color_for_bg(bg_colors)
+    text_color = parse_hex_color(text_color_override) if text_color_override else text_color_for_bg(bg_colors)
     attr_color = tuple(min(255, c + 60) for c in text_color) if text_color == _DARK_NAVY \
         else (176, 186, 197)
     rule_color = attr_color

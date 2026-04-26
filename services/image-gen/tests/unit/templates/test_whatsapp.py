@@ -71,6 +71,20 @@ def test_render_draws_quote_text():
     assert "Cita" in all_text or "WhatsApp" in all_text
 
 
+def test_render_wa_pic_dimensions_are_1080x1080():
+    result = render({}, format='wa-pic')
+    w, h = _png_dimensions(result)
+    assert w == 1080
+    assert h == 1080
+
+
+def test_render_wa_story_dimensions_are_1080x1920():
+    result = render({}, format='wa-story')
+    w, h = _png_dimensions(result)
+    assert w == 1080
+    assert h == 1920
+
+
 def test_render_draws_attribution():
     fragment = {"text": "Quote", "author": "Autor WA", "title": "Libro WA"}
     with patch("templates.base.ImageDraw") as mock_draw_module:

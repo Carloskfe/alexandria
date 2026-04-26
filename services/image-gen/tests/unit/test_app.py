@@ -149,10 +149,34 @@ def test_generate_story_format_returns_200(client):
 
 
 def test_generate_unknown_format_returns_400(client):
-    body = {**_VALID_BODY, "format": "reel"}
+    body = {**_VALID_BODY, "format": "tiktok-story"}
     resp = client.post("/generate", json=body)
     assert resp.status_code == 400
-    assert "unsupported format" in resp.get_json()["error"]
+    assert "unsupported format: tiktok-story" in resp.get_json()["error"]
+
+
+def test_generate_reel_format_returns_200(client):
+    with patch("app.MinioClient", return_value=_patched_minio()):
+        resp = client.post("/generate", json={**_VALID_BODY, "platform": "instagram", "format": "reel"})
+    assert resp.status_code == 200
+
+
+def test_generate_wa_pic_format_returns_200(client):
+    with patch("app.MinioClient", return_value=_patched_minio()):
+        resp = client.post("/generate", json={**_VALID_BODY, "platform": "whatsapp", "format": "wa-pic"})
+    assert resp.status_code == 200
+
+
+def test_generate_wa_story_format_returns_200(client):
+    with patch("app.MinioClient", return_value=_patched_minio()):
+        resp = client.post("/generate", json={**_VALID_BODY, "platform": "whatsapp", "format": "wa-story"})
+    assert resp.status_code == 200
+
+
+def test_generate_twitter_card_format_returns_200(client):
+    with patch("app.MinioClient", return_value=_patched_minio()):
+        resp = client.post("/generate", json={**_VALID_BODY, "platform": "linkedin", "format": "twitter-card"})
+    assert resp.status_code == 200
 
 
 # ── /generate — param pass-through ───────────────────────────────────────────
@@ -187,6 +211,32 @@ def test_generate_defaults_applied_when_optional_params_omitted(client):
     assert kwargs["font"] == "lato"
     assert kwargs["bg_type"] == "solid"
     assert kwargs["bg_colors"] == ["#0D1B2A"]
+
+
+# ── /generate — textColor param ──────────────────────────────────────────────
+
+def test_generate_with_text_color_returns_200(client):
+    with patch("app.MinioClient", return_value=_patched_minio()):
+        resp = client.post("/generate", json={**_VALID_BODY, "textColor": "#FF0000"})
+    assert resp.status_code == 200
+
+
+def test_generate_text_color_forwarded_to_renderer(client):
+    mock_render = MagicMock(return_value=b"\x89PNG\r\n\x1a\n" + b"\x00" * 100)
+    with patch("app.MinioClient", return_value=_patched_minio()), \
+         patch.dict("app._RENDERERS", {"linkedin": mock_render}):
+        client.post("/generate", json={**_VALID_BODY, "textColor": "#FF0000"})
+    _, kwargs = mock_render.call_args
+    assert kwargs["text_color_override"] == "#FF0000"
+
+
+def test_generate_without_text_color_passes_none(client):
+    mock_render = MagicMock(return_value=b"\x89PNG\r\n\x1a\n" + b"\x00" * 100)
+    with patch("app.MinioClient", return_value=_patched_minio()), \
+         patch.dict("app._RENDERERS", {"linkedin": mock_render}):
+        client.post("/generate", json=_VALID_BODY)
+    _, kwargs = mock_render.call_args
+    assert kwargs["text_color_override"] is None
 
 
 # ── /generate — error handling ────────────────────────────────────────────────

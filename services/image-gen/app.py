@@ -14,7 +14,7 @@ _RENDERERS = {
 }
 
 _REQUIRED_FIELDS = ("text", "author", "title", "platform")
-_VALID_FORMATS = {"post", "story"}
+_VALID_FORMATS = {"post", "story", "wa-pic", "wa-story", "reel", "twitter-card"}
 
 
 @app.get("/health")
@@ -51,6 +51,8 @@ def generate():
     if not isinstance(bg_colors, list) or not bg_colors:
         return jsonify({"error": "bgColors must be a non-empty array"}), 400
 
+    text_color = body.get("textColor") or None
+
     fragment = {
         "text":   body["text"],
         "author": body["author"],
@@ -59,7 +61,8 @@ def generate():
 
     try:
         png_bytes = renderer(fragment, format=fmt, font=font,
-                             bg_type=bg_type, bg_colors=bg_colors)
+                             bg_type=bg_type, bg_colors=bg_colors,
+                             text_color_override=text_color)
         client = MinioClient()
         url = client.upload(png_bytes)
     except Exception:

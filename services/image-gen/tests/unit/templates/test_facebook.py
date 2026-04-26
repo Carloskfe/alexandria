@@ -42,6 +42,13 @@ def test_render_story_dimensions_are_1080x1920():
     assert h == 1920
 
 
+def test_render_reel_dimensions_are_1080x1920():
+    result = render({}, format='reel')
+    w, h = _png_dimensions(result)
+    assert w == 1080
+    assert h == 1920
+
+
 def test_render_default_format_is_post():
     result = render({})
     w, h = _png_dimensions(result)
