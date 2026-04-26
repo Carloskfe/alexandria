@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   FORMAT_PLATFORM_MAP,
   SHARE_FORMAT_LABELS,
@@ -26,12 +26,15 @@ type FontId = typeof FONTS[number]['id'];
 // ── Format aspect ratios ──────────────────────────────────────────────────────
 
 const FORMAT_ASPECT: Record<ShareFormat, string> = {
-  'ig-post':  'aspect-square',
-  'ig-story': 'aspect-[9/16]',
-  'fb-post':  'aspect-video',
-  'fb-story': 'aspect-[9/16]',
-  'li-post':  'aspect-video',
-  'wa':       'aspect-square',
+  'ig-post':      'aspect-square',
+  'ig-story':     'aspect-[9/16]',
+  'fb-post':      'aspect-video',
+  'fb-story':     'aspect-[9/16]',
+  'li-post':      'aspect-video',
+  'wa-pic':       'aspect-square',
+  'wa-story':     'aspect-[9/16]',
+  'reel':         'aspect-[9/16]',
+  'twitter-card': 'aspect-[16/9]',
 };
 
 const SHARE_FORMATS = Object.keys(FORMAT_PLATFORM_MAP) as ShareFormat[];
@@ -56,14 +59,20 @@ export default function ShareModal({
   const [selectedFont, setSelectedFont] = useState<FontId>('lato');
   const [bgType, setBgType] = useState<'solid' | 'gradient'>('solid');
   const [bgColors, setBgColors] = useState<[string, string]>(['#0D1B2A', '#1A4A4A']);
+  const [textColorOverride, setTextColorOverride] = useState<string | null>(null);
   const [captionEnabled, setCaptionEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [connectedPlatforms, setConnectedPlatforms] = useState<Set<string>>(new Set());
+  const [publishingPlatform, setPublishingPlatform] = useState<string | null>(null);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [publishToast, setPublishToast] = useState<{ platform: string; postUrl: string } | null>(null);
   const downloadRef = useRef<HTMLAnchorElement>(null);
 
   const activeBgColors = bgType === 'gradient' ? [bgColors[0], bgColors[1]] : [bgColors[0]];
-  const textColor = getTextColor(activeBgColors);
+  const autoTextColor = getTextColor(activeBgColors);
+  const textColor = textColorOverride ?? autoTextColor;
   const fontCss = FONTS.find((f) => f.id === selectedFont)?.css ?? "'Lato', sans-serif";
 
   const previewBg = bgType === 'gradient'
@@ -75,7 +84,71 @@ export default function ShareModal({
     font: selectedFont,
     bgType,
     bgColors: activeBgColors,
+    ...(textColorOverride ? { textColor: textColorOverride } : {}),
   };
+
+  useEffect(() => {
+    const platforms = ['linkedin', 'facebook', 'instagram'];
+    Promise.all(
+      platforms.map((p) =>
+        fetch(`/api/social/${p}/status`, { credentials: 'include' })
+          .then((r) => (r.ok ? r.json() : { connected: false }))
+          .then((d: { connected: boolean }) => ({ p, connected: d.connected }))
+          .catch(() => ({ p, connected: false })),
+      ),
+    ).then((results) => {
+      setConnectedPlatforms(
+        new Set(results.filter((r) => r.connected).map((r) => r.p)),
+      );
+    });
+  }, []);
+
+  const handleConnect = useCallback((platform: string) => {
+    const popup = window.open(
+      `/api/social/${platform}/connect`,
+      'oauth',
+      'width=600,height=700,noopener',
+    );
+    const check = setInterval(() => {
+      if (popup?.closed) {
+        clearInterval(check);
+        fetch(`/api/social/${platform}/status`, { credentials: 'include' })
+          .then((r) => r.json())
+          .then((d: { connected: boolean }) => {
+            if (d.connected) {
+              setConnectedPlatforms((prev) => new Set([...prev, platform]));
+            }
+          })
+          .catch(() => undefined);
+      }
+    }, 500);
+  }, []);
+
+  const handlePublish = useCallback(
+    async (platform: string) => {
+      setPublishingPlatform(platform);
+      setPublishError(null);
+      setPublishToast(null);
+      try {
+        const url = await shareFragment(fragmentId, params);
+        const res = await fetch(`/api/social/${platform}/publish`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ imageUrl: url, caption: captionEnabled ? note : undefined }),
+        });
+        if (!res.ok) throw new Error('publish_failed');
+        const data = (await res.json()) as { postUrl: string };
+        setPublishToast({ platform, postUrl: data.postUrl });
+        setTimeout(() => setPublishToast(null), 6000);
+      } catch {
+        setPublishError('No se pudo publicar. Intenta de nuevo.');
+      } finally {
+        setPublishingPlatform(null);
+      }
+    },
+    [fragmentId, params, captionEnabled, note],
+  );
 
   const generate = useCallback(async (): Promise<string | null> => {
     setLoading(true);
@@ -183,14 +256,14 @@ export default function ShareModal({
                     onClick={() => setSelectedFont(f.id)}
                     title={f.label}
                     className={[
-                      'w-12 h-10 rounded-lg border text-sm transition',
+                      'w-16 h-10 rounded-lg border overflow-hidden transition',
                       selectedFont === f.id
-                        ? 'border-blue-500 bg-blue-50'
+                        ? 'border-blue-500 ring-1 ring-blue-400'
                         : 'border-gray-200 hover:border-blue-200',
                     ].join(' ')}
-                    style={{ fontFamily: f.css }}
                   >
-                    Aa
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={`/presets/${f.id}.png`} alt={f.label} className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
@@ -242,6 +315,30 @@ export default function ShareModal({
               </div>
             </div>
 
+            {/* ── Text color picker ────────────────────────────────────── */}
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Color del texto</p>
+              <div className="flex items-center gap-3">
+                <label className="flex items-center gap-1.5 text-xs text-gray-600">
+                  <input
+                    type="color"
+                    value={textColor}
+                    onChange={(e) => setTextColorOverride(e.target.value)}
+                    className="w-8 h-8 rounded cursor-pointer border border-gray-200"
+                  />
+                  <span>{textColor.toUpperCase()}</span>
+                </label>
+                {textColorOverride && (
+                  <button
+                    onClick={() => setTextColorOverride(null)}
+                    className="text-xs text-blue-500 hover:underline"
+                  >
+                    Restablecer
+                  </button>
+                )}
+              </div>
+            </div>
+
             {/* ── Caption ──────────────────────────────────────────────── */}
             {note && (
               <div className="border border-gray-100 rounded-xl p-3 space-y-2">
@@ -283,6 +380,50 @@ export default function ShareModal({
                 {loading ? <SpinnerIcon /> : <CopyIcon />}
                 {copied ? '¡Copiado!' : 'Copiar enlace'}
               </button>
+            </div>
+
+            {/* ── Social publish ────────────────────────────────────────── */}
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Publicar</p>
+              <div className="space-y-2">
+                {(['linkedin', 'facebook', 'instagram'] as const).map((platform) => {
+                  const connected = connectedPlatforms.has(platform);
+                  const isPublishing = publishingPlatform === platform;
+                  const igDisabled = platform === 'instagram' && process.env.NEXT_PUBLIC_INSTAGRAM_PUBLISH_ENABLED !== 'true';
+                  const label = platform.charAt(0).toUpperCase() + platform.slice(1);
+                  return (
+                    <div key={platform} className="flex items-center gap-3">
+                      <span className="w-20 text-xs text-gray-600 capitalize">{label}</span>
+                      {connected ? (
+                        <button
+                          onClick={() => handlePublish(platform)}
+                          disabled={isPublishing || igDisabled}
+                          title={igDisabled ? 'Pendiente aprobación' : undefined}
+                          className="flex-1 text-xs py-1.5 rounded-lg border border-green-400 bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50 transition"
+                        >
+                          {isPublishing ? <SpinnerIcon /> : 'Compartir ahora'}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleConnect(platform)}
+                          className="flex-1 text-xs py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:border-blue-200 hover:bg-blue-50 transition"
+                        >
+                          Conectar cuenta
+                        </button>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {publishError && <p className="text-xs text-red-500 mt-2">{publishError}</p>}
+              {publishToast && (
+                <p className="text-xs text-green-700 mt-2">
+                  ¡Publicado en {publishToast.platform.charAt(0).toUpperCase() + publishToast.platform.slice(1)}!{' '}
+                  <a href={publishToast.postUrl} target="_blank" rel="noopener noreferrer" className="underline">
+                    Ver publicación
+                  </a>
+                </p>
+              )}
             </div>
           </div>
         </div>

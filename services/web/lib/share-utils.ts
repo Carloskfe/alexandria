@@ -1,24 +1,36 @@
 import { apiFetch } from './api';
 
-export type SharePlatform = 'linkedin' | 'instagram' | 'facebook' | 'whatsapp';
-export type ShareFormat = 'ig-post' | 'ig-story' | 'fb-post' | 'fb-story' | 'li-post' | 'wa';
+export type SharePlatform = 'linkedin' | 'instagram' | 'facebook' | 'whatsapp' | 'twitter';
+export type ShareFormat =
+  | 'ig-post' | 'ig-story'
+  | 'fb-post' | 'fb-story'
+  | 'li-post'
+  | 'wa-pic' | 'wa-story'
+  | 'reel'
+  | 'twitter-card';
 
 export const FORMAT_PLATFORM_MAP: Record<ShareFormat, { platform: SharePlatform; format: string }> = {
-  'ig-post':  { platform: 'instagram', format: 'post' },
-  'ig-story': { platform: 'instagram', format: 'story' },
-  'fb-post':  { platform: 'facebook',  format: 'post' },
-  'fb-story': { platform: 'facebook',  format: 'story' },
-  'li-post':  { platform: 'linkedin',  format: 'post' },
-  'wa':       { platform: 'whatsapp',  format: 'post' },
+  'ig-post':      { platform: 'instagram', format: 'post' },
+  'ig-story':     { platform: 'instagram', format: 'story' },
+  'fb-post':      { platform: 'facebook',  format: 'post' },
+  'fb-story':     { platform: 'facebook',  format: 'story' },
+  'li-post':      { platform: 'linkedin',  format: 'post' },
+  'wa-pic':       { platform: 'whatsapp',  format: 'wa-pic' },
+  'wa-story':     { platform: 'whatsapp',  format: 'wa-story' },
+  'reel':         { platform: 'instagram', format: 'reel' },
+  'twitter-card': { platform: 'twitter',   format: 'twitter-card' },
 };
 
 export const SHARE_FORMAT_LABELS: Record<ShareFormat, string> = {
-  'ig-post':  'IG Post',
-  'ig-story': 'IG Story',
-  'fb-post':  'FB Post',
-  'fb-story': 'FB Story',
-  'li-post':  'LinkedIn',
-  'wa':       'WhatsApp',
+  'ig-post':      'IG Post',
+  'ig-story':     'IG Story',
+  'fb-post':      'FB Post',
+  'fb-story':     'FB Story',
+  'li-post':      'LinkedIn',
+  'wa-pic':       'WA Pic',
+  'wa-story':     'WA Story',
+  'reel':         'Reel',
+  'twitter-card': 'Twitter/X',
 };
 
 export interface ShareParams {
@@ -26,6 +38,7 @@ export interface ShareParams {
   font: string;
   bgType: 'solid' | 'gradient';
   bgColors: string[];
+  textColor?: string;
 }
 
 export async function shareFragment(fragmentId: string, params: ShareParams): Promise<string> {
@@ -38,6 +51,7 @@ export async function shareFragment(fragmentId: string, params: ShareParams): Pr
       font: params.font,
       bgType: params.bgType,
       bgColors: params.bgColors,
+      ...(params.textColor ? { textColor: params.textColor } : {}),
     }),
   });
   return data.url as string;

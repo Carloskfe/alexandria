@@ -22,10 +22,13 @@ beforeEach(() => {
 // ── FORMAT_PLATFORM_MAP ────────────────────────────────────────────────────────
 
 describe('FORMAT_PLATFORM_MAP', () => {
-  it('covers all six share formats', () => {
+  it('covers all nine share formats', () => {
     const keys = Object.keys(FORMAT_PLATFORM_MAP);
-    expect(keys).toEqual(expect.arrayContaining(['ig-post', 'ig-story', 'fb-post', 'fb-story', 'li-post', 'wa']));
-    expect(keys).toHaveLength(6);
+    expect(keys).toEqual(expect.arrayContaining([
+      'ig-post', 'ig-story', 'fb-post', 'fb-story', 'li-post',
+      'wa-pic', 'wa-story', 'reel', 'twitter-card',
+    ]));
+    expect(keys).toHaveLength(9);
   });
 
   it('maps ig-story to instagram story', () => {
@@ -42,8 +45,11 @@ describe('FORMAT_PLATFORM_MAP', () => {
 });
 
 describe('SHARE_FORMAT_LABELS', () => {
-  it('has a label for all six formats', () => {
-    const formats: ShareFormat[] = ['ig-post', 'ig-story', 'fb-post', 'fb-story', 'li-post', 'wa'];
+  it('has a label for all nine formats', () => {
+    const formats: ShareFormat[] = [
+      'ig-post', 'ig-story', 'fb-post', 'fb-story', 'li-post',
+      'wa-pic', 'wa-story', 'reel', 'twitter-card',
+    ];
     formats.forEach((f) => {
       expect(typeof SHARE_FORMAT_LABELS[f]).toBe('string');
       expect(SHARE_FORMAT_LABELS[f].length).toBeGreaterThan(0);

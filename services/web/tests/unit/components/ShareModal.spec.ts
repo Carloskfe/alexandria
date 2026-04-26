@@ -27,24 +27,34 @@ beforeEach(() => {
 // ── Format aspect ratio coverage (via FORMAT_PLATFORM_MAP) ───────────────────
 
 describe('FORMAT_PLATFORM_MAP completeness', () => {
-  const formats: ShareFormat[] = ['ig-post', 'ig-story', 'fb-post', 'fb-story', 'li-post', 'wa'];
+  const formats: ShareFormat[] = [
+    'ig-post', 'ig-story', 'fb-post', 'fb-story', 'li-post',
+    'wa-pic', 'wa-story', 'reel', 'twitter-card',
+  ];
 
-  it('has entries for all 6 share formats', () => {
+  it('has entries for all 9 share formats', () => {
     formats.forEach((f) => {
       expect(FORMAT_PLATFORM_MAP[f]).toBeDefined();
     });
   });
 
+  it('wa is no longer in the map', () => {
+    expect((FORMAT_PLATFORM_MAP as Record<string, unknown>)['wa']).toBeUndefined();
+  });
+
   it('story formats map to story format string', () => {
     expect(FORMAT_PLATFORM_MAP['ig-story'].format).toBe('story');
     expect(FORMAT_PLATFORM_MAP['fb-story'].format).toBe('story');
+    expect(FORMAT_PLATFORM_MAP['wa-story'].format).toBe('wa-story');
   });
 
-  it('post formats map to post format string', () => {
+  it('post formats map to correct format strings', () => {
     expect(FORMAT_PLATFORM_MAP['ig-post'].format).toBe('post');
     expect(FORMAT_PLATFORM_MAP['fb-post'].format).toBe('post');
     expect(FORMAT_PLATFORM_MAP['li-post'].format).toBe('post');
-    expect(FORMAT_PLATFORM_MAP['wa'].format).toBe('post');
+    expect(FORMAT_PLATFORM_MAP['wa-pic'].format).toBe('wa-pic');
+    expect(FORMAT_PLATFORM_MAP['reel'].format).toBe('reel');
+    expect(FORMAT_PLATFORM_MAP['twitter-card'].format).toBe('twitter-card');
   });
 });
 
@@ -53,6 +63,49 @@ describe('SHARE_FORMAT_LABELS', () => {
     (Object.keys(FORMAT_PLATFORM_MAP) as ShareFormat[]).forEach((f) => {
       expect(SHARE_FORMAT_LABELS[f]).toBeTruthy();
     });
+  });
+
+  it('has 9 format labels', () => {
+    expect(Object.keys(SHARE_FORMAT_LABELS)).toHaveLength(9);
+  });
+});
+
+// ── social publish: shareFragment with textColor + platform ──────────────────
+
+describe('shareFragment with social publish params', () => {
+  const defaultParams = {
+    format: 'ig-post' as ShareFormat,
+    font: 'lato',
+    bgType: 'solid' as const,
+    bgColors: ['#0D1B2A'],
+  };
+
+  afterEach(() => jest.restoreAllMocks());
+
+  it('sends textColor when provided via params', async () => {
+    global.fetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ url: 'http://example.com/card.png' }),
+    } as Response);
+
+    await shareFragment('frag-1', { ...defaultParams, textColor: '#FF6B6B' });
+
+    const [, init] = (global.fetch as jest.Mock).mock.calls[0];
+    const body = JSON.parse(init.body);
+    expect(body.textColor).toBe('#FF6B6B');
+  });
+
+  it('omits textColor when not in params', async () => {
+    global.fetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ url: 'http://example.com/card.png' }),
+    } as Response);
+
+    await shareFragment('frag-1', defaultParams);
+
+    const [, init] = (global.fetch as jest.Mock).mock.calls[0];
+    const body = JSON.parse(init.body);
+    expect(body).not.toHaveProperty('textColor');
   });
 });
 
@@ -121,6 +174,62 @@ describe('shareFragment', () => {
     expect(body.format).toBe('post');
   });
 
+  it('sends wa-pic format and platform=whatsapp for wa-pic', async () => {
+    global.fetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ url: 'http://example.com/card.png' }),
+    } as Response);
+
+    await shareFragment('frag-1', { ...defaultParams, format: 'wa-pic' });
+
+    const [, init] = (global.fetch as jest.Mock).mock.calls[0];
+    const body = JSON.parse(init.body);
+    expect(body.platform).toBe('whatsapp');
+    expect(body.format).toBe('wa-pic');
+  });
+
+  it('sends wa-story format and platform=whatsapp for wa-story', async () => {
+    global.fetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ url: 'http://example.com/card.png' }),
+    } as Response);
+
+    await shareFragment('frag-1', { ...defaultParams, format: 'wa-story' });
+
+    const [, init] = (global.fetch as jest.Mock).mock.calls[0];
+    const body = JSON.parse(init.body);
+    expect(body.platform).toBe('whatsapp');
+    expect(body.format).toBe('wa-story');
+  });
+
+  it('sends reel format and platform=instagram for reel', async () => {
+    global.fetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ url: 'http://example.com/card.png' }),
+    } as Response);
+
+    await shareFragment('frag-1', { ...defaultParams, format: 'reel' });
+
+    const [, init] = (global.fetch as jest.Mock).mock.calls[0];
+    const body = JSON.parse(init.body);
+    expect(body.platform).toBe('instagram');
+    expect(body.format).toBe('reel');
+  });
+
+  it('sends twitter-card format and platform=twitter for twitter-card', async () => {
+    global.fetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ url: 'http://example.com/card.png' }),
+    } as Response);
+
+    await shareFragment('frag-1', { ...defaultParams, format: 'twitter-card' });
+
+    const [, init] = (global.fetch as jest.Mock).mock.calls[0];
+    const body = JSON.parse(init.body);
+    expect(body.platform).toBe('twitter');
+    expect(body.format).toBe('twitter-card');
+  });
+
   it('sends format=story and platform=instagram for ig-story', async () => {
     global.fetch = jest.fn().mockResolvedValueOnce({
       ok: true,
@@ -152,6 +261,32 @@ describe('shareFragment', () => {
     const body = JSON.parse(init.body);
     expect(body.bgType).toBe('gradient');
     expect(body.bgColors).toEqual(['#FF0000', '#0000FF']);
+  });
+
+  it('includes textColor in payload when provided', async () => {
+    global.fetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ url: 'http://example.com/card.png' }),
+    } as Response);
+
+    await shareFragment('frag-1', { ...defaultParams, textColor: '#FF6B6B' });
+
+    const [, init] = (global.fetch as jest.Mock).mock.calls[0];
+    const body = JSON.parse(init.body);
+    expect(body.textColor).toBe('#FF6B6B');
+  });
+
+  it('omits textColor from payload when not provided', async () => {
+    global.fetch = jest.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ url: 'http://example.com/card.png' }),
+    } as Response);
+
+    await shareFragment('frag-1', defaultParams);
+
+    const [, init] = (global.fetch as jest.Mock).mock.calls[0];
+    const body = JSON.parse(init.body);
+    expect(body).not.toHaveProperty('textColor');
   });
 
   it('throws on API failure', async () => {
