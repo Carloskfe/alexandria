@@ -6,7 +6,7 @@ import { Fragment } from '../fragments/fragment.entity';
 export class SharingService {
   private readonly imageGenUrl = process.env.IMAGE_GEN_URL ?? 'http://image-gen:5000';
 
-  async generateShareUrl(fragment: Fragment, book: Book, platform: string): Promise<string> {
+  async generateShareUrl(fragment: Fragment, book: Book, platform: string, style = 'classic'): Promise<string> {
     const response = await fetch(`${this.imageGenUrl}/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -15,6 +15,7 @@ export class SharingService {
         author: book.author,
         title: book.title,
         platform,
+        style,
       }),
     });
 

@@ -9,10 +9,10 @@ export const SHARE_PLATFORMS: { id: SharePlatform; label: string }[] = [
   { id: 'whatsapp', label: 'WhatsApp' },
 ];
 
-export async function shareFragment(fragmentId: string, platform: SharePlatform): Promise<string> {
+export async function shareFragment(fragmentId: string, platform: SharePlatform, style: string): Promise<string> {
   const data = await apiFetch(`/fragments/${fragmentId}/share`, {
     method: 'POST',
-    body: JSON.stringify({ platform }),
+    body: JSON.stringify({ platform, style }),
   });
   return data.url as string;
 }

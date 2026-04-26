@@ -101,7 +101,6 @@ export default function ReaderPage() {
         if (syncMapData?.phrases) setPhrases(syncMapData.phrases);
         const saved = progressData?.phraseIndex ?? 0;
         setSavedPhraseIndex(saved);
-        setActivePhraseIndex(saved > 0 ? saved : -1);
         setFragments(fragmentsData ?? []);
 
         if (bookData.textFileUrl && !syncMapData?.phrases?.length) {

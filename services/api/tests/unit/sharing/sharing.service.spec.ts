@@ -9,8 +9,8 @@ const mockFragment = (): Partial<Fragment> => ({
   userId: 'user-1',
   bookId: 'book-1',
   text: 'El conocimiento es poder.',
-  startPhraseIndex: 0,
-  endPhraseIndex: 3,
+  startPhraseIndex: null,
+  endPhraseIndex: null,
   note: null,
 });
 
@@ -52,7 +52,32 @@ describe('SharingService', () => {
       expect(result).toBe(expectedUrl);
     });
 
-    it('sends correct payload to image-gen', async () => {
+    it('sends correct payload to image-gen including style', async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ url: 'http://example.com/img.png' }),
+      } as Response);
+
+      await service.generateShareUrl(
+        mockFragment() as Fragment,
+        mockBook() as Book,
+        'instagram',
+        'warm',
+      );
+
+      const [url, options] = (global.fetch as jest.Mock).mock.calls[0];
+      expect(url).toContain('/generate');
+      const body = JSON.parse(options.body);
+      expect(body).toMatchObject({
+        text: 'El conocimiento es poder.',
+        author: 'Francis Bacon',
+        title: 'Meditationes Sacrae',
+        platform: 'instagram',
+        style: 'warm',
+      });
+    });
+
+    it('defaults style to classic when not provided', async () => {
       global.fetch = jest.fn().mockResolvedValueOnce({
         ok: true,
         json: async () => ({ url: 'http://example.com/img.png' }),
@@ -64,15 +89,9 @@ describe('SharingService', () => {
         'instagram',
       );
 
-      const [url, options] = (global.fetch as jest.Mock).mock.calls[0];
-      expect(url).toContain('/generate');
+      const [, options] = (global.fetch as jest.Mock).mock.calls[0];
       const body = JSON.parse(options.body);
-      expect(body).toMatchObject({
-        text: 'El conocimiento es poder.',
-        author: 'Francis Bacon',
-        title: 'Meditationes Sacrae',
-        platform: 'instagram',
-      });
+      expect(body.style).toBe('classic');
     });
 
     it('throws BadGatewayException when image-gen returns non-200', async () => {

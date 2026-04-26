@@ -5,10 +5,11 @@ import { copyToClipboard } from '@/lib/share-utils';
 
 type Props = {
   url: string;
+  note: string | null;
   onClose: () => void;
 };
 
-export default function SharePreviewModal({ url, onClose }: Props) {
+export default function SharePreviewModal({ url, note, onClose }: Props) {
   const [copied, setCopied] = useState(false);
 
   async function handleCopy() {
@@ -40,6 +41,14 @@ export default function SharePreviewModal({ url, onClose }: Props) {
             className="max-h-72 w-auto rounded-lg shadow-md"
           />
         </div>
+
+        {/* Suggested caption */}
+        {note && (
+          <div className="px-5 pt-3 pb-1">
+            <p className="text-xs font-medium text-gray-500 mb-1">Texto sugerido para el comentario</p>
+            <p className="text-sm text-gray-700 bg-gray-50 rounded-lg px-3 py-2 leading-snug">{note}</p>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex gap-3 px-5 py-4">

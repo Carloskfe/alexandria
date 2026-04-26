@@ -3,52 +3,80 @@
 import { useState } from 'react';
 import { SHARE_PLATFORMS, SharePlatform, shareFragment } from '@/lib/share-utils';
 
+const STYLES = [
+  { id: 'classic', label: 'Clásico',  desc: 'Azul marino · Dorado',   bg: '#0D1B2A', fg: '#C9A84C' },
+  { id: 'light',   label: 'Claro',    desc: 'Blanco · Elegante',       bg: '#FFFFFF', fg: '#0D1B2A' },
+  { id: 'dark',    label: 'Oscuro',   desc: 'Negro · Minimalista',     bg: '#000000', fg: '#FFFFFF' },
+  { id: 'warm',    label: 'Cálido',   desc: 'Ámbar · Tierra',          bg: '#F5E6C8', fg: '#7B4B1A' },
+  { id: 'bold',    label: 'Audaz',    desc: 'Esmeralda · Crema',       bg: '#1A4A4A', fg: '#F0E6D0' },
+] as const;
+
+type StyleId = typeof STYLES[number]['id'];
+
 type Props = {
   fragmentId: string;
+  note: string | null;
   onClose: () => void;
-  onSuccess: (url: string) => void;
+  onSuccess: (url: string, note: string | null) => void;
 };
 
-export default function SharePicker({ fragmentId, onClose, onSuccess }: Props) {
+export default function SharePicker({ fragmentId, note, onClose, onSuccess }: Props) {
+  const [step, setStep] = useState<'platform' | 'style'>('platform');
+  const [platform, setPlatform] = useState<SharePlatform | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handlePlatform(platform: SharePlatform) {
+  async function handleStylePick(styleId: StyleId) {
+    if (!platform) return;
     setLoading(true);
     setError(null);
     try {
-      const url = await shareFragment(fragmentId, platform);
-      onSuccess(url);
+      const url = await shareFragment(fragmentId, platform, styleId);
+      onSuccess(url, note);
     } catch {
       setError('No se pudo generar la imagen');
-    } finally {
       setLoading(false);
     }
+  }
+
+  function handlePlatformPick(p: SharePlatform) {
+    setPlatform(p);
+    setStep('style');
   }
 
   return (
     <div className="fixed inset-0 bg-black/40 z-[60] flex items-center justify-center" onClick={onClose}>
       <div
-        className="bg-white rounded-2xl shadow-2xl p-6 w-72 space-y-4"
+        className="bg-white rounded-2xl shadow-2xl p-6 w-80 space-y-4"
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Header */}
         <div className="flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-gray-900">Compartir en</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          {step === 'style' ? (
+            <button
+              onClick={() => setStep('platform')}
+              className="text-gray-400 hover:text-gray-600 flex items-center gap-1 text-sm"
+            >
+              <ChevronLeftIcon /> Volver
+            </button>
+          ) : (
+            <h3 className="text-sm font-semibold text-gray-900">Compartir en</h3>
+          )}
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 ml-auto">
             <XIcon />
           </button>
         </div>
 
         {loading ? (
-          <div className="flex justify-center py-4">
+          <div className="flex justify-center py-6">
             <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : (
+        ) : step === 'platform' ? (
           <div className="grid grid-cols-2 gap-2">
             {SHARE_PLATFORMS.map(({ id, label }) => (
               <button
                 key={id}
-                onClick={() => handlePlatform(id)}
+                onClick={() => handlePlatformPick(id)}
                 className="flex flex-col items-center justify-center gap-1 rounded-xl border border-gray-100 p-3 hover:bg-blue-50 hover:border-blue-200 transition text-sm text-gray-700"
                 aria-label={label}
               >
@@ -57,6 +85,35 @@ export default function SharePicker({ fragmentId, onClose, onSuccess }: Props) {
               </button>
             ))}
           </div>
+        ) : (
+          <>
+            <p className="text-xs text-gray-500 -mt-1">Elige un estilo visual</p>
+            <div className="space-y-2">
+              {STYLES.map((s) => (
+                <button
+                  key={s.id}
+                  onClick={() => handleStylePick(s.id)}
+                  className="w-full flex items-center gap-3 rounded-xl border border-gray-100 p-3 hover:border-blue-200 hover:bg-blue-50 transition text-left"
+                >
+                  <span
+                    className="w-8 h-8 rounded-lg flex-shrink-0 border border-gray-200"
+                    style={{ background: s.bg }}
+                  >
+                    <span
+                      className="w-full h-full flex items-center justify-center text-[9px] font-bold"
+                      style={{ color: s.fg }}
+                    >
+                      Aa
+                    </span>
+                  </span>
+                  <span>
+                    <span className="block text-sm font-medium text-gray-800">{s.label}</span>
+                    <span className="block text-xs text-gray-400">{s.desc}</span>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </>
         )}
 
         {error && (
@@ -67,7 +124,7 @@ export default function SharePicker({ fragmentId, onClose, onSuccess }: Props) {
   );
 }
 
-function PlatformIcon({ platform }: { platform: Platform }) {
+function PlatformIcon({ platform }: { platform: SharePlatform }) {
   const cls = 'w-6 h-6';
   if (platform === 'linkedin')
     return <svg className={cls} viewBox="0 0 24 24" fill="currentColor"><path d="M19 0H5a5 5 0 00-5 5v14a5 5 0 005 5h14a5 5 0 005-5V5a5 5 0 00-5-5zM8 19H5V8h3v11zM6.5 6.732c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zM20 19h-3v-5.604c0-3.368-4-3.113-4 0V19h-3V8h3v1.765c1.396-2.586 7-2.777 7 2.476V19z"/></svg>;
@@ -82,6 +139,14 @@ function XIcon() {
   return (
     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+  );
+}
+
+function ChevronLeftIcon() {
+  return (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
     </svg>
   );
 }

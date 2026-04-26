@@ -3,18 +3,27 @@ import textwrap
 
 from PIL import Image, ImageDraw, ImageFont
 
-BG_COLOR = (13, 27, 42)       # #0D1B2A dark navy
-WHITE = (255, 255, 255)
-GOLD = (201, 168, 76)         # #C9A84C
-MUTED = (176, 186, 197)       # #B0BAC5
+# Palette: (bg, text, rule, attr)
+_PALETTES = {
+    'classic': ((13, 27, 42),    (255, 255, 255), (201, 168, 76),  (176, 186, 197)),  # navy / white / gold
+    'light':   ((255, 255, 255), (13, 27, 42),    (59, 130, 246),  (107, 114, 128)),  # white / navy / blue
+    'dark':    ((0, 0, 0),       (255, 255, 255), (255, 255, 255), (156, 163, 175)),  # black / white / white
+    'warm':    ((245, 230, 200), (123, 75, 26),   (180, 100, 40),  (120, 80, 40)),    # cream / amber / rust
+    'bold':    ((26, 74, 74),    (240, 230, 208), (240, 230, 208), (200, 220, 210)),  # teal / cream / cream
+}
+
+VALID_STYLES = set(_PALETTES.keys())
 
 
-def render_card(fragment: dict, width: int, height: int) -> bytes:
+def render_card(fragment: dict, width: int, height: int, style: str = 'classic') -> bytes:
+    palette = _PALETTES.get(style, _PALETTES['classic'])
+    bg_color, text_color, rule_color, attr_color = palette
+
     text = fragment.get("text", "")
     author = fragment.get("author", "")
     title = fragment.get("title", "")
 
-    img = Image.new("RGB", (width, height), color=BG_COLOR)
+    img = Image.new("RGB", (width, height), color=bg_color)
     draw = ImageDraw.Draw(img)
 
     margin = int(width * 0.08)
@@ -43,18 +52,18 @@ def render_card(fragment: dict, width: int, height: int) -> bytes:
     for line in lines:
         bb = draw.textbbox((0, 0), line, font=font_quote)
         lw = bb[2] - bb[0]
-        draw.text(((width - lw) / 2, y), line, font=font_quote, fill=WHITE)
+        draw.text(((width - lw) / 2, y), line, font=font_quote, fill=text_color)
         y += line_h
 
     rule_y = int(y + rule_gap)
-    draw.line([(margin, rule_y), (width - margin, rule_y)], fill=GOLD, width=2)
+    draw.line([(margin, rule_y), (width - margin, rule_y)], fill=rule_color, width=2)
 
     attr_parts = [p for p in (author, title) if p]
     attr_text = " · ".join(attr_parts)
     if attr_text:
         attr_y = rule_y + rule_gap
         bb = draw.textbbox((0, 0), attr_text, font=font_attr)
-        draw.text(((width - (bb[2] - bb[0])) / 2, attr_y), attr_text, font=font_attr, fill=MUTED)
+        draw.text(((width - (bb[2] - bb[0])) / 2, attr_y), attr_text, font=font_attr, fill=attr_color)
 
     wm = "Alexandria"
     bb = draw.textbbox((0, 0), wm, font=font_wm)
@@ -62,7 +71,7 @@ def render_card(fragment: dict, width: int, height: int) -> bytes:
         (width - margin - (bb[2] - bb[0]), height - margin - (bb[3] - bb[1])),
         wm,
         font=font_wm,
-        fill=MUTED,
+        fill=attr_color,
     )
 
     buf = io.BytesIO()

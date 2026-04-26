@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request
 
 from storage import MinioClient
 from templates import facebook, instagram, linkedin, whatsapp
+from templates.base import VALID_STYLES
 
 app = Flask(__name__)
 
@@ -33,6 +34,10 @@ def generate():
     if renderer is None:
         return jsonify({"error": "unsupported platform"}), 400
 
+    style = (body.get("style") or "classic").lower()
+    if style not in VALID_STYLES:
+        return jsonify({"error": f"unsupported style: {style}"}), 400
+
     fragment = {
         "text": body["text"],
         "author": body["author"],
@@ -40,7 +45,7 @@ def generate():
     }
 
     try:
-        png_bytes = renderer(fragment)
+        png_bytes = renderer(fragment, style)
         client = MinioClient()
         url = client.upload(png_bytes)
     except Exception:

@@ -19,8 +19,8 @@ export default function FragmentSheet({ fragments, onClose, onDelete, onCombine,
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
   const [noteValue, setNoteValue] = useState('');
-  const [sharingFragmentId, setSharingFragmentId] = useState<string | null>(null);
-  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [sharingFragment, setSharingFragment] = useState<{ id: string; note: string | null } | null>(null);
+  const [shareResult, setShareResult] = useState<{ url: string; note: string | null } | null>(null);
 
   function toggleSelect(id: string) {
     setSelected((prev) => {
@@ -112,7 +112,7 @@ export default function FragmentSheet({ fragments, onClose, onDelete, onCombine,
                   {!multiSelect && (
                     <div className="flex flex-col gap-1 flex-shrink-0">
                       <button
-                        onClick={() => setSharingFragmentId(f.id)}
+                        onClick={() => setSharingFragment({ id: f.id, note: f.note })}
                         className="text-gray-300 hover:text-blue-500 transition"
                         aria-label="Compartir fragmento"
                       >
@@ -180,21 +180,23 @@ export default function FragmentSheet({ fragments, onClose, onDelete, onCombine,
         )}
       </aside>
 
-      {sharingFragmentId && (
+      {sharingFragment && (
         <SharePicker
-          fragmentId={sharingFragmentId}
-          onClose={() => setSharingFragmentId(null)}
-          onSuccess={(url) => {
-            setSharingFragmentId(null);
-            setShareUrl(url);
+          fragmentId={sharingFragment.id}
+          note={sharingFragment.note}
+          onClose={() => setSharingFragment(null)}
+          onSuccess={(url, note) => {
+            setSharingFragment(null);
+            setShareResult({ url, note });
           }}
         />
       )}
 
-      {shareUrl && (
+      {shareResult && (
         <SharePreviewModal
-          url={shareUrl}
-          onClose={() => setShareUrl(null)}
+          url={shareResult.url}
+          note={shareResult.note}
+          onClose={() => setShareResult(null)}
         />
       )}
     </>

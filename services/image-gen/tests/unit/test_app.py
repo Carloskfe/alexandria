@@ -67,6 +67,40 @@ def test_generate_calls_correct_renderer(client):
     mock_render.assert_called_once()
 
 
+def test_generate_passes_style_to_renderer(client):
+    mock_render = MagicMock(return_value=b"\x89PNG\r\n\x1a\n" + b"\x00" * 100)
+    with patch("app.MinioClient") as mock_client_cls, \
+         patch.dict("app._RENDERERS", {"instagram": mock_render}):
+        mock_client = MagicMock()
+        mock_client.upload.return_value = "http://example.com/img.png"
+        mock_client_cls.return_value = mock_client
+        body = {**_VALID_BODY, "platform": "instagram", "style": "warm"}
+        client.post("/generate", json=body)
+    _, kwargs = mock_render.call_args
+    assert kwargs.get("style") == "warm" or mock_render.call_args[0][1] == "warm"
+
+
+def test_generate_defaults_style_to_classic(client):
+    mock_render = MagicMock(return_value=b"\x89PNG\r\n\x1a\n" + b"\x00" * 100)
+    with patch("app.MinioClient") as mock_client_cls, \
+         patch.dict("app._RENDERERS", {"instagram": mock_render}):
+        mock_client = MagicMock()
+        mock_client.upload.return_value = "http://example.com/img.png"
+        mock_client_cls.return_value = mock_client
+        body = {**_VALID_BODY, "platform": "instagram"}
+        client.post("/generate", json=body)
+    args = mock_render.call_args
+    style_arg = args[1].get("style") if args[1] else (args[0][1] if len(args[0]) > 1 else None)
+    assert style_arg == "classic"
+
+
+def test_generate_unknown_style_returns_400(client):
+    body = {**_VALID_BODY, "style": "neon"}
+    response = client.post("/generate", json=body)
+    assert response.status_code == 400
+    assert "unsupported style" in response.get_json()["error"]
+
+
 def test_generate_unknown_platform_returns_400(client):
     body = {**_VALID_BODY, "platform": "tiktok"}
     response = client.post("/generate", json=body)
@@ -118,5 +152,15 @@ def test_generate_platform_case_insensitive(client):
         mock_client.upload.return_value = "http://example.com/img.png"
         mock_client_cls.return_value = mock_client
         body = {**_VALID_BODY, "platform": "LinkedIn"}
+        response = client.post("/generate", json=body)
+    assert response.status_code == 200
+
+
+def test_generate_style_case_insensitive(client):
+    with patch("app.MinioClient") as mock_client_cls:
+        mock_client = MagicMock()
+        mock_client.upload.return_value = "http://example.com/img.png"
+        mock_client_cls.return_value = mock_client
+        body = {**_VALID_BODY, "style": "WARM"}
         response = client.post("/generate", json=body)
     assert response.status_code == 200

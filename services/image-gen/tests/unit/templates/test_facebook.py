@@ -47,6 +47,14 @@ def test_render_accepts_empty_fragment():
     assert isinstance(result, bytes)
 
 
+def test_render_all_styles_produce_valid_png():
+    for style in ("classic", "light", "dark", "warm", "bold"):
+        result = render({}, style=style)
+        assert result[:8] == b'\x89PNG\r\n\x1a\n', f"Style {style} did not produce valid PNG"
+        w, h = _png_dimensions(result)
+        assert w == 1200 and h == 630, f"Style {style} has wrong dimensions"
+
+
 def test_render_draws_quote_text():
     fragment = {"text": "Cita Facebook", "author": "Autor", "title": "Libro"}
     with patch("templates.base.ImageDraw") as mock_draw_module:
