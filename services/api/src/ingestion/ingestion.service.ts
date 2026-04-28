@@ -8,6 +8,8 @@ import { GutenbergFetcherService } from './gutenberg-fetcher.service';
 import { WikisourceFetcherService } from './wikisource-fetcher.service';
 import { PhraseSplitterService } from './phrase-splitter.service';
 import { MinioUploaderService } from './minio-uploader.service';
+import { LibrivoxApiService } from './librivox-api.service';
+import { AudioDownloaderService } from './audio-downloader.service';
 
 @Injectable()
 export class IngestionService {
@@ -18,9 +20,13 @@ export class IngestionService {
     private readonly wikisourceFetcher: WikisourceFetcherService,
     private readonly phraseSplitter: PhraseSplitterService,
     private readonly minioUploader: MinioUploaderService,
+    private readonly librivoxApi: LibrivoxApiService,
+    private readonly audioDownloader: AudioDownloaderService,
     @InjectRepository(Book) private readonly bookRepo: Repository<Book>,
     @InjectRepository(SyncMap) private readonly syncMapRepo: Repository<SyncMap>,
   ) {}
+
+  // ── Text ingestion ─────────────────────────────────────────────────────────
 
   async ingestAll(): Promise<void> {
     for (const entry of CATALOGUE) {
@@ -75,5 +81,41 @@ export class IngestionService {
     await this.syncMapRepo.save(syncMap);
 
     return saved;
+  }
+
+  // ── Audio ingestion ────────────────────────────────────────────────────────
+
+  async ingestAllAudio(): Promise<void> {
+    const books = await this.bookRepo.find({ where: { isFree: true } });
+    for (const book of books) {
+      if (book.audioFileKey && !book.audioFileKey.startsWith('http')) {
+        this.logger.log(`Audio already stored: ${book.title}`);
+        continue;
+      }
+      const entry = CATALOGUE.find(
+        (e) => e.title === book.title && e.author === book.author,
+      );
+      if (!entry) {
+        this.logger.warn(`No catalogue entry for: ${book.title}`);
+        continue;
+      }
+      try {
+        await this.ingestAudio(entry, book);
+        this.logger.log(`Audio downloaded: ${book.title}`);
+      } catch (err: unknown) {
+        this.logger.error(
+          `Audio failed: ${book.title}`,
+          err instanceof Error ? err.stack : String(err),
+        );
+      }
+    }
+  }
+
+  async ingestAudio(entry: CatalogueEntry, book: Book): Promise<void> {
+    const zipUrl = await this.librivoxApi.getZipUrl(entry.librivoxAudioUrl);
+    const audioKey = `${book.id}.zip`;
+    await this.audioDownloader.downloadAndStore(zipUrl, audioKey);
+    book.audioFileKey = audioKey;
+    await this.bookRepo.save(book);
   }
 }

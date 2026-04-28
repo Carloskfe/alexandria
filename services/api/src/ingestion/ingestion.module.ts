@@ -6,6 +6,8 @@ import { GutenbergFetcherService } from './gutenberg-fetcher.service';
 import { WikisourceFetcherService } from './wikisource-fetcher.service';
 import { PhraseSplitterService } from './phrase-splitter.service';
 import { MinioUploaderService } from './minio-uploader.service';
+import { LibrivoxApiService } from './librivox-api.service';
+import { AudioDownloaderService } from './audio-downloader.service';
 import { IngestionService } from './ingestion.service';
 
 @Module({
@@ -15,6 +17,8 @@ import { IngestionService } from './ingestion.service';
     WikisourceFetcherService,
     PhraseSplitterService,
     MinioUploaderService,
+    LibrivoxApiService,
+    AudioDownloaderService,
     IngestionService,
   ],
   exports: [IngestionService],

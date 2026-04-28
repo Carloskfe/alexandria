@@ -57,7 +57,7 @@ export class BooksController {
       ? await this.storageService.presign('books', book.textFileKey, PRESIGN_TTL)
       : null;
     const audioFileUrl = book.audioFileKey
-      ? book.isFree
+      ? book.audioFileKey.startsWith('http')
         ? book.audioFileKey
         : await this.storageService.presign('audio', book.audioFileKey, PRESIGN_TTL)
       : null;

@@ -5,25 +5,25 @@ import { GutenbergFetcherService } from '../../../src/ingestion/gutenberg-fetche
 import { WikisourceFetcherService } from '../../../src/ingestion/wikisource-fetcher.service';
 import { PhraseSplitterService } from '../../../src/ingestion/phrase-splitter.service';
 import { MinioUploaderService } from '../../../src/ingestion/minio-uploader.service';
+import { LibrivoxApiService } from '../../../src/ingestion/librivox-api.service';
+import { AudioDownloaderService } from '../../../src/ingestion/audio-downloader.service';
 import { Book, BookCategory } from '../../../src/books/book.entity';
 import { SyncMap } from '../../../src/books/sync-map.entity';
 import { CatalogueEntry } from '../../../src/ingestion/catalogue';
 
 const mockBookRepo = {
   findOneBy: jest.fn(),
+  find: jest.fn(),
   create: jest.fn(),
   save: jest.fn(),
 };
-
-const mockSyncMapRepo = {
-  create: jest.fn(),
-  save: jest.fn(),
-};
-
+const mockSyncMapRepo = { create: jest.fn(), save: jest.fn() };
 const mockGutenbergFetcher = { fetch: jest.fn() };
 const mockWikisourceFetcher = { fetch: jest.fn() };
 const mockPhraseSplitter = { split: jest.fn() };
 const mockMinioUploader = { upload: jest.fn() };
+const mockLibrivoxApi = { getZipUrl: jest.fn() };
+const mockAudioDownloader = { downloadAndStore: jest.fn() };
 
 const gutenbergEntry: CatalogueEntry = {
   title: 'Test Book',
@@ -56,6 +56,8 @@ describe('IngestionService', () => {
         { provide: WikisourceFetcherService, useValue: mockWikisourceFetcher },
         { provide: PhraseSplitterService, useValue: mockPhraseSplitter },
         { provide: MinioUploaderService, useValue: mockMinioUploader },
+        { provide: LibrivoxApiService, useValue: mockLibrivoxApi },
+        { provide: AudioDownloaderService, useValue: mockAudioDownloader },
         { provide: getRepositoryToken(Book), useValue: mockBookRepo },
         { provide: getRepositoryToken(SyncMap), useValue: mockSyncMapRepo },
       ],
@@ -63,6 +65,8 @@ describe('IngestionService', () => {
 
     service = module.get<IngestionService>(IngestionService);
   });
+
+  // ── ingestOne ──────────────────────────────────────────────────────────────
 
   describe('ingestOne', () => {
     it('fetches from Gutenberg and creates book + syncmap records', async () => {
@@ -81,7 +85,10 @@ describe('IngestionService', () => {
       const result = await service.ingestOne(gutenbergEntry);
 
       expect(mockGutenbergFetcher.fetch).toHaveBeenCalledWith(123);
-      expect(mockMinioUploader.upload).toHaveBeenCalledWith('book-uuid.txt', 'Chapter 1. The beginning.');
+      expect(mockMinioUploader.upload).toHaveBeenCalledWith(
+        'book-uuid.txt',
+        'Chapter 1. The beginning.',
+      );
       expect(mockBookRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({
           title: 'Test Book',
@@ -143,6 +150,8 @@ describe('IngestionService', () => {
     });
   });
 
+  // ── ingestAll ─────────────────────────────────────────────────────────────
+
   describe('ingestAll', () => {
     it('calls ingestOne for every entry in CATALOGUE', async () => {
       const ingestOneSpy = jest
@@ -163,6 +172,101 @@ describe('IngestionService', () => {
 
       await expect(service.ingestAll()).resolves.toBeUndefined();
       expect(ingestOneSpy.mock.calls.length).toBeGreaterThan(1);
+    });
+  });
+
+  // ── ingestAudio ───────────────────────────────────────────────────────────
+
+  describe('ingestAudio', () => {
+    it('scrapes zip URL from LibriVox page and stores in MinIO audio bucket', async () => {
+      const book = { id: 'bk-1', audioFileKey: 'https://librivox.org/test-book/' } as Book;
+      mockLibrivoxApi.getZipUrl.mockResolvedValue('https://archive.org/compress/x/x.zip');
+      mockAudioDownloader.downloadAndStore.mockResolvedValue(undefined);
+      mockBookRepo.save.mockResolvedValue(book);
+
+      await service.ingestAudio(gutenbergEntry, book);
+
+      expect(mockLibrivoxApi.getZipUrl).toHaveBeenCalledWith('https://librivox.org/test-book/');
+      expect(mockAudioDownloader.downloadAndStore).toHaveBeenCalledWith(
+        'https://archive.org/compress/x/x.zip',
+        'bk-1.zip',
+      );
+    });
+
+    it('updates audioFileKey to the MinIO key after download', async () => {
+      const book = { id: 'bk-2', audioFileKey: 'https://librivox.org/x/' } as Book;
+      mockLibrivoxApi.getZipUrl.mockResolvedValue('https://archive.org/y.zip');
+      mockAudioDownloader.downloadAndStore.mockResolvedValue(undefined);
+      mockBookRepo.save.mockResolvedValue(book);
+
+      await service.ingestAudio(gutenbergEntry, book);
+
+      expect(book.audioFileKey).toBe('bk-2.zip');
+      expect(mockBookRepo.save).toHaveBeenCalledWith(book);
+    });
+
+    it('propagates errors from LibriVox API', async () => {
+      const book = { id: 'bk-3' } as Book;
+      mockLibrivoxApi.getZipUrl.mockRejectedValue(new Error('API down'));
+
+      await expect(service.ingestAudio(gutenbergEntry, book)).rejects.toThrow('API down');
+    });
+  });
+
+  // ── ingestAllAudio ────────────────────────────────────────────────────────
+
+  describe('ingestAllAudio', () => {
+    it('calls ingestAudio for books with a URL-based audioFileKey', async () => {
+      const books = [
+        { id: 'b1', title: 'Lazarillo de Tormes', author: 'Anónimo', audioFileKey: 'https://librivox.org/lazarillo-de-tormes/' },
+      ] as Book[];
+      mockBookRepo.find.mockResolvedValue(books);
+      const ingestAudioSpy = jest
+        .spyOn(service, 'ingestAudio')
+        .mockResolvedValue(undefined);
+
+      await service.ingestAllAudio();
+
+      expect(ingestAudioSpy).toHaveBeenCalledTimes(1);
+    });
+
+    it('skips books that already have a MinIO key (non-URL audioFileKey)', async () => {
+      const books = [
+        { id: 'b1', title: 'Lazarillo de Tormes', author: 'Anónimo', audioFileKey: 'b1.zip' },
+      ] as Book[];
+      mockBookRepo.find.mockResolvedValue(books);
+      const ingestAudioSpy = jest.spyOn(service, 'ingestAudio').mockResolvedValue(undefined);
+
+      await service.ingestAllAudio();
+
+      expect(ingestAudioSpy).not.toHaveBeenCalled();
+    });
+
+    it('skips books without a matching catalogue entry', async () => {
+      const books = [
+        { id: 'b1', title: 'Unknown Book', author: 'Unknown', audioFileKey: 'https://x.org/' },
+      ] as Book[];
+      mockBookRepo.find.mockResolvedValue(books);
+      const ingestAudioSpy = jest.spyOn(service, 'ingestAudio').mockResolvedValue(undefined);
+
+      await service.ingestAllAudio();
+
+      expect(ingestAudioSpy).not.toHaveBeenCalled();
+    });
+
+    it('continues to next book when one audio download fails', async () => {
+      const books = [
+        { id: 'b1', title: 'Lazarillo de Tormes', author: 'Anónimo', audioFileKey: 'https://librivox.org/lazarillo-de-tormes/' },
+        { id: 'b2', title: 'Leyendas', author: 'Gustavo Adolfo Bécquer', audioFileKey: 'https://librivox.org/leyendas/' },
+      ] as Book[];
+      mockBookRepo.find.mockResolvedValue(books);
+      const ingestAudioSpy = jest
+        .spyOn(service, 'ingestAudio')
+        .mockRejectedValueOnce(new Error('network error'))
+        .mockResolvedValueOnce(undefined);
+
+      await expect(service.ingestAllAudio()).resolves.toBeUndefined();
+      expect(ingestAudioSpy).toHaveBeenCalledTimes(2);
     });
   });
 });

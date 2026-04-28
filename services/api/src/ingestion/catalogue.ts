@@ -8,6 +8,8 @@ export interface CatalogueEntry {
   gutenbergId?: number;
   wikisourceTitle?: string;
   librivoxAudioUrl: string;
+  /** Override search string passed to LibriVox API when the full title doesn't match */
+  librivoxSearchTitle?: string;
 }
 
 export const CATALOGUE: CatalogueEntry[] = [
@@ -26,6 +28,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     source: 'gutenberg',
     gutenbergId: 29506,
     librivoxAudioUrl: 'https://librivox.org/el-sombrero-de-tres-picos-by-pedro-antonio-de-alarcon-y-ariza/',
+    librivoxSearchTitle: 'Sombrero de Tres Picos',
   },
   {
     title: 'Leyendas',
@@ -74,6 +77,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     source: 'gutenberg',
     gutenbergId: 14765,
     librivoxAudioUrl: 'https://librivox.org/el-gaucho-martin-fierro-by-jose-hernandez/',
+    librivoxSearchTitle: 'Martin Fierro',
   },
   {
     title: 'Cuentos de Amor de Locura y de Muerte',
@@ -90,6 +94,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     source: 'gutenberg',
     gutenbergId: 24536,
     librivoxAudioUrl: 'https://librivox.org/los-cuatro-jinetes-del-apocalipsis-by-vicente-blasco-ibanez/',
+    librivoxSearchTitle: 'Cuatro Jinetes',
   },
   {
     title: 'La Isla del Tesoro',
@@ -98,6 +103,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     source: 'gutenberg',
     gutenbergId: 45438,
     librivoxAudioUrl: 'https://librivox.org/la-isla-del-tesoro-by-robert-louis-stevenson/',
+    librivoxSearchTitle: 'Isla del Tesoro',
   },
   {
     title: 'Viaje al Centro de la Tierra',
@@ -130,6 +136,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     source: 'gutenberg',
     gutenbergId: 58221,
     librivoxAudioUrl: 'https://librivox.org/la-odisea-by-homero/',
+    librivoxSearchTitle: 'Odisea',
   },
   {
     title: 'La Divina Comedia',
@@ -138,6 +145,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     source: 'gutenberg',
     gutenbergId: 57303,
     librivoxAudioUrl: 'https://librivox.org/la-divina-comedia-by-dante-alighieri/',
+    librivoxSearchTitle: 'Divina Comedia',
   },
   {
     title: 'Don Quijote de la Mancha — Vol. I',
@@ -146,6 +154,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     source: 'gutenberg',
     gutenbergId: 2000,
     librivoxAudioUrl: 'https://librivox.org/don-quijote-vol-1-by-miguel-de-cervantes-saavedra/',
+    librivoxSearchTitle: 'Don Quijote',
   },
   {
     title: 'Don Quijote de la Mancha — Vol. II',
@@ -154,6 +163,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     source: 'gutenberg',
     gutenbergId: 2000,
     librivoxAudioUrl: 'https://librivox.org/don-quijote-volume-2-by-miguel-de-cervantes-saavedra/',
+    librivoxSearchTitle: 'Don Quijote',
   },
   {
     title: 'Orgullo y Prejuicio',
@@ -162,5 +172,6 @@ export const CATALOGUE: CatalogueEntry[] = [
     source: 'wikisource',
     wikisourceTitle: 'Orgullo y prejuicio',
     librivoxAudioUrl: 'https://librivox.org/orgullo-y-prejuicio1-by-jane-austen/',
+    librivoxSearchTitle: 'Orgullo Prejuicio',
   },
 ];
