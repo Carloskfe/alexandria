@@ -8,9 +8,10 @@ import { CreateBookDto } from './dto/create-book.dto';
 export class BooksService {
   constructor(@InjectRepository(Book) private readonly repo: Repository<Book>) {}
 
-  findAll(category?: BookCategory): Promise<Book[]> {
+  findAll(category?: BookCategory, isFree?: boolean): Promise<Book[]> {
     const where: FindOptionsWhere<Book> = { isPublished: true };
     if (category) where.category = category;
+    if (isFree !== undefined) where.isFree = isFree;
     return this.repo.find({ where, order: { createdAt: 'DESC' } });
   }
 

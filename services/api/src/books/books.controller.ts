@@ -40,8 +40,13 @@ export class BooksController {
   ) {}
 
   @Get()
-  findAll(@Query('category') category?: BookCategory) {
-    return this.booksService.findAll(category);
+  findAll(
+    @Query('category') category?: BookCategory,
+    @Query('isFree') isFree?: string,
+  ) {
+    const isFreeFilter =
+      isFree === 'true' ? true : isFree === 'false' ? false : undefined;
+    return this.booksService.findAll(category, isFreeFilter);
   }
 
   @Get(':id')
@@ -52,7 +57,9 @@ export class BooksController {
       ? await this.storageService.presign('books', book.textFileKey, PRESIGN_TTL)
       : null;
     const audioFileUrl = book.audioFileKey
-      ? await this.storageService.presign('audio', book.audioFileKey, PRESIGN_TTL)
+      ? book.isFree
+        ? book.audioFileKey
+        : await this.storageService.presign('audio', book.audioFileKey, PRESIGN_TTL)
       : null;
     return { ...book, textFileUrl, audioFileUrl };
   }

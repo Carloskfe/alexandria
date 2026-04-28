@@ -1,15 +1,20 @@
 import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { Book } from '../../../src/books/book.entity';
 import { Subscription } from '../../../src/subscriptions/subscription.entity';
 import { SubscriptionGuard } from '../../../src/subscriptions/subscription.guard';
 
 const mockSubRepo = { findOneBy: jest.fn() };
+const mockBookRepo = { findOneBy: jest.fn() };
 
-const makeContext = (userId?: string): ExecutionContext =>
+const makeContext = (userId?: string, bookId?: string): ExecutionContext =>
   ({
     switchToHttp: () => ({
-      getRequest: () => ({ user: userId ? { id: userId } : undefined }),
+      getRequest: () => ({
+        user: userId ? { id: userId } : undefined,
+        params: bookId ? { id: bookId } : {},
+      }),
     }),
   } as unknown as ExecutionContext);
 
@@ -22,49 +27,81 @@ describe('SubscriptionGuard', () => {
       providers: [
         SubscriptionGuard,
         { provide: getRepositoryToken(Subscription), useValue: mockSubRepo },
+        { provide: getRepositoryToken(Book), useValue: mockBookRepo },
       ],
     }).compile();
 
     guard = module.get(SubscriptionGuard);
   });
 
-  it('allows active subscriber', async () => {
-    mockSubRepo.findOneBy.mockResolvedValue({ status: 'active' });
-    await expect(guard.canActivate(makeContext('u1'))).resolves.toBe(true);
-  });
+  describe('free book bypass', () => {
+    it('allows access to a free book without checking subscription', async () => {
+      mockBookRepo.findOneBy.mockResolvedValue({ isFree: true });
 
-  it('allows trialing subscriber', async () => {
-    mockSubRepo.findOneBy.mockResolvedValue({ status: 'trialing' });
-    await expect(guard.canActivate(makeContext('u1'))).resolves.toBe(true);
-  });
+      await expect(guard.canActivate(makeContext('u1', 'free-book-id'))).resolves.toBe(true);
+      expect(mockSubRepo.findOneBy).not.toHaveBeenCalled();
+    });
 
-  it('allows canceling subscriber', async () => {
-    mockSubRepo.findOneBy.mockResolvedValue({ status: 'canceling' });
-    await expect(guard.canActivate(makeContext('u1'))).resolves.toBe(true);
-  });
+    it('falls through to subscription check for a non-free book', async () => {
+      mockBookRepo.findOneBy.mockResolvedValue({ isFree: false });
+      mockSubRepo.findOneBy.mockResolvedValue({ status: 'active' });
 
-  it('throws 403 subscription_required for non-subscriber', async () => {
-    mockSubRepo.findOneBy.mockResolvedValue(null);
-    await expect(guard.canActivate(makeContext('u1'))).rejects.toThrow(ForbiddenException);
-    await expect(guard.canActivate(makeContext('u1'))).rejects.toMatchObject({
-      response: { error: 'subscription_required' },
+      await expect(guard.canActivate(makeContext('u1', 'paid-book-id'))).resolves.toBe(true);
+      expect(mockSubRepo.findOneBy).toHaveBeenCalled();
+    });
+
+    it('falls through to subscription check when no bookId in params', async () => {
+      mockBookRepo.findOneBy.mockResolvedValue(null);
+      mockSubRepo.findOneBy.mockResolvedValue({ status: 'active' });
+
+      await expect(guard.canActivate(makeContext('u1'))).resolves.toBe(true);
+      expect(mockSubRepo.findOneBy).toHaveBeenCalled();
     });
   });
 
-  it('throws 403 subscription_required for canceled subscriber', async () => {
-    mockSubRepo.findOneBy.mockResolvedValue({ status: 'canceled' });
-    await expect(guard.canActivate(makeContext('u1'))).rejects.toThrow(ForbiddenException);
-  });
-
-  it('throws 403 payment_required with billingPortalHint for past_due subscriber', async () => {
-    mockSubRepo.findOneBy.mockResolvedValue({ status: 'past_due' });
-    await expect(guard.canActivate(makeContext('u1'))).rejects.toMatchObject({
-      response: { error: 'payment_required', billingPortalHint: true },
+  describe('subscription check', () => {
+    beforeEach(() => {
+      mockBookRepo.findOneBy.mockResolvedValue({ isFree: false });
     });
-  });
 
-  it('throws 403 for unauthenticated request (no user on req)', async () => {
-    mockSubRepo.findOneBy.mockResolvedValue(null);
-    await expect(guard.canActivate(makeContext(undefined))).rejects.toThrow(ForbiddenException);
+    it('allows active subscriber', async () => {
+      mockSubRepo.findOneBy.mockResolvedValue({ status: 'active' });
+      await expect(guard.canActivate(makeContext('u1', 'book-id'))).resolves.toBe(true);
+    });
+
+    it('allows trialing subscriber', async () => {
+      mockSubRepo.findOneBy.mockResolvedValue({ status: 'trialing' });
+      await expect(guard.canActivate(makeContext('u1', 'book-id'))).resolves.toBe(true);
+    });
+
+    it('allows canceling subscriber', async () => {
+      mockSubRepo.findOneBy.mockResolvedValue({ status: 'canceling' });
+      await expect(guard.canActivate(makeContext('u1', 'book-id'))).resolves.toBe(true);
+    });
+
+    it('throws 403 subscription_required for non-subscriber', async () => {
+      mockSubRepo.findOneBy.mockResolvedValue(null);
+      await expect(guard.canActivate(makeContext('u1', 'book-id'))).rejects.toThrow(ForbiddenException);
+      await expect(guard.canActivate(makeContext('u1', 'book-id'))).rejects.toMatchObject({
+        response: { error: 'subscription_required' },
+      });
+    });
+
+    it('throws 403 subscription_required for canceled subscriber', async () => {
+      mockSubRepo.findOneBy.mockResolvedValue({ status: 'canceled' });
+      await expect(guard.canActivate(makeContext('u1', 'book-id'))).rejects.toThrow(ForbiddenException);
+    });
+
+    it('throws 403 payment_required with billingPortalHint for past_due subscriber', async () => {
+      mockSubRepo.findOneBy.mockResolvedValue({ status: 'past_due' });
+      await expect(guard.canActivate(makeContext('u1', 'book-id'))).rejects.toMatchObject({
+        response: { error: 'payment_required', billingPortalHint: true },
+      });
+    });
+
+    it('throws 403 for unauthenticated request (no user on req)', async () => {
+      mockSubRepo.findOneBy.mockResolvedValue(null);
+      await expect(guard.canActivate(makeContext(undefined, 'book-id'))).rejects.toThrow(ForbiddenException);
+    });
   });
 });

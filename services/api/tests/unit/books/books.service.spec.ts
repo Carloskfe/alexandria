@@ -50,6 +50,42 @@ describe('BooksService', () => {
       });
     });
 
+    it('adds isFree=true to where clause when isFree is true', async () => {
+      mockRepo.find.mockResolvedValue([]);
+      await service.findAll(undefined, true);
+      expect(mockRepo.find).toHaveBeenCalledWith({
+        where: { isPublished: true, isFree: true },
+        order: { createdAt: 'DESC' },
+      });
+    });
+
+    it('adds isFree=false to where clause when isFree is false', async () => {
+      mockRepo.find.mockResolvedValue([]);
+      await service.findAll(undefined, false);
+      expect(mockRepo.find).toHaveBeenCalledWith({
+        where: { isPublished: true, isFree: false },
+        order: { createdAt: 'DESC' },
+      });
+    });
+
+    it('omits isFree from where clause when isFree is undefined', async () => {
+      mockRepo.find.mockResolvedValue([]);
+      await service.findAll(undefined, undefined);
+      expect(mockRepo.find).toHaveBeenCalledWith({
+        where: { isPublished: true },
+        order: { createdAt: 'DESC' },
+      });
+    });
+
+    it('combines category and isFree filters together', async () => {
+      mockRepo.find.mockResolvedValue([]);
+      await service.findAll(BookCategory.CLASSIC, true);
+      expect(mockRepo.find).toHaveBeenCalledWith({
+        where: { isPublished: true, category: BookCategory.CLASSIC, isFree: true },
+        order: { createdAt: 'DESC' },
+      });
+    });
+
     it('returns empty array when no books match', async () => {
       mockRepo.find.mockResolvedValue([]);
       expect(await service.findAll()).toEqual([]);
