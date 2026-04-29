@@ -16,6 +16,7 @@ const mockBookRepo = {
   find: jest.fn(),
   create: jest.fn(),
   save: jest.fn(),
+  update: jest.fn(),
 };
 const mockSyncMapRepo = { create: jest.fn(), save: jest.fn() };
 const mockGutenbergFetcher = { fetch: jest.fn() };
@@ -288,6 +289,142 @@ describe('IngestionService', () => {
 
       await expect(service.ingestAllAudioStream()).resolves.toBeUndefined();
       expect(spy).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  // ── ingestAllCovers ───────────────────────────────────────────────────────
+
+  describe('ingestAllCovers', () => {
+    let sleepSpy: jest.SpyInstance;
+
+    beforeEach(() => {
+      sleepSpy = jest.spyOn(service as unknown as { sleep: () => Promise<void> }, 'sleep')
+        .mockResolvedValue(undefined);
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('sets coverUrl when Open Library returns a cover ID', async () => {
+      const book = { id: 'b1', title: 'Lazarillo de Tormes', author: 'Anónimo', coverUrl: null } as Book;
+      mockBookRepo.find.mockResolvedValue([book]);
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ docs: [{ cover_i: 12345 }] }),
+      } as Response);
+      mockBookRepo.save.mockResolvedValue(book);
+
+      await service.ingestAllCovers();
+
+      expect(book.coverUrl).toBe('https://covers.openlibrary.org/b/id/12345-L.jpg');
+      expect(mockBookRepo.save).toHaveBeenCalledWith(book);
+    });
+
+    it('skips books that already have coverUrl set', async () => {
+      const book = { id: 'b1', title: 'Leyendas', author: 'Bécquer', coverUrl: 'https://covers.openlibrary.org/b/id/999-L.jpg' } as Book;
+      mockBookRepo.find.mockResolvedValue([book]);
+
+      await service.ingestAllCovers();
+
+      expect(global.fetch).not.toHaveBeenCalled();
+      expect(mockBookRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('leaves coverUrl null when Open Library returns no cover_i', async () => {
+      const book = { id: 'b1', title: 'Unknown Title', author: 'Unknown', coverUrl: null } as Book;
+      mockBookRepo.find.mockResolvedValue([book]);
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ docs: [] }),
+      } as Response);
+
+      await service.ingestAllCovers();
+
+      expect(book.coverUrl).toBeNull();
+      expect(mockBookRepo.save).not.toHaveBeenCalled();
+    });
+
+    it('continues to next book when fetch fails for one', async () => {
+      const books = [
+        { id: 'b1', title: 'Book One', author: 'Author', coverUrl: null },
+        { id: 'b2', title: 'Book Two', author: 'Author', coverUrl: null },
+      ] as Book[];
+      mockBookRepo.find.mockResolvedValue(books);
+      global.fetch = jest.fn()
+        .mockRejectedValueOnce(new Error('network error'))
+        .mockResolvedValueOnce({
+          ok: true,
+          json: async () => ({ docs: [{ cover_i: 99 }] }),
+        } as Response);
+      mockBookRepo.save.mockResolvedValue({});
+
+      await expect(service.ingestAllCovers()).resolves.toBeUndefined();
+      expect(mockBookRepo.save).toHaveBeenCalledTimes(1);
+    });
+
+    it('leaves coverUrl null when Open Library responds with non-ok status', async () => {
+      const book = { id: 'b1', title: 'Book', author: 'Author', coverUrl: null } as Book;
+      mockBookRepo.find.mockResolvedValue([book]);
+      global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 500 } as Response);
+
+      await service.ingestAllCovers();
+
+      expect(book.coverUrl).toBeNull();
+    });
+  });
+
+  // ── fetchOpenLibraryCover ─────────────────────────────────────────────────
+
+  describe('fetchOpenLibraryCover', () => {
+    afterEach(() => jest.restoreAllMocks());
+
+    it('returns a cover URL when Open Library has a matching cover', async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ docs: [{ cover_i: 7890 }] }),
+      } as Response);
+
+      const result = await service.fetchOpenLibraryCover('Don Quijote', 'Cervantes');
+
+      expect(result).toBe('https://covers.openlibrary.org/b/id/7890-L.jpg');
+    });
+
+    it('returns null when docs array is empty', async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ docs: [] }),
+      } as Response);
+
+      expect(await service.fetchOpenLibraryCover('Unknown', 'Nobody')).toBeNull();
+    });
+
+    it('returns null when cover_i is absent from the first doc', async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ docs: [{ title: 'Something' }] }),
+      } as Response);
+
+      expect(await service.fetchOpenLibraryCover('Something', 'Someone')).toBeNull();
+    });
+
+    it('returns null on a non-ok HTTP response', async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 429 } as Response);
+
+      expect(await service.fetchOpenLibraryCover('Any', 'Any')).toBeNull();
+    });
+
+    it('includes title and author in the search query', async () => {
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ docs: [] }),
+      } as Response);
+
+      await service.fetchOpenLibraryCover('La Odisea', 'Homero');
+
+      const [url] = (global.fetch as jest.Mock).mock.calls[0];
+      expect(url).toContain('La%20Odisea');
+      expect(url).toContain('Homero');
     });
   });
 

@@ -152,4 +152,49 @@ export class IngestionService {
     book.audioStreamKey = m4bUrl;
     await this.bookRepo.save(book);
   }
+
+  // ── Cover image ingestion (Open Library CDN) ──────────────────────────────
+
+  async ingestAllCovers(): Promise<void> {
+    const books = await this.bookRepo.find({ where: { isFree: true } });
+    for (const book of books) {
+      if (book.coverUrl) {
+        this.logger.log(`Cover already set: ${book.title}`);
+        continue;
+      }
+      try {
+        const url = await this.fetchOpenLibraryCover(book.title, book.author);
+        if (url) {
+          book.coverUrl = url;
+          await this.bookRepo.save(book);
+          this.logger.log(`Cover set: ${book.title}`);
+        } else {
+          this.logger.log(`No cover found: ${book.title}`);
+        }
+      } catch (err: unknown) {
+        this.logger.error(
+          `Cover fetch failed: ${book.title}`,
+          err instanceof Error ? err.message : String(err),
+        );
+      }
+      await this.sleep(300);
+    }
+  }
+
+  async fetchOpenLibraryCover(title: string, author: string): Promise<string | null> {
+    const q = encodeURIComponent(`${title} ${author}`);
+    const url = `https://openlibrary.org/search.json?q=${q}&limit=1&fields=cover_i`;
+    const res = await globalThis.fetch(url, {
+      headers: { 'User-Agent': 'Alexandria-Ingestion/1.0 (https://github.com/Carloskfe/alexandria)' },
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { docs?: Array<{ cover_i?: number }> };
+    const coverId = data.docs?.[0]?.cover_i;
+    if (!coverId) return null;
+    return `https://covers.openlibrary.org/b/id/${coverId}-L.jpg`;
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
 }
