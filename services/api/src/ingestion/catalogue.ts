@@ -118,7 +118,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     author: 'William Shakespeare',
     description: 'La más célebre tragedia de amor de la literatura universal.',
     source: 'wikisource',
-    wikisourceTitle: 'Romeo y Julieta',
+    wikisourceTitle: 'Romeo y Julieta (Menéndez y Pelayo tr.)',
     librivoxAudioUrl: 'https://librivox.org/romeo-y-julieta-by-william-shakespeare/',
   },
   {

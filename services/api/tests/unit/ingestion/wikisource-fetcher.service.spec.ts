@@ -14,7 +14,7 @@ afterEach(() => {
 const LINKS_RESPONSE = (title: string, subs: string[]) => ({
   ok: true,
   json: async () => ({
-    parse: { links: subs.map((s) => ({ '*': s })) },
+    parse: { links: subs.map((s) => ({ title: s, ns: 0 })) },
   }),
 });
 
@@ -156,9 +156,9 @@ describe('WikisourceFetcherService', () => {
           json: async () => ({
             parse: {
               links: [
-                { '*': `${TITLE}/I` },
-                { '*': 'Otro Libro/I' },       // different book — excluded
-                { '*': `${TITLE}` },            // root page — excluded
+                { title: `${TITLE}/I`, ns: 0 },
+                { title: 'Otro Libro/I', ns: 0 },    // different book — excluded
+                { title: `${TITLE}`, ns: 0 },         // root page — excluded
               ],
             },
           }),
