@@ -136,4 +136,66 @@ describe('PhraseSplitterService', () => {
       expect(phrases[1].type).toBe('text');
     });
   });
+
+  describe('split — Gutenberg format marker stripping', () => {
+    it('strips #bold# markers from body text', () => {
+      const text = 'El #héroe# cruzó el río.\n\n';
+      const phrases = service.split(text);
+      expect(phrases[0].text).toContain('héroe');
+      expect(phrases[0].text).not.toContain('#');
+    });
+
+    it('strips _italic_ markers from body text', () => {
+      const text = 'Dijo _muy claramente_ que no.\n\n';
+      const phrases = service.split(text);
+      expect(phrases[0].text).not.toContain('_');
+    });
+
+    it('strips =bold= markers from body text', () => {
+      const text = 'Era =importante= hacerlo bien.\n\n';
+      const phrases = service.split(text);
+      expect(phrases[0].text).not.toContain('=');
+    });
+
+    it('does NOT strip the ##HEADING## double-hash marker', () => {
+      const text = '##HEADING## Mi Título\n\nContenido de texto aquí.';
+      const phrases = service.split(text);
+      expect(phrases[0].type).toBe('heading');
+      expect(phrases[0].text).toBe('Mi Título');
+    });
+  });
+
+  describe('split — noise filtering', () => {
+    it('skips Wikisource navigation blocks containing ← Portada', () => {
+      const text = '← Portada Viaje al centro de la Tierra Capítulo 2 →\n\nTexto real del capítulo comienza aquí ahora.';
+      const phrases = service.split(text);
+      expect(phrases.every((p) => !p.text.includes('← Portada'))).toBe(true);
+      expect(phrases.some((p) => p.text.includes('Texto real'))).toBe(true);
+    });
+
+    it('skips Wikisource artículo enciclopédico navigation blocks', () => {
+      const text = 'a. o menos artículo enciclopédico citas otras versiones metadatos\n\nTexto real aquí comienza de verdad.';
+      const phrases = service.split(text);
+      expect(phrases.every((p) => !p.text.includes('enciclopédico'))).toBe(true);
+    });
+
+    it('skips Gutenberg "Produced by" editor notes', () => {
+      const text = 'Produced by Stan Goodman and the Online Distributed Proofreading Team\n\nCAPÍTULO I\n\nEl texto comienza aquí de verdad.';
+      const phrases = service.split(text);
+      expect(phrases.every((p) => !p.text.includes('Produced by'))).toBe(true);
+      expect(phrases[0].type).toBe('heading');
+    });
+
+    it('skips Gutenberg Transcriber\'s Notes blocks', () => {
+      const text = "Transcriber's Notes: Format Conventions\n\nItalic text is _underscores_\n\nTexto de la obra comienza aquí.";
+      const phrases = service.split(text);
+      expect(phrases.every((p) => !p.text.includes("Transcriber"))).toBe(true);
+    });
+
+    it('skips #INDICE# table of contents blocks', () => {
+      const text = '#INDICE#\n\nUna estación de amor\nLos ojos sombríos\n\nTexto del primer cuento comienza aquí.';
+      const phrases = service.split(text);
+      expect(phrases.every((p) => !p.text.includes('INDICE'))).toBe(true);
+    });
+  });
 });
