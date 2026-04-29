@@ -78,9 +78,17 @@ export class WikisourceFetcherService {
 
   private stripHtml(html: string): string {
     return html
-      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, ' ')
-      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, ' ')
+      // Remove non-content blocks entirely
+      .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+      .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+      // Convert headings to structural markers before stripping
+      .replace(/<h[1-3][^>]*>([\s\S]*?)<\/h[1-3]>/gi, '\n\n##HEADING## $1\n\n')
+      // Paragraph endings become double newlines
+      .replace(/<\/p>/gi, '\n\n')
+      .replace(/<br\s*\/?>/gi, '\n')
+      // Strip remaining tags
       .replace(/<[^>]+>/g, ' ')
+      // Decode entities
       .replace(/&amp;/g, '&')
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
@@ -88,7 +96,11 @@ export class WikisourceFetcherService {
       .replace(/&#39;/g, "'")
       .replace(/&#160;/g, ' ')
       .replace(/&nbsp;/g, ' ')
-      .replace(/\s+/g, ' ')
+      // Normalize spacing — preserve paragraph breaks, collapse inline spaces
+      .replace(/[ \t]+/g, ' ')
+      .replace(/\n[ \t]+/g, '\n')
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n{3,}/g, '\n\n')
       .trim();
   }
 }

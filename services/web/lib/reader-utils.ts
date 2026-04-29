@@ -3,6 +3,7 @@ export interface Phrase {
   text: string;
   startTime: number;
   endTime: number;
+  type?: 'text' | 'heading';
 }
 
 export interface Fragment {

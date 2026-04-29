@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import { useParams } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
 import { phraseAt, seekToPhrase, Phrase, Fragment } from '@/lib/reader-utils';
@@ -79,7 +79,7 @@ export default function ReaderPage() {
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const phraseRefs = useRef<(HTMLSpanElement | null)[]>([]);
+  const phraseRefs = useRef<(HTMLElement | null)[]>([]);
 
   // ── Reading preferences ───────────────────────────────────────────────────
 
@@ -404,21 +404,14 @@ export default function ReaderPage() {
 
         <div className={`leading-relaxed ${fontSizeClass}`} onMouseUp={handleTextMouseUp}>
           {hasSync ? (
-            phrases.map((phrase, i) => (
-              <span
-                key={i}
-                ref={(el) => { phraseRefs.current[i] = el; }}
-                data-phrase-index={i}
-                onClick={() => handlePhraseClick(i)}
-                onContextMenu={(e) => handleStartSelection(i, e)}
-                className={[
-                  'rounded px-0.5 transition-colors',
-                  getSpanClass(i),
-                ].join(' ')}
-              >
-                {phrase.text}{' '}
-              </span>
-            ))
+            <PhraseRenderer
+              phrases={phrases}
+              phraseRefs={phraseRefs}
+              getSpanClass={getSpanClass}
+              onPhraseClick={handlePhraseClick}
+              onPhraseContextMenu={handleStartSelection}
+              dark={darkMode}
+            />
           ) : rawText ? (
             <p className="whitespace-pre-wrap">{rawText}</p>
           ) : (
@@ -651,6 +644,73 @@ export default function ReaderPage() {
         />
       )}
     </div>
+  );
+}
+
+type PhraseRendererProps = {
+  phrases: Phrase[];
+  phraseRefs: React.MutableRefObject<(HTMLElement | null)[]>;
+  getSpanClass: (i: number) => string;
+  onPhraseClick: (i: number) => void;
+  onPhraseContextMenu: (i: number, e: React.MouseEvent) => void;
+  dark: boolean;
+};
+
+function PhraseRenderer({ phrases, phraseRefs, getSpanClass, onPhraseClick, onPhraseContextMenu, dark }: PhraseRendererProps) {
+  type Block =
+    | { kind: 'heading'; i: number; phrase: Phrase }
+    | { kind: 'paragraph'; items: Array<{ i: number; phrase: Phrase }> };
+
+  const blocks = useMemo<Block[]>(() => {
+    const result: Block[] = [];
+    let currentPara: Array<{ i: number; phrase: Phrase }> = [];
+
+    phrases.forEach((phrase, i) => {
+      if (phrase.type === 'heading') {
+        if (currentPara.length) { result.push({ kind: 'paragraph', items: currentPara }); currentPara = []; }
+        result.push({ kind: 'heading', i, phrase });
+      } else {
+        currentPara.push({ i, phrase });
+      }
+    });
+    if (currentPara.length) result.push({ kind: 'paragraph', items: currentPara });
+    return result;
+  }, [phrases]);
+
+  const headingClass = dark
+    ? 'text-xl font-bold mt-10 mb-3 text-gray-100'
+    : 'text-xl font-bold mt-10 mb-3 text-gray-900';
+
+  return (
+    <>
+      {blocks.map((block, bi) =>
+        block.kind === 'heading' ? (
+          <h2
+            key={bi}
+            ref={(el) => { phraseRefs.current[block.i] = el; }}
+            data-phrase-index={block.i}
+            className={headingClass}
+          >
+            {block.phrase.text}
+          </h2>
+        ) : (
+          <p key={bi} className="mb-5">
+            {block.items.map(({ i, phrase }) => (
+              <span
+                key={i}
+                ref={(el) => { phraseRefs.current[i] = el; }}
+                data-phrase-index={i}
+                onClick={() => onPhraseClick(i)}
+                onContextMenu={(e) => onPhraseContextMenu(i, e)}
+                className={['rounded px-0.5 transition-colors', getSpanClass(i)].join(' ')}
+              >
+                {phrase.text}{' '}
+              </span>
+            ))}
+          </p>
+        )
+      )}
+    </>
   );
 }
 

@@ -12,62 +12,128 @@ describe('PhraseSplitterService', () => {
     service = module.get<PhraseSplitterService>(PhraseSplitterService);
   });
 
-  describe('split', () => {
+  describe('split — basic behaviour', () => {
     it('returns an empty array for empty text', () => {
       expect(service.split('')).toEqual([]);
       expect(service.split('   ')).toEqual([]);
     });
 
     it('assigns sequential indices starting at 0', () => {
-      const long = 'A'.repeat(50) + '. ' + 'B'.repeat(50) + '. ' + 'C'.repeat(50) + '.';
-      const phrases = service.split(long, 60);
-
+      const text = 'El primer párrafo tiene varias oraciones.\n\nEl segundo también las tiene aquí mismo.';
+      const phrases = service.split(text, 60);
       phrases.forEach((p, i) => expect(p.index).toBe(i));
     });
 
     it('sets startTime and endTime to 0 for every phrase', () => {
-      const text = 'Hello world. This is a test sentence. Another one here.';
-      const phrases = service.split(text, 30);
-
-      phrases.forEach((p) => {
+      const text = 'Una oración. Otra oración aquí. Y una más.';
+      service.split(text).forEach((p) => {
         expect(p.startTime).toBe(0);
         expect(p.endTime).toBe(0);
       });
     });
 
-    it('groups short sentences into a single phrase when they fit within maxChars', () => {
-      const text = 'Hi. Ok. Yes.';
-      const phrases = service.split(text, 200);
-
+    it('handles text with no punctuation as a single text phrase', () => {
+      const text = 'No punctuation here at all';
+      const phrases = service.split(text);
       expect(phrases).toHaveLength(1);
-      expect(phrases[0].text).toContain('Hi.');
-      expect(phrases[0].text).toContain('Ok.');
-      expect(phrases[0].text).toContain('Yes.');
+      expect(phrases[0].type).toBe('text');
     });
 
-    it('splits into multiple phrases when text exceeds maxChars', () => {
+    it('a single sentence longer than maxChars is emitted as one text phrase', () => {
+      const text = 'A'.repeat(300) + '.';
+      const phrases = service.split(text, 200);
+      expect(phrases).toHaveLength(1);
+      expect(phrases[0].type).toBe('text');
+      expect(phrases[0].text.length).toBeGreaterThan(200);
+    });
+  });
+
+  describe('split — paragraph structure', () => {
+    it('treats double newlines as paragraph separators', () => {
+      const text = 'Párrafo uno con algo de texto completo aquí.\n\nPárrafo dos con más contenido textual aquí.';
+      const phrases = service.split(text, 300);
+      // Both paragraphs should be present as text phrases
+      expect(phrases.some((p) => p.text.includes('Párrafo uno'))).toBe(true);
+      expect(phrases.some((p) => p.text.includes('Párrafo dos'))).toBe(true);
+      expect(phrases.every((p) => p.type === 'text')).toBe(true);
+    });
+
+    it('splits long paragraphs into multiple phrases respecting maxChars', () => {
       const sentence = 'A'.repeat(100) + '.';
       const text = `${sentence} ${sentence} ${sentence}`;
       const phrases = service.split(text, 110);
-
       expect(phrases.length).toBeGreaterThan(1);
       phrases.forEach((p) => expect(p.text.length).toBeLessThanOrEqual(110));
     });
 
-    it('handles text with no sentence-ending punctuation as a single phrase', () => {
-      const text = 'No punctuation here at all';
+    it('groups short sentences within a paragraph into one phrase', () => {
+      const text = 'Hola. Sí. Gracias.';
       const phrases = service.split(text, 200);
-
       expect(phrases).toHaveLength(1);
-      expect(phrases[0].text).toBe(text);
+      expect(phrases[0].type).toBe('text');
+    });
+  });
+
+  describe('split — heading detection', () => {
+    it('detects CAPÍTULO keyword as a heading', () => {
+      const text = 'CAPÍTULO I\n\nComienzo del texto del capítulo aquí mismo en este ejemplo.';
+      const phrases = service.split(text);
+      expect(phrases[0].type).toBe('heading');
+      expect(phrases[0].text).toBe('CAPÍTULO I');
     });
 
-    it('a single sentence longer than maxChars is emitted as one phrase', () => {
-      const text = 'A'.repeat(300) + '.';
-      const phrases = service.split(text, 200);
+    it('detects CHAPTER keyword as a heading', () => {
+      const text = 'CHAPTER ONE\n\nThe story begins here with this sentence.';
+      const phrases = service.split(text);
+      expect(phrases[0].type).toBe('heading');
+      expect(phrases[0].text).toBe('CHAPTER ONE');
+    });
 
-      expect(phrases).toHaveLength(1);
-      expect(phrases[0].text.length).toBeGreaterThan(200);
+    it('detects TRACTADO keyword as a heading (Lazarillo pattern)', () => {
+      const text = 'TRACTADO PRIMERO\n\nEl lazarillo cuenta su origen.';
+      const phrases = service.split(text);
+      expect(phrases[0].type).toBe('heading');
+    });
+
+    it('detects ACTO keyword as a heading (theatre pattern)', () => {
+      const text = 'ACTO PRIMERO\n\nLa escena transcurre en Verona.';
+      const phrases = service.split(text);
+      expect(phrases[0].type).toBe('heading');
+    });
+
+    it('detects all-caps lines as headings', () => {
+      const text = 'EL LAZARILLO DE TORMES\n\nComienzo de la obra aquí con texto.';
+      const phrases = service.split(text);
+      expect(phrases[0].type).toBe('heading');
+    });
+
+    it('does NOT detect long all-caps text as a heading', () => {
+      // A long all-caps block is prose, not a heading
+      const longCaps = 'A'.repeat(101);
+      const text = `${longCaps}\n\nOtra cosa aquí.`;
+      const phrases = service.split(text);
+      expect(phrases[0].type).toBe('text');
+    });
+
+    it('detects the ##HEADING## marker from Wikisource fetcher', () => {
+      const text = '##HEADING## Capítulo I — El principio\n\nTexto del capítulo comienza aquí.';
+      const phrases = service.split(text);
+      expect(phrases[0].type).toBe('heading');
+      expect(phrases[0].text).toBe('Capítulo I — El principio');
+    });
+
+    it('strips the ##HEADING## prefix from the stored text', () => {
+      const text = '##HEADING## Mi Título\n\nContenido.';
+      const phrases = service.split(text);
+      expect(phrases[0].text).toBe('Mi Título');
+      expect(phrases[0].text).not.toContain('##HEADING##');
+    });
+
+    it('body text following a heading gets type text', () => {
+      const text = 'CAPÍTULO II\n\nTexto del capítulo dos aquí bien largo.';
+      const phrases = service.split(text);
+      expect(phrases[0].type).toBe('heading');
+      expect(phrases[1].type).toBe('text');
     });
   });
 });
