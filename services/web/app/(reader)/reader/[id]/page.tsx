@@ -36,7 +36,7 @@ type Mode = 'reading' | 'listening';
 
 type AudioBookmark = { phraseIndex: number };
 
-const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
+const SPEEDS = [0.75, 1, 1.25, 1.5];
 
 function formatTime(s: number): string {
   if (!isFinite(s)) return '0:00';
@@ -73,6 +73,9 @@ export default function ReaderPage() {
   // Audio bookmark — set when user taps "Citar" in listening mode
   const [audioBookmark, setAudioBookmark] = useState<AudioBookmark | null>(null);
   const [showQuoteChoice, setShowQuoteChoice] = useState(false);
+
+  // Play confirmation — shown when user hits play with saved progress
+  const [showPlayConfirm, setShowPlayConfirm] = useState(false);
 
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -198,6 +201,12 @@ export default function ReaderPage() {
 
   // ── Controls ──────────────────────────────────────────────────────────────
 
+  const seekToIndex = useCallback((idx: number) => {
+    const audio = audioRef.current;
+    if (!audio || !phrases.length) return;
+    audio.currentTime = seekToPhrase(phrases, idx);
+  }, [phrases]);
+
   const togglePlay = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -205,23 +214,41 @@ export default function ReaderPage() {
     else audio.pause();
   }, []);
 
+  // Floating play button: pause immediately if playing; if paused and there's
+  // saved reading progress, ask the user where to start instead of jumping to 0.
+  const handleFloatingPlayClick = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (!audio.paused) {
+      audio.pause();
+      return;
+    }
+    if (savedPhraseIndex > 0) {
+      setShowPlayConfirm(true);
+    } else {
+      audio.play();
+    }
+  }, [savedPhraseIndex]);
+
+  const handlePlayFromProgress = useCallback(() => {
+    setShowPlayConfirm(false);
+    seekToIndex(savedPhraseIndex);
+    audioRef.current?.play();
+  }, [savedPhraseIndex, seekToIndex]);
+
+  const handlePlayFromStart = useCallback(() => {
+    setShowPlayConfirm(false);
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0;
+      audioRef.current.play();
+    }
+  }, []);
+
   const handleScrub = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const audio = audioRef.current;
     if (!audio) return;
     audio.currentTime = Number(e.target.value);
   }, []);
-
-  const handleSpeedChange = useCallback((e: React.ChangeEvent<HTMLSelectElement>) => {
-    const s = Number(e.target.value);
-    setSpeed(s);
-    if (audioRef.current) audioRef.current.playbackRate = s;
-  }, []);
-
-  const seekToIndex = useCallback((idx: number) => {
-    const audio = audioRef.current;
-    if (!audio || !phrases.length) return;
-    audio.currentTime = seekToPhrase(phrases, idx);
-  }, [phrases]);
 
   const handleModeToggle = useCallback(() => {
     setMode((m) => m === 'reading' ? 'listening' : 'reading');
@@ -405,7 +432,7 @@ export default function ReaderPage() {
         <>
           {/* Floating play button — visible when no sidebar shown */}
           <button
-            onClick={togglePlay}
+            onClick={handleFloatingPlayClick}
             className={[
               'fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg flex items-center justify-center z-50 transition bg-blue-600 text-white',
               mode === 'listening' ? 'md:hidden' : '',
@@ -414,6 +441,36 @@ export default function ReaderPage() {
           >
             {playing ? <PauseIcon /> : <PlayIcon />}
           </button>
+
+          {/* Play confirmation card — appears above the floating button */}
+          {showPlayConfirm && (
+            <div className="fixed bottom-24 right-4 z-50 bg-white rounded-2xl shadow-2xl border border-gray-100 w-64 p-4">
+              <p className="text-sm font-semibold text-gray-900 mb-1">¿Dónde empezamos?</p>
+              <p className="text-xs text-gray-500 mb-4">
+                Tienes progreso guardado en este libro.
+              </p>
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={handlePlayFromProgress}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl text-sm font-medium transition"
+                >
+                  Continuar desde frase {savedPhraseIndex + 1}
+                </button>
+                <button
+                  onClick={handlePlayFromStart}
+                  className="w-full border border-gray-200 hover:border-gray-300 text-gray-700 py-2.5 rounded-xl text-sm font-medium transition"
+                >
+                  Desde el principio
+                </button>
+                <button
+                  onClick={() => setShowPlayConfirm(false)}
+                  className="text-gray-400 hover:text-gray-600 text-xs py-1 transition"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Full controls sidebar */}
           <aside
@@ -429,15 +486,61 @@ export default function ReaderPage() {
                 <p className="text-xs text-gray-500 truncate">{book.author}</p>
               </div>
 
-              <button
-                onClick={togglePlay}
-                className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium transition mb-4"
-              >
-                {playing ? <PauseIcon /> : <PlayIcon />}
-                {playing ? 'Pausar' : 'Reproducir'}
-              </button>
+              {/* Speed selector — top of panel for easy access */}
+              <div className="flex items-center gap-1 mb-4 bg-gray-100 rounded-xl p-1">
+                {SPEEDS.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => {
+                      setSpeed(s);
+                      if (audioRef.current) audioRef.current.playbackRate = s;
+                    }}
+                    className={[
+                      'flex-1 text-xs font-medium py-1.5 rounded-lg transition',
+                      speed === s
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-800',
+                    ].join(' ')}
+                  >
+                    {s}×
+                  </button>
+                ))}
+              </div>
 
-              <div className="mb-4">
+              {/* Transport controls: −10s / play-pause / +10s */}
+              <div className="flex items-center justify-center gap-4 mb-4">
+                <button
+                  onClick={() => {
+                    if (audioRef.current) audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 10);
+                  }}
+                  aria-label="Retroceder 10 segundos"
+                  className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-blue-600 transition"
+                >
+                  <SkipBackIcon />
+                  <span className="text-[10px]">10s</span>
+                </button>
+
+                <button
+                  onClick={togglePlay}
+                  className="w-16 h-16 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-md transition"
+                  aria-label={playing ? 'Pausar' : 'Reproducir'}
+                >
+                  {playing ? <PauseIcon /> : <PlayIcon />}
+                </button>
+
+                <button
+                  onClick={() => {
+                    if (audioRef.current) audioRef.current.currentTime = Math.min(duration, audioRef.current.currentTime + 10);
+                  }}
+                  aria-label="Avanzar 10 segundos"
+                  className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-blue-600 transition"
+                >
+                  <SkipForwardIcon />
+                  <span className="text-[10px]">10s</span>
+                </button>
+              </div>
+
+              <div className="mb-6">
                 <input
                   type="range"
                   min={0}
@@ -451,19 +554,6 @@ export default function ReaderPage() {
                   <span>{formatTime(currentTime)}</span>
                   <span>{formatTime(duration)}</span>
                 </div>
-              </div>
-
-              <div className="flex items-center gap-2 mb-6">
-                <span className="text-xs text-gray-500">Velocidad</span>
-                <select
-                  value={speed}
-                  onChange={handleSpeedChange}
-                  className="flex-1 text-sm border border-gray-200 rounded-lg px-2 py-1 bg-white"
-                >
-                  {SPEEDS.map((s) => (
-                    <option key={s} value={s}>{s}×</option>
-                  ))}
-                </select>
               </div>
 
               {/* Quote button */}
@@ -602,6 +692,24 @@ function QuoteIcon() {
   return (
     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
       <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+    </svg>
+  );
+}
+
+function SkipBackIcon() {
+  return (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+      <polygon points="19 20 9 12 19 4 19 20" />
+      <line x1="5" y1="19" x2="5" y2="5" />
+    </svg>
+  );
+}
+
+function SkipForwardIcon() {
+  return (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+      <polygon points="5 4 15 12 5 20 5 4" />
+      <line x1="19" y1="5" x2="19" y2="19" />
     </svg>
   );
 }
