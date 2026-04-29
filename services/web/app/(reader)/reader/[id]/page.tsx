@@ -669,6 +669,8 @@ function PhraseRenderer({ phrases, phraseRefs, getSpanClass, onPhraseClick, onPh
       if (phrase.type === 'heading') {
         if (currentPara.length) { result.push({ kind: 'paragraph', items: currentPara }); currentPara = []; }
         result.push({ kind: 'heading', i, phrase });
+      } else if (phrase.type === 'paragraph-break') {
+        if (currentPara.length) { result.push({ kind: 'paragraph', items: currentPara }); currentPara = []; }
       } else {
         currentPara.push({ i, phrase });
       }

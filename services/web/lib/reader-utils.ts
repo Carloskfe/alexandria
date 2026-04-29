@@ -3,7 +3,7 @@ export interface Phrase {
   text: string;
   startTime: number;
   endTime: number;
-  type?: 'text' | 'heading';
+  type?: 'text' | 'heading' | 'paragraph-break';
 }
 
 export interface Fragment {

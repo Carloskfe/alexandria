@@ -55,7 +55,43 @@ describe('PhraseSplitterService', () => {
       // Both paragraphs should be present as text phrases
       expect(phrases.some((p) => p.text.includes('Párrafo uno'))).toBe(true);
       expect(phrases.some((p) => p.text.includes('Párrafo dos'))).toBe(true);
-      expect(phrases.every((p) => p.type === 'text')).toBe(true);
+      expect(phrases.some((p) => p.type === 'paragraph-break')).toBe(true);
+    });
+
+    it('inserts exactly one paragraph-break between two text blocks', () => {
+      const text = 'Primer párrafo con contenido aquí.\n\nSegundo párrafo con contenido aquí.';
+      const phrases = service.split(text, 300);
+      const types = phrases.map((p) => p.type);
+      expect(types).toEqual(['text', 'paragraph-break', 'text']);
+    });
+
+    it('does NOT insert a paragraph-break between a heading and the following text', () => {
+      const text = 'CAPÍTULO I\n\nTexto del capítulo comienza aquí ahora mismo.';
+      const phrases = service.split(text, 300);
+      const types = phrases.map((p) => p.type);
+      expect(types).toEqual(['heading', 'text']);
+    });
+
+    it('does NOT insert a paragraph-break before the very first text block', () => {
+      const text = 'Solo un párrafo aquí.';
+      const phrases = service.split(text, 300);
+      expect(phrases[0].type).toBe('text');
+      expect(phrases.some((p) => p.type === 'paragraph-break')).toBe(false);
+    });
+
+    it('paragraph-break phrases have empty text and zero timestamps', () => {
+      const text = 'Primer bloque de texto aquí.\n\nSegundo bloque de texto aquí.';
+      const phrases = service.split(text, 300);
+      const brk = phrases.find((p) => p.type === 'paragraph-break')!;
+      expect(brk.text).toBe('');
+      expect(brk.startTime).toBe(0);
+      expect(brk.endTime).toBe(0);
+    });
+
+    it('assigns sequential indices including paragraph-break phrases', () => {
+      const text = 'Bloque uno con texto.\n\nBloque dos con texto.';
+      const phrases = service.split(text, 300);
+      phrases.forEach((p, i) => expect(p.index).toBe(i));
     });
 
     it('splits long paragraphs into multiple phrases respecting maxChars', () => {
@@ -63,7 +99,7 @@ describe('PhraseSplitterService', () => {
       const text = `${sentence} ${sentence} ${sentence}`;
       const phrases = service.split(text, 110);
       expect(phrases.length).toBeGreaterThan(1);
-      phrases.forEach((p) => expect(p.text.length).toBeLessThanOrEqual(110));
+      phrases.filter((p) => p.type === 'text').forEach((p) => expect(p.text.length).toBeLessThanOrEqual(110));
     });
 
     it('groups short sentences within a paragraph into one phrase', () => {

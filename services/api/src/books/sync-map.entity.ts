@@ -14,7 +14,7 @@ export interface SyncPhrase {
   text: string;
   startTime: number;
   endTime: number;
-  type?: 'text' | 'heading';
+  type?: 'text' | 'heading' | 'paragraph-break';
 }
 
 @Entity('sync_maps')

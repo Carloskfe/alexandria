@@ -41,8 +41,15 @@ export class PhraseSplitterService {
       } else if (this.isHeading(b)) {
         phrases.push({ index: index++, text: b, type: 'heading', startTime: 0, endTime: 0 });
       } else {
-        for (const s of this.splitParagraph(b, maxChars)) {
-          phrases.push({ index: index++, text: s, type: 'text', startTime: 0, endTime: 0 });
+        const sentencePhrases = this.splitParagraph(b, maxChars);
+        if (sentencePhrases.length > 0) {
+          const last = phrases[phrases.length - 1];
+          if (last && last.type === 'text') {
+            phrases.push({ index: index++, text: '', type: 'paragraph-break', startTime: 0, endTime: 0 });
+          }
+          for (const s of sentencePhrases) {
+            phrases.push({ index: index++, text: s, type: 'text', startTime: 0, endTime: 0 });
+          }
         }
       }
     }
