@@ -21,6 +21,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { SubscriptionGuard } from '../subscriptions/subscription.guard';
 import { StorageService } from '../storage/storage.service';
+import { SearchService } from '../search/search.service';
 import { UserType } from '../users/user.entity';
 import { BookCategory } from './book.entity';
 import { BooksService } from './books.service';
@@ -40,6 +41,7 @@ export class BooksController {
     private readonly syncMapService: SyncMapService,
     private readonly readingProgressService: ReadingProgressService,
     private readonly fragmentsService: FragmentsService,
+    private readonly searchService: SearchService,
   ) {}
 
   @Get()
@@ -121,14 +123,18 @@ export class BooksController {
     }
 
     // Admin uploads go live immediately; author/editorial submissions need review
-    return this.booksService.create(dto, textFileKey, audioFileKey, req.user.id, isAdmin);
+    const book = await this.booksService.create(dto, textFileKey, audioFileKey, req.user.id, isAdmin);
+    if (book.isPublished) void this.searchService.indexBook(book);
+    return book;
   }
 
   @Patch(':id/publish')
   @UseGuards(JwtAuthGuard)
   async publish(@Param('id') id: string, @Request() req: any) {
     if (!req.user.isAdmin) throw new ForbiddenException();
-    return this.booksService.publish(id);
+    const book = await this.booksService.publish(id);
+    void this.searchService.indexBook(book);
+    return book;
   }
 
   @Delete(':id')
@@ -136,7 +142,8 @@ export class BooksController {
   @UseGuards(JwtAuthGuard)
   async remove(@Param('id') id: string, @Request() req: any) {
     if (!req.user.isAdmin) throw new ForbiddenException();
-    return this.booksService.remove(id);
+    await this.booksService.remove(id);
+    void this.searchService.removeBook(id);
   }
 
   // ── Fragments ─────────────────────────────────────────────────────────────

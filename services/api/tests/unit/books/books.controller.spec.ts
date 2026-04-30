@@ -8,6 +8,7 @@ import { ReadingProgressService } from '../../../src/books/reading-progress.serv
 import { FragmentsService } from '../../../src/fragments/fragments.service';
 import { JwtAuthGuard } from '../../../src/auth/jwt-auth.guard';
 import { SubscriptionGuard } from '../../../src/subscriptions/subscription.guard';
+import { SearchService } from '../../../src/search/search.service';
 import { BookCategory } from '../../../src/books/book.entity';
 import { CreateBookDto } from '../../../src/books/dto/create-book.dto';
 import { UserType } from '../../../src/users/user.entity';
@@ -25,6 +26,7 @@ const mockStorageService = { presign: jest.fn(), upload: jest.fn() };
 const mockSyncMapService = { findByBook: jest.fn(), upsert: jest.fn() };
 const mockProgressService = { findByUserAndBook: jest.fn(), upsert: jest.fn() };
 const mockFragmentsService = { findByUserAndBook: jest.fn() };
+const mockSearchService = { indexBook: jest.fn().mockResolvedValue(undefined), removeBook: jest.fn().mockResolvedValue(undefined) };
 
 const adminUser = { id: 'admin-1', isAdmin: true, userType: null };
 const authorUser = { id: 'author-1', isAdmin: false, userType: UserType.AUTHOR };
@@ -42,6 +44,7 @@ describe('BooksController', () => {
         { provide: SyncMapService, useValue: mockSyncMapService },
         { provide: ReadingProgressService, useValue: mockProgressService },
         { provide: FragmentsService, useValue: mockFragmentsService },
+        { provide: SearchService, useValue: mockSearchService },
       ],
     })
       .overrideGuard(JwtAuthGuard)

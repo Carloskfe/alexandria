@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
 import { BookGrid } from '@/components/BookGrid';
@@ -15,23 +15,49 @@ type Book = {
 };
 
 export default function LibraryPage() {
-  const [books, setBooks] = useState<Book[]>([]);
+  const [allBooks, setAllBooks] = useState<Book[]>([]);
+  const [searchHits, setSearchHits] = useState<Book[] | null>(null);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
+  const [searching, setSearching] = useState(false);
   const [error, setError] = useState('');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     apiFetch('/books')
-      .then((data) => setBooks(data))
+      .then((data) => setAllBooks(data))
       .catch((err) => setError(err.message ?? 'Error loading library'))
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = books.filter(
-    (b) =>
-      b.title.toLowerCase().includes(query.toLowerCase()) ||
-      b.author.toLowerCase().includes(query.toLowerCase()),
-  );
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (!query.trim()) {
+      setSearchHits(null);
+      setSearching(false);
+      return;
+    }
+
+    setSearching(true);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({ q: query });
+        const data = await apiFetch(`/search?${params}`);
+        setSearchHits(data.hits ?? []);
+      } catch {
+        setSearchHits([]);
+      } finally {
+        setSearching(false);
+      }
+    }, 300);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [query]);
+
+  const displayed = searchHits ?? allBooks;
 
   return (
     <div className="max-w-lg mx-auto px-4">
@@ -50,11 +76,16 @@ export default function LibraryPage() {
           </svg>
           <input
             type="text"
-            placeholder="Buscar en tu biblioteca…"
+            placeholder="Buscar por título, autor o descripción…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-sm focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 shadow-sm"
           />
+          {searching && (
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+              Buscando…
+            </span>
+          )}
         </div>
       </div>
 
@@ -62,14 +93,14 @@ export default function LibraryPage() {
         <BookGridSkeleton />
       ) : error ? (
         <p className="text-center text-red-500 text-sm mt-16">{error}</p>
-      ) : books.length === 0 ? (
+      ) : allBooks.length === 0 ? (
         <EmptyLibrary />
-      ) : filtered.length === 0 ? (
+      ) : displayed.length === 0 && query ? (
         <p className="text-center text-gray-400 text-sm mt-16">
           No se encontraron resultados para &ldquo;{query}&rdquo;
         </p>
       ) : (
-        <BookGrid books={filtered} />
+        <BookGrid books={displayed} />
       )}
     </div>
   );
