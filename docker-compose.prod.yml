@@ -1,6 +1,20 @@
-version: "3.9"
+# Production overrides — use with:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Internal service ports (db:5432, cache:6379, search:7700) must be blocked at
+# the infrastructure level (VPC / security group). Only the proxy (80/443) and
+# optionally Grafana (3001) should be reachable from outside.
 
 services:
+  # ─── Reverse Proxy ──────────────────────────────────────────────────────────
+  proxy:
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # ─── API (NestJS) ───────────────────────────────────────────────────────────
   api:
     build:
       context: ./services/api
@@ -8,7 +22,20 @@ services:
     volumes: []
     environment:
       NODE_ENV: production
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
 
+  # ─── Web (Next.js) ──────────────────────────────────────────────────────────
   web:
     build:
       context: ./services/web
@@ -16,11 +43,37 @@ services:
     volumes: []
     environment:
       NODE_ENV: production
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
 
+  # ─── Image Generation (Python/Flask) ────────────────────────────────────────
   image-gen:
     environment:
       FLASK_ENV: production
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
 
+  # ─── Worker (BullMQ) ────────────────────────────────────────────────────────
   worker:
     build:
       context: ./services/worker
@@ -28,7 +81,96 @@ services:
     volumes: []
     environment:
       NODE_ENV: production
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          memory: 128M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
 
+  # ─── PostgreSQL ─────────────────────────────────────────────────────────────
+  db:
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ─── Redis ──────────────────────────────────────────────────────────────────
+  cache:
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          memory: 64M
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+
+  # ─── MinIO ──────────────────────────────────────────────────────────────────
+  storage:
+    # Bind to loopback so console and API are only reachable via SSH tunnel.
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          memory: 128M
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+
+  # ─── Meilisearch ────────────────────────────────────────────────────────────
   search:
     environment:
       MEILI_ENV: production
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:7700/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+
+  # ─── Grafana ────────────────────────────────────────────────────────────────
+  monitor:
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required in production}
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
