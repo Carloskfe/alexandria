@@ -10,7 +10,11 @@ export class WebhooksService {
   async handleEvent(event: any): Promise<void> {
     switch (event.type) {
       case 'checkout.session.completed':
-        await this.handleCheckoutCompleted(event);
+        if (event.data.object.mode === 'payment') {
+          await this.handlePaymentCompleted(event);
+        } else {
+          await this.handleCheckoutCompleted(event);
+        }
         break;
       case 'invoice.paid':
         await this.handleInvoicePaid(event);
@@ -27,6 +31,13 @@ export class WebhooksService {
       default:
         this.logger.log(`Unhandled Stripe event: ${event.type}`);
     }
+  }
+
+  private async handlePaymentCompleted(event: any): Promise<void> {
+    const session = event.data.object;
+    const { bookId, userId } = session.metadata ?? {};
+    if (!bookId || !userId) return;
+    await this.subscriptionsService.addPurchasedBook(userId, bookId);
   }
 
   private async handleCheckoutCompleted(event: any): Promise<void> {
@@ -72,6 +83,7 @@ export class WebhooksService {
       currentPeriodEnd,
       null,
     );
+    await this.subscriptionsService.resetCreditsForSubscription(subId);
   }
 
   private async handleInvoicePaymentFailed(event: any): Promise<void> {

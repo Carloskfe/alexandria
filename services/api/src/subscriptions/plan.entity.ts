@@ -20,6 +20,9 @@ export class Plan {
   @Column({ type: 'int', default: 1 })
   maxProfiles: number;
 
+  @Column({ type: 'int', default: 1 })
+  creditsPerCycle: number;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 }

@@ -7,6 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Book } from '../books/book.entity';
+import { UserBook } from '../library/user-book.entity';
 import { Subscription } from './subscription.entity';
 
 const ACTIVE_STATUSES = ['active', 'trialing', 'canceling'];
@@ -18,18 +19,25 @@ export class SubscriptionGuard implements CanActivate {
     private readonly subRepo: Repository<Subscription>,
     @InjectRepository(Book)
     private readonly bookRepo: Repository<Book>,
+    @InjectRepository(UserBook)
+    private readonly userBookRepo: Repository<UserBook>,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const req = context.switchToHttp().getRequest();
-
     const bookId = req.params?.id as string | undefined;
+    const userId = req.user?.id as string | undefined;
+
     if (bookId) {
       const book = await this.bookRepo.findOneBy({ id: bookId });
       if (book?.isFree) return true;
+
+      if (userId) {
+        const owned = await this.userBookRepo.existsBy({ userId, bookId });
+        if (owned) return true;
+      }
     }
 
-    const userId = req.user?.id;
     const sub = userId ? await this.subRepo.findOneBy({ userId }) : null;
 
     if (sub?.status === 'past_due') {

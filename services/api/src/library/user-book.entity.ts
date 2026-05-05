@@ -25,6 +25,9 @@ export class UserBook {
   @JoinColumn({ name: 'bookId' })
   book: Book;
 
+  @Column({ type: 'varchar', default: 'free' })
+  purchaseType: 'free' | 'credit' | 'purchase';
+
   @CreateDateColumn()
   addedAt: Date;
 }

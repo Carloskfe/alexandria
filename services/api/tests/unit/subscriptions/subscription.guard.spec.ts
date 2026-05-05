@@ -2,11 +2,13 @@ import { ExecutionContext, ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Book } from '../../../src/books/book.entity';
+import { UserBook } from '../../../src/library/user-book.entity';
 import { Subscription } from '../../../src/subscriptions/subscription.entity';
 import { SubscriptionGuard } from '../../../src/subscriptions/subscription.guard';
 
 const mockSubRepo = { findOneBy: jest.fn() };
 const mockBookRepo = { findOneBy: jest.fn() };
+const mockUserBookRepo = { existsBy: jest.fn() };
 
 const makeContext = (userId?: string, bookId?: string): ExecutionContext =>
   ({
@@ -23,11 +25,13 @@ describe('SubscriptionGuard', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    mockUserBookRepo.existsBy.mockResolvedValue(false);
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SubscriptionGuard,
         { provide: getRepositoryToken(Subscription), useValue: mockSubRepo },
         { provide: getRepositoryToken(Book), useValue: mockBookRepo },
+        { provide: getRepositoryToken(UserBook), useValue: mockUserBookRepo },
       ],
     }).compile();
 
@@ -51,11 +55,28 @@ describe('SubscriptionGuard', () => {
     });
 
     it('falls through to subscription check when no bookId in params', async () => {
-      mockBookRepo.findOneBy.mockResolvedValue(null);
       mockSubRepo.findOneBy.mockResolvedValue({ status: 'active' });
 
       await expect(guard.canActivate(makeContext('u1'))).resolves.toBe(true);
       expect(mockSubRepo.findOneBy).toHaveBeenCalled();
+    });
+  });
+
+  describe('owned book bypass', () => {
+    it('allows access when user owns the book, regardless of subscription', async () => {
+      mockBookRepo.findOneBy.mockResolvedValue({ isFree: false });
+      mockUserBookRepo.existsBy.mockResolvedValue(true);
+
+      await expect(guard.canActivate(makeContext('u1', 'book-id'))).resolves.toBe(true);
+      expect(mockSubRepo.findOneBy).not.toHaveBeenCalled();
+    });
+
+    it('does not check ownership when no userId on request', async () => {
+      mockBookRepo.findOneBy.mockResolvedValue({ isFree: false });
+      mockSubRepo.findOneBy.mockResolvedValue(null);
+
+      await expect(guard.canActivate(makeContext(undefined, 'book-id'))).rejects.toThrow(ForbiddenException);
+      expect(mockUserBookRepo.existsBy).not.toHaveBeenCalled();
     });
   });
 

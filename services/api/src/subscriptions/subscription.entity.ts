@@ -55,6 +55,9 @@ export class Subscription {
   @Column({ type: 'varchar', nullable: true })
   stripeEventId: string | null;
 
+  @Column({ type: 'int', default: 0 })
+  creditsRemaining: number;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 

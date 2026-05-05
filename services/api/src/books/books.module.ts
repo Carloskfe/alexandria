@@ -8,13 +8,14 @@ import { BooksController } from './books.controller';
 import { BooksService } from './books.service';
 import { SyncMapService } from './sync-map.service';
 import { ReadingProgressService } from './reading-progress.service';
+import { UserBook } from '../library/user-book.entity';
 import { Subscription } from '../subscriptions/subscription.entity';
 import { FragmentsModule } from '../fragments/fragments.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { SearchModule } from '../search/search.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Book, SyncMap, ReadingProgress, Subscription, User]), FragmentsModule, SubscriptionsModule, SearchModule],
+  imports: [TypeOrmModule.forFeature([Book, SyncMap, ReadingProgress, Subscription, User, UserBook]), FragmentsModule, SubscriptionsModule, SearchModule],
   controllers: [BooksController],
   providers: [BooksService, SyncMapService, ReadingProgressService],
   exports: [BooksService],

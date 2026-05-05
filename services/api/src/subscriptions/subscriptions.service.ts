@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -8,6 +9,8 @@ import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import Stripe from 'stripe';
 import { Repository } from 'typeorm';
+import { Book } from '../books/book.entity';
+import { UserBook } from '../library/user-book.entity';
 import { User } from '../users/user.entity';
 import { UsersService } from '../users/users.service';
 import { PlansService } from './plans.service';
@@ -27,6 +30,10 @@ export class SubscriptionsService {
     private readonly subRepo: Repository<Subscription>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    @InjectRepository(Book)
+    private readonly bookRepo: Repository<Book>,
+    @InjectRepository(UserBook)
+    private readonly userBookRepo: Repository<UserBook>,
   ) {
     this.stripe = new Stripe(this.config.getOrThrow('STRIPE_SECRET_KEY'));
     this.webUrl = this.config.get('WEB_URL', 'http://localhost:3000');
@@ -80,6 +87,71 @@ export class SubscriptionsService {
     return { url: session.url };
   }
 
+  async createPurchaseSession(userId: string, bookId: string): Promise<{ url: string }> {
+    const book = await this.bookRepo.findOneBy({ id: bookId, isPublished: true });
+    if (!book) throw new NotFoundException('Book not found');
+    if (!book.priceCents) throw new BadRequestException({ error: 'book_not_for_sale' });
+
+    const customerId = await this.getOrCreateStripeCustomer(userId);
+
+    const session = await this.stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      line_items: [{
+        price_data: {
+          currency: 'usd',
+          unit_amount: book.priceCents,
+          product_data: { name: book.title, metadata: { bookId: book.id } },
+        },
+        quantity: 1,
+      }],
+      mode: 'payment',
+      metadata: { bookId: book.id, userId },
+      success_url: `${this.webUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${this.webUrl}/billing/cancel`,
+    });
+
+    return { url: session.url! };
+  }
+
+  async redeemCredit(userId: string, bookId: string): Promise<void> {
+    const book = await this.bookRepo.findOneBy({ id: bookId, isPublished: true });
+    if (!book) throw new NotFoundException('Book not found');
+
+    const sub = await this.subRepo.findOneBy({ userId });
+    const activeStatuses: SubscriptionStatus[] = ['active', 'trialing', 'canceling'];
+    if (!sub || !activeStatuses.includes(sub.status)) {
+      throw new ForbiddenException({ error: 'subscription_required' });
+    }
+    if (sub.creditsRemaining <= 0) {
+      throw new ForbiddenException({ error: 'no_credits_remaining' });
+    }
+
+    const alreadyOwned = await this.userBookRepo.existsBy({ userId, bookId });
+    if (alreadyOwned) throw new BadRequestException({ error: 'already_owned' });
+
+    await this.subRepo.decrement({ id: sub.id }, 'creditsRemaining', 1);
+    await this.userBookRepo.insert({ userId, bookId, purchaseType: 'credit' });
+  }
+
+  async addPurchasedBook(userId: string, bookId: string): Promise<void> {
+    try {
+      await this.userBookRepo.insert({ userId, bookId, purchaseType: 'purchase' });
+    } catch (err: any) {
+      if (err?.code === '23505') return;
+      throw err;
+    }
+  }
+
+  async resetCreditsForSubscription(stripeSubscriptionId: string): Promise<void> {
+    const sub = await this.subRepo.findOne({
+      where: { stripeSubscriptionId },
+      relations: ['plan'],
+    });
+    if (!sub?.plan) return;
+    await this.subRepo.update(sub.id, { creditsRemaining: sub.plan.creditsPerCycle });
+  }
+
   async getSubscriptionStatus(userId: string) {
     const sub = await this.subRepo.findOne({
       where: { userId },
@@ -91,6 +163,7 @@ export class SubscriptionsService {
       planId: sub.planId,
       currentPeriodEnd: sub.currentPeriodEnd,
       trialEnd: sub.trialEnd,
+      creditsRemaining: sub.creditsRemaining,
     };
   }
 

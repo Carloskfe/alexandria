@@ -54,6 +54,9 @@ export class Book {
   @Column({ type: 'boolean', default: false })
   isFree: boolean;
 
+  @Column({ type: 'int', nullable: true })
+  priceCents: number | null;
+
   @Column({ type: 'boolean', default: false })
   isPublished: boolean;
 

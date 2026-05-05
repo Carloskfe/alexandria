@@ -1,7 +1,9 @@
-import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { Book } from '../../../src/books/book.entity';
+import { UserBook } from '../../../src/library/user-book.entity';
 import { User } from '../../../src/users/user.entity';
 import { UsersService } from '../../../src/users/users.service';
 import { PlansService } from '../../../src/subscriptions/plans.service';
@@ -32,6 +34,14 @@ const mockSubRepo = {
   findOneBy: jest.fn(),
   update: jest.fn(),
   upsert: jest.fn(),
+  decrement: jest.fn(),
+};
+
+const mockBookRepo = { findOneBy: jest.fn() };
+
+const mockUserBookRepo = {
+  existsBy: jest.fn(),
+  insert: jest.fn(),
 };
 
 const mockUsersService = {
@@ -64,6 +74,8 @@ describe('SubscriptionsService', () => {
         { provide: PlansService, useValue: mockPlansService },
         { provide: getRepositoryToken(Subscription), useValue: mockSubRepo },
         { provide: getRepositoryToken(User), useValue: mockUserRepo },
+        { provide: getRepositoryToken(Book), useValue: mockBookRepo },
+        { provide: getRepositoryToken(UserBook), useValue: mockUserBookRepo },
       ],
     }).compile();
 
@@ -225,6 +237,116 @@ describe('SubscriptionsService', () => {
       mockSubRepo.update.mockResolvedValue(undefined);
       await service.cancelFromWebhook('sub_1');
       expect(mockSubRepo.update).toHaveBeenCalledWith({ stripeSubscriptionId: 'sub_1' }, { status: 'canceled' });
+    });
+  });
+
+  describe('createPurchaseSession', () => {
+    it('returns checkout url for a book with a price', async () => {
+      mockBookRepo.findOneBy.mockResolvedValue({ id: 'bk1', title: 'Test Book', priceCents: 1500, isPublished: true });
+      mockUsersService.findById.mockResolvedValue({ id: 'u1', stripeCustomerId: 'cus_1' });
+      mockStripe.checkout.sessions.create.mockResolvedValue({ url: 'https://checkout.stripe.com/pay' });
+
+      const result = await service.createPurchaseSession('u1', 'bk1');
+      expect(result).toEqual({ url: 'https://checkout.stripe.com/pay' });
+      expect(mockStripe.checkout.sessions.create).toHaveBeenCalledWith(
+        expect.objectContaining({ mode: 'payment', metadata: { bookId: 'bk1', userId: 'u1' } }),
+      );
+    });
+
+    it('throws NotFoundException for unknown or unpublished book', async () => {
+      mockBookRepo.findOneBy.mockResolvedValue(null);
+      await expect(service.createPurchaseSession('u1', 'ghost')).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws BadRequestException when book has no price', async () => {
+      mockBookRepo.findOneBy.mockResolvedValue({ id: 'bk1', priceCents: null, isPublished: true });
+      await expect(service.createPurchaseSession('u1', 'bk1')).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('redeemCredit', () => {
+    it('decrements creditsRemaining and inserts user_book', async () => {
+      mockBookRepo.findOneBy.mockResolvedValue({ id: 'bk1', isPublished: true });
+      mockSubRepo.findOneBy.mockResolvedValue({ id: 'sub1', status: 'active', creditsRemaining: 1 });
+      mockUserBookRepo.existsBy.mockResolvedValue(false);
+      mockSubRepo.decrement.mockResolvedValue(undefined);
+      mockUserBookRepo.insert.mockResolvedValue(undefined);
+
+      await service.redeemCredit('u1', 'bk1');
+      expect(mockSubRepo.decrement).toHaveBeenCalledWith({ id: 'sub1' }, 'creditsRemaining', 1);
+      expect(mockUserBookRepo.insert).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 'u1', bookId: 'bk1', purchaseType: 'credit' }),
+      );
+    });
+
+    it('throws NotFoundException for unknown book', async () => {
+      mockBookRepo.findOneBy.mockResolvedValue(null);
+      await expect(service.redeemCredit('u1', 'ghost')).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws ForbiddenException when user has no active subscription', async () => {
+      mockBookRepo.findOneBy.mockResolvedValue({ id: 'bk1', isPublished: true });
+      mockSubRepo.findOneBy.mockResolvedValue(null);
+      await expect(service.redeemCredit('u1', 'bk1')).rejects.toThrow(ForbiddenException);
+    });
+
+    it('throws ForbiddenException when no credits remaining', async () => {
+      mockBookRepo.findOneBy.mockResolvedValue({ id: 'bk1', isPublished: true });
+      mockSubRepo.findOneBy.mockResolvedValue({ id: 'sub1', status: 'active', creditsRemaining: 0 });
+      await expect(service.redeemCredit('u1', 'bk1')).rejects.toThrow(ForbiddenException);
+    });
+
+    it('throws BadRequestException when book is already owned', async () => {
+      mockBookRepo.findOneBy.mockResolvedValue({ id: 'bk1', isPublished: true });
+      mockSubRepo.findOneBy.mockResolvedValue({ id: 'sub1', status: 'active', creditsRemaining: 2 });
+      mockUserBookRepo.existsBy.mockResolvedValue(true);
+      await expect(service.redeemCredit('u1', 'bk1')).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('addPurchasedBook', () => {
+    it('inserts user_book with purchaseType purchase', async () => {
+      mockUserBookRepo.insert.mockResolvedValue(undefined);
+      await service.addPurchasedBook('u1', 'bk1');
+      expect(mockUserBookRepo.insert).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: 'u1', bookId: 'bk1', purchaseType: 'purchase' }),
+      );
+    });
+
+    it('silently ignores duplicate (already owned)', async () => {
+      mockUserBookRepo.insert.mockRejectedValue({ code: '23505' });
+      await expect(service.addPurchasedBook('u1', 'bk1')).resolves.toBeUndefined();
+    });
+
+    it('rethrows unexpected errors', async () => {
+      mockUserBookRepo.insert.mockRejectedValue(new Error('DB down'));
+      await expect(service.addPurchasedBook('u1', 'bk1')).rejects.toThrow('DB down');
+    });
+  });
+
+  describe('resetCreditsForSubscription', () => {
+    it('sets creditsRemaining to plan creditsPerCycle', async () => {
+      mockSubRepo.findOne.mockResolvedValue({
+        id: 'sub1',
+        stripeSubscriptionId: 'sub_stripe_1',
+        plan: { creditsPerCycle: 2 },
+      });
+      mockSubRepo.update.mockResolvedValue(undefined);
+
+      await service.resetCreditsForSubscription('sub_stripe_1');
+      expect(mockSubRepo.update).toHaveBeenCalledWith('sub1', { creditsRemaining: 2 });
+    });
+
+    it('does nothing when no subscription found', async () => {
+      mockSubRepo.findOne.mockResolvedValue(null);
+      await service.resetCreditsForSubscription('sub_unknown');
+      expect(mockSubRepo.update).not.toHaveBeenCalled();
+    });
+
+    it('does nothing when subscription has no plan', async () => {
+      mockSubRepo.findOne.mockResolvedValue({ id: 'sub1', plan: null });
+      await service.resetCreditsForSubscription('sub_stripe_1');
+      expect(mockSubRepo.update).not.toHaveBeenCalled();
     });
   });
 

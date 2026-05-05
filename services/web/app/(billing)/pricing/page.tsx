@@ -4,24 +4,21 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import PlanCard, { Plan } from '../../../components/PlanCard';
 
-const STATIC_PLANS: Plan[] = [
-  { id: 'individual-monthly', name: 'Individual Monthly', amountCents: 999,  interval: 'month', maxProfiles: 1 },
-  { id: 'individual-annual',  name: 'Individual Annual',  amountCents: 8900, interval: 'year',  maxProfiles: 1 },
-  { id: 'dual-monthly',       name: 'Dual Reader Monthly', amountCents: 1499, interval: 'month', maxProfiles: 2 },
-  { id: 'dual-annual',        name: 'Dual Reader Annual',  amountCents: 13500,interval: 'year',  maxProfiles: 2 },
-];
-
 export default function PricingPage() {
   const router = useRouter();
-  const [plans, setPlans] = useState<Plan[]>(STATIC_PLANS);
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('/api/subscriptions/me')
-      .then((r) => r.ok ? r.json() : null)
-      .then((data) => { if (data?.planId) setCurrentPlanId(data.planId); })
-      .catch(() => {});
+    Promise.all([
+      fetch('/api/subscriptions/plans').then((r) => r.ok ? r.json() : []),
+      fetch('/api/subscriptions/me').then((r) => r.ok ? r.json() : null).catch(() => null),
+    ]).then(([fetchedPlans, status]) => {
+      setPlans(fetchedPlans);
+      if (status?.planId) setCurrentPlanId(status.planId);
+    }).finally(() => setLoading(false));
   }, []);
 
   async function handleSelect(planId: string) {
@@ -46,19 +43,22 @@ export default function PricingPage() {
       <p className="text-center text-gray-500 mb-12">
         Start with a 14-day free trial. Cancel anytime.
       </p>
-      {error && (
-        <p className="text-center text-red-600 mb-6">{error}</p>
+      {error && <p className="text-center text-red-600 mb-6">{error}</p>}
+      {loading ? (
+        <p className="text-center text-gray-400">Loading plans…</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {plans.map((plan) => (
+            <PlanCard
+              key={plan.id}
+              plan={plan}
+              allPlans={plans}
+              isCurrentPlan={plan.id === currentPlanId}
+              onSelect={handleSelect}
+            />
+          ))}
+        </div>
       )}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        {plans.map((plan) => (
-          <PlanCard
-            key={plan.id}
-            plan={plan}
-            isCurrentPlan={plan.id === currentPlanId}
-            onSelect={handleSelect}
-          />
-        ))}
-      </div>
     </main>
   );
 }
