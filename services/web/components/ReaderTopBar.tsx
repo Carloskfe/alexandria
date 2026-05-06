@@ -57,13 +57,13 @@ export default function ReaderTopBar({
         <span className="hidden sm:inline text-xs font-medium">Mi Biblioteca</span>
       </Link>
 
-      {/* General collection search */}
+      {/* General collection */}
       <Link
         href="/discover"
         className={`flex-shrink-0 flex items-center gap-1 px-2 h-8 rounded-lg transition ${btn}`}
         aria-label="Colección General"
       >
-        <MagnifierIcon />
+        <BooksIcon />
         <span className="hidden sm:inline text-xs font-medium">Colección General</span>
       </Link>
 
@@ -167,10 +167,12 @@ function SunIcon() {
   );
 }
 
-function MagnifierIcon() {
+function BooksIcon() {
   return (
     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803 7.5 7.5 0 0015.803 15.803z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 19.5A2.5 2.5 0 016.5 17H20" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2 7h2M2 12h2M2 17h2" />
     </svg>
   );
 }
