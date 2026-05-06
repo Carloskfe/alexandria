@@ -93,6 +93,15 @@ describe('SocialController', () => {
         600,
       );
     });
+
+    it('uses API_URL env var (not API_BASE_URL) for redirect_uri', async () => {
+      process.env.API_URL = 'http://api.example.com:4000';
+      const res = mockRes();
+      await controller.connect('linkedin', mockUser as any, res);
+      const redirectUrl: string = res.redirect.mock.calls[0][0];
+      expect(redirectUrl).toContain(encodeURIComponent('http://api.example.com:4000/social/linkedin/callback'));
+      delete process.env.API_URL;
+    });
   });
 
   describe('callback', () => {

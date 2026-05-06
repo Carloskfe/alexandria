@@ -38,13 +38,41 @@ def test_upload_calls_presigned_get_object(mock_minio):
     assert args[1]["expires"] == timedelta(days=7)
 
 
-def test_upload_returns_presigned_url(mock_minio):
+def test_upload_returns_presigned_url_unchanged_without_public_url(mock_minio):
+    """Without MINIO_PUBLIC_URL the internal URL is returned as-is."""
     _, mock_instance = mock_minio
-    expected_url = "http://storage:9000/images/uuid.png?token=abc"
-    mock_instance.presigned_get_object.return_value = expected_url
-    client = MinioClient()
+    internal_url = "http://storage:9000/images/uuid.png?token=abc"
+    mock_instance.presigned_get_object.return_value = internal_url
+    with patch.dict("os.environ", {}, clear=False):
+        os_env = __import__("os").environ
+        os_env.pop("MINIO_PUBLIC_URL", None)
+        client = MinioClient()
     result = client.upload(b"data")
-    assert result == expected_url
+    assert result == internal_url
+
+
+def test_upload_rewrites_url_when_minio_public_url_set(mock_minio):
+    """MINIO_PUBLIC_URL replaces the internal Docker hostname in the presigned URL."""
+    _, mock_instance = mock_minio
+    internal_url = "http://storage:9000/images/uuid.png?X-Amz-Signature=abc"
+    mock_instance.presigned_get_object.return_value = internal_url
+    with patch.dict("os.environ", {"MINIO_PUBLIC_URL": "http://localhost:9000"}):
+        client = MinioClient()
+        result = client.upload(b"data")
+    assert result.startswith("http://localhost:9000/")
+    assert "storage:9000" not in result
+
+
+def test_upload_rewrites_trailing_slash_in_public_url(mock_minio):
+    """Trailing slash in MINIO_PUBLIC_URL is stripped before replacement."""
+    _, mock_instance = mock_minio
+    internal_url = "http://storage:9000/images/uuid.png"
+    mock_instance.presigned_get_object.return_value = internal_url
+    with patch.dict("os.environ", {"MINIO_PUBLIC_URL": "http://localhost:9000/"}):
+        client = MinioClient()
+        result = client.upload(b"data")
+    assert "storage:9000" not in result
+    assert result.startswith("http://localhost:9000/")
 
 
 def test_upload_uses_custom_bucket(mock_minio):

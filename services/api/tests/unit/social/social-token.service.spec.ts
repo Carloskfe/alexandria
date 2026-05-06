@@ -95,11 +95,60 @@ describe('SocialTokenService', () => {
       await service.store('user-1', 'linkedin', tokens);
       const encrypted = redis.set.mock.calls[0][1] as string;
       redis.get.mockResolvedValueOnce(encrypted);
-      redis.get.mockResolvedValueOnce(null);
+      redis.get.mockResolvedValueOnce(null); // refresh key missing → returns original
 
       const result = await service.getToken('user-1', 'linkedin');
       expect(redis.get).toHaveBeenCalledTimes(2);
       expect(result).not.toBeNull();
+    });
+
+    it('returns refreshed token when refresh succeeds', async () => {
+      const tokens = makeTokens(4 * 60 * 1000);
+      await service.store('user-1', 'linkedin', tokens);
+      const encrypted = redis.set.mock.calls[0][1];
+      const refreshEncrypted = redis.set.mock.calls[1][1]; // refresh key
+
+      redis.set.mockClear();
+      redis.get
+        .mockResolvedValueOnce(encrypted)       // main token
+        .mockResolvedValueOnce(refreshEncrypted); // :refresh key
+
+      global.fetch = jest.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ access_token: 'new-access', expires_in: 3600 }),
+      } as unknown as Response);
+
+      process.env.LINKEDIN_CLIENT_ID = 'test-id';
+      process.env.LINKEDIN_CLIENT_SECRET = 'test-secret';
+
+      const result = await service.getToken('user-1', 'linkedin');
+      expect(result!.accessToken).toBe('new-access');
+      expect(redis.set).toHaveBeenCalledWith(
+        'social:tokens:user-1:linkedin',
+        expect.any(String),
+        'EX',
+        expect.any(Number),
+      );
+    });
+
+    it('returns original token when refresh HTTP call fails', async () => {
+      const tokens = makeTokens(4 * 60 * 1000);
+      await service.store('user-1', 'linkedin', tokens);
+      const encrypted = redis.set.mock.calls[0][1];
+      const refreshEncrypted = redis.set.mock.calls[1][1];
+
+      redis.get
+        .mockResolvedValueOnce(encrypted)
+        .mockResolvedValueOnce(refreshEncrypted);
+
+      global.fetch = jest.fn().mockResolvedValueOnce({ ok: false, status: 401 } as Response);
+
+      process.env.LINKEDIN_CLIENT_ID = 'test-id';
+      process.env.LINKEDIN_CLIENT_SECRET = 'test-secret';
+
+      const result = await service.getToken('user-1', 'linkedin');
+      // Falls back to original (non-expired) token
+      expect(result!.accessToken).toBe('access-abc');
     });
   });
 });

@@ -7,7 +7,6 @@ import {
   Param,
   Post,
   Query,
-  Redirect,
   Req,
   Res,
   ServiceUnavailableException,
@@ -20,49 +19,11 @@ import Redis from 'ioredis';
 import { InjectRedis } from '../auth/redis.provider';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { SocialTokenService, SocialTokens } from './social-token.service';
+import { OAUTH_CONFIG, VALID_PLATFORMS } from './social-oauth.config';
 import { LinkedInPublisher } from './publishers/linkedin.publisher';
 import { FacebookPublisher } from './publishers/facebook.publisher';
 import { InstagramPublisher } from './publishers/instagram.publisher';
 import { PinterestPublisher } from './publishers/pinterest.publisher';
-
-const VALID_PLATFORMS = new Set(['linkedin', 'facebook', 'instagram', 'pinterest']);
-
-const OAUTH_CONFIG: Record<string, {
-  authUrl: string;
-  tokenUrl: string;
-  clientIdEnv: string;
-  clientSecretEnv: string;
-  scope: string;
-}> = {
-  linkedin: {
-    authUrl: 'https://www.linkedin.com/oauth/v2/authorization',
-    tokenUrl: 'https://www.linkedin.com/oauth/v2/accessToken',
-    clientIdEnv: 'LINKEDIN_CLIENT_ID',
-    clientSecretEnv: 'LINKEDIN_CLIENT_SECRET',
-    scope: 'w_member_social r_liteprofile',
-  },
-  facebook: {
-    authUrl: 'https://www.facebook.com/v21.0/dialog/oauth',
-    tokenUrl: 'https://graph.facebook.com/v21.0/oauth/access_token',
-    clientIdEnv: 'FACEBOOK_APP_ID',
-    clientSecretEnv: 'FACEBOOK_APP_SECRET',
-    scope: 'pages_manage_posts,pages_read_engagement',
-  },
-  instagram: {
-    authUrl: 'https://api.instagram.com/oauth/authorize',
-    tokenUrl: 'https://api.instagram.com/oauth/access_token',
-    clientIdEnv: 'INSTAGRAM_APP_ID',
-    clientSecretEnv: 'INSTAGRAM_APP_SECRET',
-    scope: 'instagram_content_publish,instagram_basic',
-  },
-  pinterest: {
-    authUrl: 'https://www.pinterest.com/oauth/',
-    tokenUrl: 'https://api.pinterest.com/v5/oauth/token',
-    clientIdEnv: 'PINTEREST_APP_ID',
-    clientSecretEnv: 'PINTEREST_APP_SECRET',
-    scope: 'boards:read pins:write',
-  },
-};
 
 const closePopupHtml = (error?: string) => `
 <!DOCTYPE html><html><body><script>
@@ -92,7 +53,7 @@ export class SocialController {
     const state = randomBytes(16).toString('hex');
     await this.redis.set(`oauth:state:${state}`, req.user.id, 'EX', 600);
 
-    const redirectUri = `${process.env.API_BASE_URL ?? 'http://localhost:3001'}/social/${platform}/callback`;
+    const redirectUri = `${process.env.API_URL ?? 'http://localhost:4000'}/social/${platform}/callback`;
     const clientId = process.env[config.clientIdEnv] ?? '';
     const params = new URLSearchParams({
       response_type: 'code',
@@ -131,7 +92,7 @@ export class SocialController {
     }
 
     const config = OAUTH_CONFIG[platform];
-    const redirectUri = `${process.env.API_BASE_URL ?? 'http://localhost:3001'}/social/${platform}/callback`;
+    const redirectUri = `${process.env.API_URL ?? 'http://localhost:4000'}/social/${platform}/callback`;
 
     try {
       const tokenRes = await fetch(config.tokenUrl, {

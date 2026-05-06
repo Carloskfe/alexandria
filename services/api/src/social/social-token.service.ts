@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { createCipheriv, createDecipheriv, randomBytes, scryptSync } from 'crypto';
 import Redis from 'ioredis';
 import { InjectRedis } from '../auth/redis.provider';
+import { OAUTH_CONFIG } from './social-oauth.config';
 
 export interface SocialTokens {
   accessToken: string;
@@ -14,6 +15,8 @@ const IV_LEN = 16;
 
 @Injectable()
 export class SocialTokenService {
+  private readonly logger = new Logger(SocialTokenService.name);
+
   constructor(@InjectRedis() private readonly redis: Redis) {}
 
   private get key(): Buffer {
@@ -78,12 +81,55 @@ export class SocialTokenService {
     const rawRefresh = await this.redis.get(refreshKey);
     if (!rawRefresh) return null;
 
+    let storedRefresh: string;
     try {
-      const storedRefresh = this.decrypt(rawRefresh);
-      if (storedRefresh !== refreshToken) return null;
-
-      return null;
+      storedRefresh = this.decrypt(rawRefresh);
     } catch {
+      return null;
+    }
+
+    if (storedRefresh !== refreshToken) return null;
+
+    const config = OAUTH_CONFIG[platform];
+    if (!config) return null;
+
+    const clientId = process.env[config.clientIdEnv];
+    const clientSecret = process.env[config.clientSecretEnv];
+    if (!clientId || !clientSecret) return null;
+
+    try {
+      const res = await fetch(config.tokenUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          grant_type: 'refresh_token',
+          refresh_token: refreshToken,
+          client_id: clientId,
+          client_secret: clientSecret,
+        }).toString(),
+      });
+
+      if (!res.ok) {
+        this.logger.warn(`Token refresh failed for ${platform}: HTTP ${res.status}`);
+        return null;
+      }
+
+      const data = (await res.json()) as {
+        access_token: string;
+        refresh_token?: string;
+        expires_in?: number;
+      };
+
+      const refreshed: SocialTokens = {
+        accessToken: data.access_token,
+        refreshToken: data.refresh_token ?? refreshToken,
+        expiresAt: Date.now() + (data.expires_in ?? 3600) * 1000,
+      };
+
+      await this.store(userId, platform, refreshed);
+      return refreshed;
+    } catch (err) {
+      this.logger.error(`Token refresh error for ${platform}: ${(err as Error).message}`);
       return null;
     }
   }
