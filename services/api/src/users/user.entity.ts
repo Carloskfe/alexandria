@@ -19,6 +19,18 @@ export enum UserType {
   EDITORIAL = 'editorial',
 }
 
+export enum HostingTier {
+  BASIC = 'basic',
+  STARTER = 'starter',
+  PRO = 'pro',
+}
+
+export const HOSTING_TIER_LIMITS: Record<HostingTier, number> = {
+  [HostingTier.BASIC]: 1,
+  [HostingTier.STARTER]: 3,
+  [HostingTier.PRO]: 12,
+};
+
 @Entity('users')
 export class User {
   @PrimaryGeneratedColumn('uuid')
@@ -56,6 +68,9 @@ export class User {
 
   @Column({ type: 'varchar', nullable: true })
   stripeCustomerId: string | null;
+
+  @Column({ type: 'enum', enum: HostingTier, default: HostingTier.BASIC })
+  hostingTier: HostingTier;
 
   @Column({ type: 'boolean', default: false })
   isAdmin: boolean;

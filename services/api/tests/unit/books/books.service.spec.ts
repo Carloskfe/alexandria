@@ -1,9 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { BooksService } from '../../../src/books/books.service';
 import { Book, BookCategory } from '../../../src/books/book.entity';
 import { CreateBookDto } from '../../../src/books/dto/create-book.dto';
+import { HostingTier, User } from '../../../src/users/user.entity';
 
 const mockRepo = {
   find: jest.fn(),
@@ -11,6 +12,11 @@ const mockRepo = {
   create: jest.fn(),
   save: jest.fn(),
   remove: jest.fn(),
+  count: jest.fn(),
+};
+
+const mockUserRepo = {
+  findOneBy: jest.fn(),
 };
 
 describe('BooksService', () => {
@@ -21,6 +27,7 @@ describe('BooksService', () => {
       providers: [
         BooksService,
         { provide: getRepositoryToken(Book), useValue: mockRepo },
+        { provide: getRepositoryToken(User), useValue: mockUserRepo },
       ],
     }).compile();
 
@@ -164,6 +171,57 @@ describe('BooksService', () => {
     });
   });
 
+  describe('checkUploadQuota', () => {
+    it('allows upload when count is below the BASIC tier limit', async () => {
+      mockUserRepo.findOneBy.mockResolvedValue({ hostingTier: HostingTier.BASIC });
+      mockRepo.count.mockResolvedValue(0);
+
+      await expect(service.checkUploadQuota('user-1')).resolves.toBeUndefined();
+    });
+
+    it('throws ForbiddenException when BASIC tier limit (1 book) is reached', async () => {
+      mockUserRepo.findOneBy.mockResolvedValue({ hostingTier: HostingTier.BASIC });
+      mockRepo.count.mockResolvedValue(1);
+
+      await expect(service.checkUploadQuota('user-1')).rejects.toThrow(ForbiddenException);
+    });
+
+    it('allows upload when count is below the STARTER tier limit', async () => {
+      mockUserRepo.findOneBy.mockResolvedValue({ hostingTier: HostingTier.STARTER });
+      mockRepo.count.mockResolvedValue(2);
+
+      await expect(service.checkUploadQuota('user-1')).resolves.toBeUndefined();
+    });
+
+    it('throws ForbiddenException when STARTER tier limit (3 books) is reached', async () => {
+      mockUserRepo.findOneBy.mockResolvedValue({ hostingTier: HostingTier.STARTER });
+      mockRepo.count.mockResolvedValue(3);
+
+      await expect(service.checkUploadQuota('user-1')).rejects.toThrow(ForbiddenException);
+    });
+
+    it('allows upload when count is below the PRO tier limit', async () => {
+      mockUserRepo.findOneBy.mockResolvedValue({ hostingTier: HostingTier.PRO });
+      mockRepo.count.mockResolvedValue(11);
+
+      await expect(service.checkUploadQuota('user-1')).resolves.toBeUndefined();
+    });
+
+    it('throws ForbiddenException when PRO tier limit (12 books) is reached', async () => {
+      mockUserRepo.findOneBy.mockResolvedValue({ hostingTier: HostingTier.PRO });
+      mockRepo.count.mockResolvedValue(12);
+
+      await expect(service.checkUploadQuota('user-1')).rejects.toThrow(ForbiddenException);
+    });
+
+    it('defaults to BASIC tier when user is not found', async () => {
+      mockUserRepo.findOneBy.mockResolvedValue(null);
+      mockRepo.count.mockResolvedValue(1);
+
+      await expect(service.checkUploadQuota('unknown-user')).rejects.toThrow(ForbiddenException);
+    });
+  });
+
   describe('create', () => {
     const baseDto: CreateBookDto = {
       title: 'Mi Libro',
@@ -264,6 +322,28 @@ describe('BooksService', () => {
 
       expect(mockRepo.create).toHaveBeenCalledWith(
         expect.objectContaining({ textFileKey: null, audioFileKey: null }),
+      );
+    });
+
+    it('stores textFileSizeBytes and audioFileSizeBytes when provided', async () => {
+      mockRepo.create.mockReturnValue({});
+      mockRepo.save.mockResolvedValue({ id: '10' });
+
+      await service.create(baseDto, 'text.html', 'audio.mp3', 'u-1', false, 1024, 2048);
+
+      expect(mockRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ textFileSizeBytes: 1024, audioFileSizeBytes: 2048 }),
+      );
+    });
+
+    it('sets file size bytes to null when not provided', async () => {
+      mockRepo.create.mockReturnValue({});
+      mockRepo.save.mockResolvedValue({ id: '11' });
+
+      await service.create(baseDto);
+
+      expect(mockRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({ textFileSizeBytes: null, audioFileSizeBytes: null }),
       );
     });
   });

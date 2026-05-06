@@ -11,4 +11,16 @@ export class AuthorsController {
   getMyBooks(@Request() req: any) {
     return this.authorsService.findMyBooks(req.user.id);
   }
+
+  @Get('me/analytics')
+  @UseGuards(JwtAuthGuard)
+  getAnalytics(@Request() req: any) {
+    return this.authorsService.getAnalytics(req.user.id);
+  }
+
+  @Get('me/quota')
+  @UseGuards(JwtAuthGuard)
+  getQuota(@Request() req: any) {
+    return this.authorsService.getQuota(req.user.id);
+  }
 }

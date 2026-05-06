@@ -45,6 +45,10 @@ export class SharingController {
     const url = await this.sharingService.generateShareUrl(fragment, book, platform, {
       format, font, bgType, bgColors, textColor,
     });
+
+    book.shareCount = (book.shareCount ?? 0) + 1;
+    await this.bookRepo.save(book);
+
     return { url };
   }
 }

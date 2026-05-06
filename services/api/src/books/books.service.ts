@@ -1,12 +1,16 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FindOptionsWhere, Repository } from 'typeorm';
 import { Book, BookCategory } from './book.entity';
 import { CreateBookDto } from './dto/create-book.dto';
+import { HostingTier, HOSTING_TIER_LIMITS, User } from '../users/user.entity';
 
 @Injectable()
 export class BooksService {
-  constructor(@InjectRepository(Book) private readonly repo: Repository<Book>) {}
+  constructor(
+    @InjectRepository(Book) private readonly repo: Repository<Book>,
+    @InjectRepository(User) private readonly userRepo: Repository<User>,
+  ) {}
 
   findAll(category?: BookCategory, isFree?: boolean): Promise<Book[]> {
     const where: FindOptionsWhere<Book> = { isPublished: true };
@@ -40,12 +44,26 @@ export class BooksService {
     await this.repo.remove(book);
   }
 
+  async checkUploadQuota(userId: string): Promise<void> {
+    const user = await this.userRepo.findOneBy({ id: userId });
+    const tier = user?.hostingTier ?? HostingTier.BASIC;
+    const limit = HOSTING_TIER_LIMITS[tier];
+    const count = await this.repo.count({ where: { uploadedById: userId } });
+    if (count >= limit) {
+      throw new ForbiddenException(
+        `Tu plan ${tier} permite hasta ${limit} libro(s). Actualiza tu plan para subir más.`,
+      );
+    }
+  }
+
   create(
     dto: CreateBookDto,
     textFileKey?: string,
     audioFileKey?: string,
     uploadedById?: string,
     isPublished = false,
+    textFileSizeBytes?: number,
+    audioFileSizeBytes?: number,
   ): Promise<Book> {
     const book = this.repo.create({
       ...dto,
@@ -54,6 +72,8 @@ export class BooksService {
       audioFileKey: audioFileKey ?? null,
       uploadedById: uploadedById ?? null,
       isPublished,
+      textFileSizeBytes: textFileSizeBytes ?? null,
+      audioFileSizeBytes: audioFileSizeBytes ?? null,
     });
     return this.repo.save(book);
   }

@@ -51,6 +51,15 @@ export class Book {
   @Column({ type: 'varchar', nullable: true })
   audioStreamKey: string | null;
 
+  @Column({ type: 'int', nullable: true })
+  textFileSizeBytes: number | null;
+
+  @Column({ type: 'int', nullable: true })
+  audioFileSizeBytes: number | null;
+
+  @Column({ type: 'int', default: 0 })
+  shareCount: number;
+
   @Column({ type: 'boolean', default: false })
   isFree: boolean;
 

@@ -107,23 +107,31 @@ export class BooksController {
       userType === UserType.EDITORIAL;
     if (!canUpload) throw new ForbiddenException();
 
+    if (!isAdmin) await this.booksService.checkUploadQuota(req.user.id);
+
     let textFileKey: string | undefined;
     let audioFileKey: string | undefined;
+    let textFileSizeBytes: number | undefined;
+    let audioFileSizeBytes: number | undefined;
 
     if (files.textFile?.[0]) {
       const f = files.textFile[0];
       textFileKey = `${uuidv4()}${extname(f.originalname)}`;
+      textFileSizeBytes = f.size;
       await this.storageService.upload('books', textFileKey, f.buffer, f.mimetype);
     }
 
     if (files.audioFile?.[0]) {
       const f = files.audioFile[0];
       audioFileKey = `${uuidv4()}${extname(f.originalname)}`;
+      audioFileSizeBytes = f.size;
       await this.storageService.upload('audio', audioFileKey, f.buffer, f.mimetype);
     }
 
     // Admin uploads go live immediately; author/editorial submissions need review
-    const book = await this.booksService.create(dto, textFileKey, audioFileKey, req.user.id, isAdmin);
+    const book = await this.booksService.create(
+      dto, textFileKey, audioFileKey, req.user.id, isAdmin, textFileSizeBytes, audioFileSizeBytes,
+    );
     if (book.isPublished) void this.searchService.indexBook(book);
     return book;
   }

@@ -20,6 +20,7 @@ const mockBooksService = {
   publish: jest.fn(),
   remove: jest.fn(),
   create: jest.fn(),
+  checkUploadQuota: jest.fn(),
 };
 
 const mockStorageService = { presign: jest.fn(), upload: jest.fn() };
@@ -55,6 +56,7 @@ describe('BooksController', () => {
 
     controller = module.get<BooksController>(BooksController);
     jest.clearAllMocks();
+    mockBooksService.checkUploadQuota.mockResolvedValue(undefined);
   });
 
   describe('GET /books/pending', () => {
@@ -113,14 +115,15 @@ describe('BooksController', () => {
 
     const noFiles = { textFile: undefined, audioFile: undefined };
 
-    it('allows admin to create and auto-publishes the book', async () => {
+    it('allows admin to create and auto-publishes the book without quota check', async () => {
       const book = { id: 'b-1', isPublished: true };
       mockBooksService.create.mockResolvedValue(book);
 
       const result = await controller.create({ user: adminUser }, dto, noFiles);
 
+      expect(mockBooksService.checkUploadQuota).not.toHaveBeenCalled();
       expect(mockBooksService.create).toHaveBeenCalledWith(
-        dto, undefined, undefined, 'admin-1', true,
+        dto, undefined, undefined, 'admin-1', true, undefined, undefined,
       );
       expect(result).toEqual(book);
     });
@@ -131,8 +134,9 @@ describe('BooksController', () => {
 
       const result = await controller.create({ user: authorUser }, dto, noFiles);
 
+      expect(mockBooksService.checkUploadQuota).toHaveBeenCalledWith('author-1');
       expect(mockBooksService.create).toHaveBeenCalledWith(
-        dto, undefined, undefined, 'author-1', false,
+        dto, undefined, undefined, 'author-1', false, undefined, undefined,
       );
       expect(result).toEqual(book);
     });
@@ -143,13 +147,22 @@ describe('BooksController', () => {
 
       await controller.create({ user: editorialUser }, dto, noFiles);
 
+      expect(mockBooksService.checkUploadQuota).toHaveBeenCalledWith('ed-1');
       expect(mockBooksService.create).toHaveBeenCalledWith(
-        dto, undefined, undefined, 'ed-1', false,
+        dto, undefined, undefined, 'ed-1', false, undefined, undefined,
       );
     });
 
     it('throws ForbiddenException for personal users', async () => {
       await expect(controller.create({ user: personalUser }, dto, noFiles)).rejects.toThrow(ForbiddenException);
+      expect(mockBooksService.checkUploadQuota).not.toHaveBeenCalled();
+      expect(mockBooksService.create).not.toHaveBeenCalled();
+    });
+
+    it('throws ForbiddenException when author quota is exceeded', async () => {
+      mockBooksService.checkUploadQuota.mockRejectedValue(new ForbiddenException('quota exceeded'));
+
+      await expect(controller.create({ user: authorUser }, dto, noFiles)).rejects.toThrow(ForbiddenException);
       expect(mockBooksService.create).not.toHaveBeenCalled();
     });
   });
