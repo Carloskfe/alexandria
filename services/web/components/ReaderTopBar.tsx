@@ -13,7 +13,7 @@ type Props = {
   onFragmentsToggle: () => void;
   fragmentCount: number;
   hasAudio?: boolean;
-  mode?: 'reading' | 'listening';
+  mode?: 'reading' | 'audio' | 'escucha-activa';
   onModeToggle?: () => void;
   hasChapters?: boolean;
   onChaptersToggle?: () => void;
@@ -99,18 +99,28 @@ export default function ReaderTopBar({
         {dark ? <SunIcon /> : <MoonIcon />}
       </button>
 
-      {/* Audio mode toggle */}
+      {/* Audio mode button — nav bar activates Modo Audio (background/earbuds) */}
       {hasAudio && onModeToggle && (
         <button
           onClick={onModeToggle}
-          aria-label={mode === 'listening' ? 'Cambiar a modo lectura' : 'Cambiar a modo escucha'}
-          title={mode === 'listening' ? 'Modo lectura' : 'Modo escucha'}
+          aria-label={
+            mode === 'audio' ? 'Volver a modo lectura'
+            : mode === 'escucha-activa' ? 'Volver a modo lectura'
+            : 'Modo Audio (earbuds / segundo plano)'
+          }
+          title={
+            mode === 'audio' ? 'Modo Audio activo — toca para volver'
+            : mode === 'escucha-activa' ? 'Modo Escucha Activa — toca para volver'
+            : 'Modo Audio'
+          }
           className={[
             'flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg transition',
-            mode === 'listening' ? 'bg-blue-600 text-white' : btn,
+            mode === 'audio' ? 'bg-blue-600 text-white'
+            : mode === 'escucha-activa' ? 'bg-blue-600 text-white'
+            : btn,
           ].join(' ')}
         >
-          {mode === 'listening' ? <BookIcon /> : <HeadphonesIcon />}
+          {mode === 'reading' ? <HeadphonesIcon /> : <BookIcon />}
         </button>
       )}
 

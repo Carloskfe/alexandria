@@ -34,7 +34,7 @@ type Book = {
   isFree: boolean;
 };
 
-type Mode = 'reading' | 'listening';
+type Mode = 'reading' | 'audio' | 'escucha-activa';
 
 type AudioBookmark = { phraseIndex: number };
 
@@ -79,6 +79,8 @@ export default function ReaderPage() {
 
   // Play confirmation — shown when user hits play with saved progress
   const [showPlayConfirm, setShowPlayConfirm] = useState(false);
+  // Which mode the play confirm is for (affects whether "Toca donde vas leyendo" is offered)
+  const [playConfirmTargetMode, setPlayConfirmTargetMode] = useState<'audio' | 'escucha-activa'>('escucha-activa');
 
   // Tap-to-sync — user taps a phrase to set audio start position
   const [tapToSyncActive, setTapToSyncActive] = useState(false);
@@ -178,10 +180,10 @@ export default function ReaderPage() {
     };
   }, [phrases, bookId]); // activePhraseIndex removed — avoids re-registering listener on every frame
 
-  // ── Auto-scroll in Listening mode ─────────────────────────────────────────
+  // ── Auto-scroll in Escucha Activa mode ────────────────────────────────────
 
   useEffect(() => {
-    if (mode === 'listening' && activePhraseIndex >= 0) {
+    if (mode === 'escucha-activa' && activePhraseIndex >= 0) {
       phraseRefs.current[activePhraseIndex]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
   }, [mode, activePhraseIndex]);
@@ -221,19 +223,25 @@ export default function ReaderPage() {
     else audio.pause();
   }, []);
 
-  // FAB: in listening mode acts as play/pause; in reading mode it opens the
-  // audio panel and always asks where to start (pause first if already playing).
+  // FAB: dedicated to Modo Escucha Activa (text visible + audio highlighted).
+  // In audio mode it brings the text back. In escucha-activa it toggles play/pause.
   const handleFabClick = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    if (mode === 'listening') {
+    if (mode === 'escucha-activa') {
       if (audio.paused) audio.play();
       else audio.pause();
       return;
     }
-    // Reading mode → open audio panel + ask where to start
+    if (mode === 'audio') {
+      // Bring text back without stopping audio
+      setMode('escucha-activa');
+      return;
+    }
+    // Reading mode → open Escucha Activa + ask where to start
     if (!audio.paused) audio.pause();
-    setMode('listening');
+    setPlayConfirmTargetMode('escucha-activa');
+    setMode('escucha-activa');
     setShowPlayConfirm(true);
   }, [mode]);
 
@@ -251,15 +259,17 @@ export default function ReaderPage() {
     }
   }, []);
 
-  // G3: user chose to tap the phrase where they are reading
+  // User chose to tap the phrase where they are reading
   const handlePlayFromTap = useCallback(() => {
     setShowPlayConfirm(false);
+    setMode('escucha-activa'); // ensure text is visible for tapping
     setTapToSyncActive(true);
   }, []);
 
   // Called when user taps a phrase in tap-to-sync mode
   const handleTapToSync = useCallback((idx: number) => {
     setTapToSyncActive(false);
+    setMode('escucha-activa');
     seekToIndex(idx);
     audioRef.current?.play();
   }, [seekToIndex]);
@@ -270,9 +280,17 @@ export default function ReaderPage() {
     audio.currentTime = Number(e.target.value);
   }, []);
 
-  const handleModeToggle = useCallback(() => {
-    setMode((m) => m === 'reading' ? 'listening' : 'reading');
-  }, []);
+  // Nav bar button: dedicated to Modo Audio (background/earbuds, no text).
+  // From reading → audio; from any audio mode → back to reading.
+  const handleNavAudioButton = useCallback(() => {
+    if (mode === 'reading') {
+      setPlayConfirmTargetMode('audio');
+      setMode('audio');
+      if (audioRef.current?.paused) setShowPlayConfirm(true);
+    } else {
+      setMode('reading');
+    }
+  }, [mode]);
 
   // ── Quote from audio ──────────────────────────────────────────────────────
 
@@ -284,7 +302,7 @@ export default function ReaderPage() {
 
   const handleOpenInReading = useCallback(() => {
     setShowQuoteChoice(false);
-    setMode('reading');
+    setMode('reading'); // always go to reading so user can select text
     const idx = audioBookmark?.phraseIndex ?? 0;
     setTimeout(() => {
       phraseRefs.current[idx]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -299,7 +317,7 @@ export default function ReaderPage() {
   const handleResumeAudio = useCallback(() => {
     if (!audioBookmark) return;
     seekToIndex(audioBookmark.phraseIndex);
-    setMode('listening');
+    setMode('escucha-activa');
     setAudioBookmark(null);
     audioRef.current?.play();
   }, [audioBookmark, seekToIndex]);
@@ -421,7 +439,7 @@ export default function ReaderPage() {
         fragmentCount={fragments.length}
         hasAudio={hasAudio}
         mode={mode}
-        onModeToggle={handleModeToggle}
+        onModeToggle={handleNavAudioButton}
         hasChapters={chapters.length > 0}
         onChaptersToggle={() => setShowChapterDrawer((v) => !v)}
       />
@@ -447,16 +465,64 @@ export default function ReaderPage() {
         </div>
       )}
 
-      {/* ── Text column ─────────────────────────────────────────────────── */}
-      <main className="flex-1 max-w-2xl mx-auto px-6 pt-14 pb-10 md:pb-16 md:pt-16">
+      {/* ── Modo Audio: Now Playing (text hidden) ───────────────────────── */}
+      {mode === 'audio' && hasAudio && (
+        <main className="flex-1 flex flex-col items-center justify-center min-h-screen px-6 pt-14 pb-10">
+          <div className={['w-36 h-36 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-xl', darkMode ? 'bg-blue-900' : 'bg-blue-600'].join(' ')}>
+            <svg className="w-16 h-16 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+              <path d="M3 18v-6a9 9 0 0118 0v6" />
+              <path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3z" />
+              <path d="M3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z" />
+            </svg>
+          </div>
+          <h1 className={['text-xl font-bold text-center mb-1', darkMode ? 'text-white' : 'text-gray-900'].join(' ')}>{book.title}</h1>
+          <p className="text-sm text-gray-500 mb-8 text-center">{book.author}</p>
+          <div className="w-full max-w-xs">
+            <div className="flex items-center gap-1 mb-5 bg-gray-100 rounded-xl p-1">
+              {SPEEDS.map((s) => (
+                <button key={s} onClick={() => { setSpeed(s); if (audioRef.current) audioRef.current.playbackRate = s; }}
+                  className={['flex-1 text-xs font-medium py-1.5 rounded-lg transition', speed === s ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-800'].join(' ')}>
+                  {s}×
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center justify-center gap-5 mb-5">
+              <button onClick={() => { if (audioRef.current) audioRef.current.currentTime = Math.max(0, audioRef.current.currentTime - 10); }}
+                aria-label="Retroceder 10 segundos" className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-blue-600 transition">
+                <ReplayIcon /><span className="text-[10px]">10s</span>
+              </button>
+              <button onClick={togglePlay} className="w-16 h-16 rounded-full bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center shadow-md transition" aria-label={playing ? 'Pausar' : 'Reproducir'}>
+                {playing ? <PauseIcon /> : <PlayIcon />}
+              </button>
+              <button onClick={() => { if (audioRef.current) audioRef.current.currentTime = Math.min(duration, audioRef.current.currentTime + 10); }}
+                aria-label="Avanzar 10 segundos" className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-blue-600 transition">
+                <ForwardIcon /><span className="text-[10px]">10s</span>
+              </button>
+            </div>
+            <div className="mb-5">
+              <input type="range" min={0} max={duration || 0} value={currentTime} step={0.1} onChange={handleScrub} className="w-full accent-blue-600" />
+              <div className="flex justify-between text-xs text-gray-400 mt-1">
+                <span>{formatTime(currentTime)}</span><span>{formatTime(duration)}</span>
+              </div>
+            </div>
+            <button onClick={() => setMode('escucha-activa')}
+              className="w-full border border-gray-300 hover:border-blue-400 hover:text-blue-600 text-gray-600 py-2.5 rounded-xl text-sm font-medium transition">
+              Ver texto — Escucha Activa
+            </button>
+          </div>
+        </main>
+      )}
+
+      {/* ── Text column (Lectura + Escucha Activa) ──────────────────────── */}
+      <main className={['flex-1 max-w-2xl mx-auto px-6 pt-14 pb-10 md:pb-16 md:pt-16', mode === 'audio' ? 'hidden' : ''].join(' ')}>
         <header className="mb-8">
           <h1 className="text-2xl font-bold text-gray-900">{book.title}</h1>
           <p className="text-gray-500 text-sm mt-1">{book.author}</p>
         </header>
 
         <div
-          className={['leading-relaxed', fontSizeClass, mode === 'listening' ? 'select-none' : ''].join(' ')}
-          onMouseUp={mode === 'listening' ? undefined : handleTextMouseUp}
+          className={['leading-relaxed', fontSizeClass, mode !== 'reading' ? 'select-none' : ''].join(' ')}
+          onMouseUp={mode !== 'reading' ? undefined : handleTextMouseUp}
         >
           {hasSync ? (
             <PhraseRenderer
@@ -479,17 +545,22 @@ export default function ReaderPage() {
       {/* ── Audio sidebar ────────────────────────────────────────────────── */}
       {hasAudio && (
         <>
-          {/* Floating action button — opens audio panel in reading mode, play/pause in listening */}
-          <button
-            onClick={handleFabClick}
-            className={[
-              'fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg flex items-center justify-center z-50 transition bg-blue-600 text-white',
-              mode === 'listening' ? 'md:hidden' : '',
-            ].join(' ')}
-            aria-label={mode === 'reading' ? 'Abrir modo escucha activa' : playing ? 'Pausar' : 'Reproducir'}
-          >
-            {mode === 'reading' ? <HeadphonesSmIcon /> : playing ? <PauseIcon /> : <PlayIcon />}
-          </button>
+          {/* FAB — dedicated to Modo Escucha Activa. Hidden in audio mode (background). */}
+          {mode !== 'audio' && (
+            <button
+              onClick={handleFabClick}
+              className={[
+                'fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg flex items-center justify-center z-50 transition bg-blue-600 text-white',
+                mode === 'escucha-activa' ? 'md:hidden' : '',
+              ].join(' ')}
+              aria-label={
+                mode === 'reading' ? 'Abrir Modo Escucha Activa'
+                : playing ? 'Pausar' : 'Reproducir'
+              }
+            >
+              {mode === 'reading' ? <HeadphonesSmIcon /> : playing ? <PauseIcon /> : <PlayIcon />}
+            </button>
+          )}
 
           {/* Play confirmation card — appears above the floating button */}
           {showPlayConfirm && (
@@ -499,7 +570,7 @@ export default function ReaderPage() {
                 Elige desde dónde iniciar el audio.
               </p>
               <div className="flex flex-col gap-2">
-                {hasSync && (
+                {hasSync && playConfirmTargetMode === 'escucha-activa' && (
                   <button
                     onClick={handlePlayFromTap}
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl text-sm font-medium transition flex items-center justify-center gap-2"
@@ -523,7 +594,7 @@ export default function ReaderPage() {
                   Desde el principio
                 </button>
                 <button
-                  onClick={() => { setShowPlayConfirm(false); setMode('reading'); }}
+                  onClick={() => { setShowPlayConfirm(false); setMode('reading'); setTapToSyncActive(false); }}
                   className="text-gray-400 hover:text-gray-600 text-xs py-1 transition"
                 >
                   Cancelar
@@ -537,7 +608,7 @@ export default function ReaderPage() {
             className={[
               'border-t md:border-t-0 md:border-l border-gray-200 bg-gray-50',
               'md:w-72 md:flex-shrink-0',
-              mode === 'listening' ? 'block' : 'hidden',
+              mode === 'escucha-activa' ? 'block' : 'hidden',
             ].join(' ')}
           >
             <div className="p-6 sticky top-12">
@@ -858,22 +929,22 @@ function QuoteIcon() {
   );
 }
 
-// Semicircular arrow — replay/rewind (counterclockwise)
+// Rotate-CCW (Lucide style) — replay / rewind
 function ReplayIcon() {
   return (
     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3 12a9 9 0 109-9H3" />
-      <polyline strokeLinecap="round" strokeLinejoin="round" points="3 3 3 9 9 9" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v5h5" />
     </svg>
   );
 }
 
-// Semicircular arrow — forward (clockwise)
+// Rotate-CW (Lucide style) — forward
 function ForwardIcon() {
   return (
     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-9-9h9" />
-      <polyline strokeLinecap="round" strokeLinejoin="round" points="21 3 21 9 15 9" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 1 1-9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21 3v5h-5" />
     </svg>
   );
 }
