@@ -9,12 +9,18 @@
 > This applies migration 023 (emailConfirmed) and 024 (bookCollection).
 >
 > **P3 UI backlog (not yet in sprints):**
-> - Fragment text editing before image creation (E1)
-> - Citation location in fragment image (Libro, Capítulo, Página) (E2)
+> - ~~Fragment text editing before image creation (E1)~~ ✅ done
+> - ~~Citation location in fragment image (E2)~~ ✅ done
 > - Hex color picker for background in ShareModal (D3)
 > - Gradient direction options (D4)
 > - Integrate background preset images into ShareModal UI (D7)
 > - Bible / volume collection grouping in Library UI (B2/B3 — migration done, UI pending)
+> - **Profile page** — build `/profile` screen with customer-facing fields:
+>   name, avatar, email (read-only), account type (personal/author/editorial),
+>   country, preferred languages, reading interests, subscription status,
+>   connected social accounts, and "Editar perfil" flow.
+>   Currently the route exists but the page is empty.
+> - **Bottom nav** — "Mi Biblioteca" and "Colección General" names + icons aligned ✅ done
 
 **Estimation key:** Each task is estimated in days (1 dev). Sprints are 2 weeks (10 working days).
 **Legend:** `[ ]` pending · `[x]` done · `[~]` in progress

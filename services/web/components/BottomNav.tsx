@@ -6,8 +6,9 @@ import { usePathname } from 'next/navigation';
 const NAV = [
   {
     href: '/library',
-    label: 'Biblioteca',
+    label: 'Mi Biblioteca',
     icon: (active: boolean) => (
+      // Open book — personal library
       <svg viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.8} className="w-6 h-6">
         <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
       </svg>
@@ -15,10 +16,13 @@ const NAV = [
   },
   {
     href: '/discover',
-    label: 'Descubrir',
+    label: 'Colección General',
     icon: (active: boolean) => (
-      <svg viewBox="0 0 24 24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth={1.8} className="w-6 h-6">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 15.803 7.5 7.5 0 0015.803 15.803z" />
+      // Stacked books — same icon used in the reader top bar for "Colección General"
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={active ? 2.2 : 1.8} className="w-6 h-6">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M4 19.5A2.5 2.5 0 016.5 17H20" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M2 7h2M2 12h2M2 17h2" />
       </svg>
     ),
   },
