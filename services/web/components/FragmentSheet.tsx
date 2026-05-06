@@ -8,6 +8,7 @@ type Props = {
   fragments: Fragment[];
   bookAuthor: string;
   bookTitle: string;
+  bookCollection?: string | null;
   onClose: () => void;
   onDelete: (id: string) => void;
   onCombine: (ids: string[]) => void;
@@ -15,7 +16,7 @@ type Props = {
   dark?: boolean;
 };
 
-export default function FragmentSheet({ fragments, bookAuthor, bookTitle, onClose, onDelete, onCombine, onNoteUpdate, dark = false }: Props) {
+export default function FragmentSheet({ fragments, bookAuthor, bookTitle, bookCollection, onClose, onDelete, onCombine, onNoteUpdate, dark = false }: Props) {
   const [multiSelect, setMultiSelect] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
@@ -186,6 +187,7 @@ export default function FragmentSheet({ fragments, bookAuthor, bookTitle, onClos
           fragmentText={sharingFragment.text}
           author={bookAuthor}
           bookTitle={bookTitle}
+          bookCollection={bookCollection}
           note={sharingFragment.note}
           onClose={() => setSharingFragment(null)}
         />

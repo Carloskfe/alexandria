@@ -93,11 +93,13 @@ def generate():
         return jsonify({"error": "bgColors must be a non-empty array"}), 400
 
     text_color = body.get("textColor") or None
+    citation = body.get("citation") or None
 
     fragment = {
-        "text":   body["text"],
-        "author": body["author"],
-        "title":  body["title"],
+        "text":     body["text"],
+        "author":   body["author"],
+        "title":    body["title"],
+        "citation": citation,
     }
 
     try:

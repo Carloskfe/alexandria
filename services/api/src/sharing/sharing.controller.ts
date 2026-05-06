@@ -34,6 +34,8 @@ export class SharingController {
     @Body('bgType') bgType: string | undefined,
     @Body('bgColors') bgColors: string[] | undefined,
     @Body('textColor') textColor: string | undefined,
+    @Body('text') textOverride: string | undefined,
+    @Body('citation') citation: string | undefined,
     @Request() req: { user: { id: string } },
   ) {
     const fragment = await this.fragmentRepo.findOneBy({ id });
@@ -43,7 +45,7 @@ export class SharingController {
     if (!book) throw new NotFoundException();
 
     const url = await this.sharingService.generateShareUrl(fragment, book, platform, {
-      format, font, bgType, bgColors, textColor,
+      format, font, bgType, bgColors, textColor, textOverride, citation,
     });
 
     book.shareCount = (book.shareCount ?? 0) + 1;

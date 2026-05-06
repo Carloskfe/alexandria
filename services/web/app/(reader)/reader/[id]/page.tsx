@@ -28,6 +28,7 @@ type Book = {
   id: string;
   title: string;
   author: string;
+  collection: string | null;
   audioFileUrl: string | null;
   audioStreamUrl: string | null;
   textFileUrl: string | null;
@@ -796,6 +797,7 @@ export default function ReaderPage() {
           fragments={fragments}
           bookAuthor={book.author}
           bookTitle={book.title}
+          bookCollection={book.collection}
           onClose={() => setShowDrawer(false)}
           onDelete={handleDeleteFragment}
           onCombine={handleCombineFragments}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { apiFetch } from '@/lib/api';
 import {
   FORMAT_PLATFORM_MAP,
   FONTS,
@@ -36,6 +37,7 @@ type Props = {
   fragmentText: string;
   author: string;
   bookTitle: string;
+  bookCollection?: string | null;
   note: string | null;
   onClose: () => void;
 };
@@ -43,7 +45,7 @@ type Props = {
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function ShareModal({
-  fragmentId, fragmentText, author, bookTitle, note, onClose,
+  fragmentId, fragmentText, author, bookTitle, bookCollection, note, onClose,
 }: Props) {
   const [selectedFormat, setSelectedFormat] = useState<ShareFormat>('ig-post');
   const [selectedFont, setSelectedFont] = useState<FontId>('lato');
@@ -51,6 +53,18 @@ export default function ShareModal({
   const [bgColors, setBgColors] = useState<[string, string]>(['#0D1B2A', '#1A4A4A']);
   const [textColorOverride, setTextColorOverride] = useState<string | null>(null);
   const [captionEnabled, setCaptionEnabled] = useState(false);
+
+  // E1 — editable fragment text
+  const [editedText, setEditedText] = useState(fragmentText);
+  const [savingText, setSavingText] = useState(false);
+  const textChanged = editedText !== fragmentText;
+
+  // E2 — citation location
+  const defaultCitation = bookCollection === 'Biblia'
+    ? `Biblia · ${bookTitle}`
+    : bookTitle;
+  const [citationText, setCitationText] = useState(defaultCitation);
+  const [citationEnabled, setCitationEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -74,8 +88,22 @@ export default function ShareModal({
     font: selectedFont,
     bgType,
     bgColors: activeBgColors,
-    ...(textColorOverride ? { textColor: textColorOverride } : {}),
+    ...(textColorOverride            ? { textColor: textColorOverride } : {}),
+    ...(editedText !== fragmentText  ? { text: editedText }            : {}),
+    ...(citationEnabled && citationText ? { citation: citationText }   : {}),
   };
+
+  const handleSaveText = useCallback(async () => {
+    if (!textChanged) return;
+    setSavingText(true);
+    try {
+      await apiFetch(`/fragments/${fragmentId}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ text: editedText }),
+      });
+    } catch {}
+    setSavingText(false);
+  }, [fragmentId, editedText, textChanged]);
 
   useEffect(() => {
     const platforms = ['linkedin', 'facebook', 'instagram', 'pinterest'];
@@ -200,7 +228,7 @@ export default function ShareModal({
                   className="text-center text-sm leading-snug font-medium line-clamp-6"
                   style={{ color: textColor }}
                 >
-                  "{fragmentText}"
+                  "{editedText}"
                 </p>
                 <div
                   className="w-8 border-t mt-1"
@@ -212,7 +240,58 @@ export default function ShareModal({
                 >
                   {[author, bookTitle].filter(Boolean).join(' · ')}
                 </p>
+                {citationEnabled && citationText && (
+                  <p className="text-center text-[10px] opacity-50" style={{ color: textColor }}>
+                    {citationText}
+                  </p>
+                )}
               </div>
+            </div>
+
+            {/* ── E1: Edit fragment text ───────────────────────────────── */}
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Texto de la cita</p>
+              <textarea
+                value={editedText}
+                onChange={(e) => setEditedText(e.target.value)}
+                rows={3}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 resize-none focus:outline-none focus:border-blue-400 transition"
+                placeholder="Edita el texto antes de crear la imagen…"
+              />
+              {textChanged && (
+                <button
+                  onClick={handleSaveText}
+                  disabled={savingText}
+                  className="mt-1.5 text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50 transition"
+                >
+                  {savingText ? 'Guardando…' : 'Guardar cambios en la biblioteca'}
+                </button>
+              )}
+            </div>
+
+            {/* ── E2: Citation location ─────────────────────────────────── */}
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <input
+                  type="checkbox"
+                  id="citation-toggle"
+                  checked={citationEnabled}
+                  onChange={(e) => setCitationEnabled(e.target.checked)}
+                  className="w-4 h-4 accent-blue-600 rounded"
+                />
+                <label htmlFor="citation-toggle" className="text-xs font-semibold text-gray-500 uppercase tracking-wide cursor-pointer">
+                  Incluir ubicación de la cita
+                </label>
+              </div>
+              {citationEnabled && (
+                <input
+                  type="text"
+                  value={citationText}
+                  onChange={(e) => setCitationText(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-blue-400 transition"
+                  placeholder={bookCollection === 'Biblia' ? 'Biblia · Salmos, 22, 9' : `${bookTitle}, Capítulo X, p. N`}
+                />
+              )}
             </div>
 
             {/* ── Format selection ──────────────────────────────────────── */}

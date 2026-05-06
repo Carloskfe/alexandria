@@ -60,6 +60,8 @@ export interface ShareParams {
   bgType: 'solid' | 'gradient';
   bgColors: string[];
   textColor?: string;
+  text?: string;
+  citation?: string;
 }
 
 export async function shareFragment(fragmentId: string, params: ShareParams): Promise<string> {
@@ -73,6 +75,8 @@ export async function shareFragment(fragmentId: string, params: ShareParams): Pr
       bgType: params.bgType,
       bgColors: params.bgColors,
       ...(params.textColor ? { textColor: params.textColor } : {}),
+      ...(params.text      ? { text:      params.text }      : {}),
+      ...(params.citation  ? { citation:  params.citation }  : {}),
     }),
   });
   return data.url as string;

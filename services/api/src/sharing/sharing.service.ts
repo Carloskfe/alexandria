@@ -8,6 +8,8 @@ export interface ShareOptions {
   bgType?: string;
   bgColors?: string[];
   textColor?: string;
+  textOverride?: string;
+  citation?: string;
 }
 
 @Injectable()
@@ -24,15 +26,16 @@ export class SharingService {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        text: fragment.text,
+        text: options.textOverride ?? fragment.text,
         author: book.author,
         title: book.title,
         platform,
-        ...(options.format     && { format:     options.format }),
-        ...(options.font       && { font:       options.font }),
-        ...(options.bgType     && { bgType:     options.bgType }),
-        ...(options.bgColors   && { bgColors:   options.bgColors }),
-        ...(options.textColor  && { textColor:  options.textColor }),
+        ...(options.format    && { format:    options.format }),
+        ...(options.font      && { font:      options.font }),
+        ...(options.bgType    && { bgType:    options.bgType }),
+        ...(options.bgColors  && { bgColors:  options.bgColors }),
+        ...(options.textColor && { textColor: options.textColor }),
+        ...(options.citation  && { citation:  options.citation }),
       }),
     });
 

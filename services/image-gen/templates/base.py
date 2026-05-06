@@ -96,6 +96,7 @@ def render_card(
     quote_text = fragment.get("text", "")
     author = fragment.get("author", "")
     title = fragment.get("title", "")
+    citation = fragment.get("citation") or ""
 
     img = Image.new("RGB", (width, height), color=(0, 0, 0))
 
@@ -126,12 +127,19 @@ def render_card(
     chars_per_line = max(20, int(text_area_w / (quote_size * 0.58)))
     lines = textwrap.wrap(quote_text, width=chars_per_line) if quote_text else [""]
 
+    cite_size = max(10, int(width * 0.014))
+    try:
+        font_cite = ImageFont.truetype(font_path, size=cite_size)
+    except (OSError, IOError):
+        font_cite = ImageFont.load_default(size=cite_size)
+
     line_h = quote_size * 1.6
     block_h = len(lines) * line_h
     rule_gap = 14
     attr_h = attr_size * 1.4
+    cite_h = (cite_size * 1.4 + 4) if citation else 0
 
-    total_h = block_h + rule_gap + 2 + rule_gap + attr_h
+    total_h = block_h + rule_gap + 2 + rule_gap + attr_h + cite_h
     y = (height - total_h) / 2
 
     for line in lines:
@@ -149,6 +157,12 @@ def render_card(
         attr_y = rule_y + rule_gap
         bb = draw.textbbox((0, 0), attr_text, font=font_attr)
         draw.text(((width - (bb[2] - bb[0])) / 2, attr_y), attr_text, font=font_attr, fill=attr_color)
+
+    if citation:
+        cite_y = rule_y + rule_gap + attr_h + 4
+        cite_color = tuple(max(0, c - 30) for c in attr_color)
+        bb = draw.textbbox((0, 0), citation, font=font_cite)
+        draw.text(((width - (bb[2] - bb[0])) / 2, cite_y), citation, font=font_cite, fill=cite_color)
 
     wm = "Noetia"
     bb = draw.textbbox((0, 0), wm, font=font_wm)
