@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   Post,
+  Query,
   Request,
   Res,
   UnauthorizedException,
@@ -95,6 +96,23 @@ export class AuthController {
     }
     res.clearCookie('refresh_token', { path: '/auth' });
     return { message: 'Logged out' };
+  }
+
+  // ─── Email Confirmation ───────────────────────────────────────────────────
+
+  @Get('confirm-email')
+  async confirmEmail(@Query('token') token: string, @Res({ passthrough: true }) res: Response) {
+    const { accessToken, refreshTokenId, user } = await this.authService.confirmEmail(token);
+    setRefreshCookie(res, refreshTokenId, user.id);
+    return { accessToken, user: safeUser(user) };
+  }
+
+  @Post('resend-confirmation')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  async resendConfirmation(@Request() req: any) {
+    await this.authService.resendConfirmation(req.user.sub);
+    return { message: 'Confirmation email sent.' };
   }
 
   // ─── Forgot / Reset Password ──────────────────────────────────────────────

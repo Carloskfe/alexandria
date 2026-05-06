@@ -51,10 +51,20 @@ export default function ReaderTopBar({
       <Link
         href="/library"
         className={`flex-shrink-0 flex items-center gap-1 px-2 h-8 rounded-lg transition ${btn}`}
-        aria-label="Volver a biblioteca"
+        aria-label="Volver a Mi Biblioteca"
       >
         <ArrowLeftIcon />
-        <span className="hidden sm:inline text-xs font-medium">Biblioteca</span>
+        <span className="hidden sm:inline text-xs font-medium">Mi Biblioteca</span>
+      </Link>
+
+      {/* General collection search */}
+      <Link
+        href="/discover"
+        className={`flex-shrink-0 flex items-center gap-1 px-2 h-8 rounded-lg transition ${btn}`}
+        aria-label="Colección General"
+      >
+        <MagnifierIcon />
+        <span className="hidden sm:inline text-xs font-medium">Colección General</span>
       </Link>
 
       {/* Book title */}
@@ -88,15 +98,6 @@ export default function ReaderTopBar({
       >
         {dark ? <SunIcon /> : <MoonIcon />}
       </button>
-
-      {/* Discover / Search */}
-      <Link
-        href="/discover"
-        className={`flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg transition ${btn}`}
-        aria-label="Descubrir libros"
-      >
-        <MagnifierIcon />
-      </Link>
 
       {/* Audio mode toggle */}
       {hasAudio && onModeToggle && (

@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, Injectable } from '@nestjs/comm
 import * as bcrypt from 'bcrypt';
 import { AuthProvider, User } from '../users/user.entity';
 import { UsersService } from '../users/users.service';
+import { EmailService } from '../email/email.service';
 import { TokenService } from './token.service';
 
 @Injectable()
@@ -9,13 +10,22 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly tokenService: TokenService,
+    private readonly emailService: EmailService,
   ) {}
 
   async register(name: string, email: string, password: string) {
     const existing = await this.usersService.findByEmail(email);
     if (existing) throw new ConflictException('Email already in use');
     const passwordHash = await bcrypt.hash(password, 12);
-    const user = await this.usersService.create({ name, email, passwordHash, provider: AuthProvider.LOCAL });
+    const user = await this.usersService.create({
+      name,
+      email,
+      passwordHash,
+      provider: AuthProvider.LOCAL,
+      emailConfirmed: false,
+    });
+    const confirmToken = await this.tokenService.generateEmailConfirmToken(user.id);
+    await this.emailService.sendEmailConfirmation(email, name, confirmToken);
     return this.issueTokens(user);
   }
 
@@ -24,6 +34,22 @@ export class AuthService {
     const accessToken = this.tokenService.generateAccessToken({ sub: user.id, email: user.email });
     const refreshTokenId = await this.tokenService.generateRefreshToken(user.id);
     return { accessToken, refreshTokenId, user };
+  }
+
+  async confirmEmail(token: string) {
+    const userId = await this.tokenService.consumeEmailConfirmToken(token);
+    if (!userId) throw new BadRequestException('Invalid or expired confirmation link');
+    await this.usersService.update(userId, { emailConfirmed: true });
+    const user = await this.usersService.findById(userId);
+    if (!user) throw new BadRequestException('User not found');
+    return this.issueTokens(user);
+  }
+
+  async resendConfirmation(userId: string): Promise<void> {
+    const user = await this.usersService.findById(userId);
+    if (!user || !user.email || user.emailConfirmed) return;
+    const token = await this.tokenService.generateEmailConfirmToken(userId);
+    await this.emailService.sendEmailConfirmation(user.email, user.name ?? user.email, token);
   }
 
   async upsertOAuthUser(data: {
@@ -41,6 +67,7 @@ export class AuthService {
         email: data.email ?? null,
         name: data.name ?? null,
         avatarUrl: data.avatarUrl ?? null,
+        emailConfirmed: true, // OAuth emails are verified by the provider
       });
     } else {
       user = (await this.usersService.findById(user.id))!;
@@ -52,9 +79,7 @@ export class AuthService {
     const user = await this.usersService.findByEmail(email);
     if (!user || user.provider !== 'local') return; // silent — don't reveal account existence
     const token = await this.tokenService.generatePasswordResetToken(user.id);
-    const webUrl = process.env.WEB_URL ?? 'http://localhost:3000';
-    // In production replace this log with an email via your mail provider
-    console.log(`[DEV] Password reset link: ${webUrl}/reset-password?token=${token}`);
+    await this.emailService.sendPasswordReset(email, user.name ?? email, token);
   }
 
   async resetPassword(token: string, newPassword: string): Promise<void> {

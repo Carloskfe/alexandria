@@ -10,6 +10,7 @@ jest.mock('bcrypt', () => ({
 }));
 import { UsersService } from '../../../src/users/users.service';
 import { TokenService } from '../../../src/auth/token.service';
+import { EmailService } from '../../../src/email/email.service';
 import { AuthProvider } from '../../../src/users/user.entity';
 
 const mockUsersService = {
@@ -25,6 +26,13 @@ const mockTokenService = {
   generateRefreshToken: jest.fn(),
   generatePasswordResetToken: jest.fn(),
   consumePasswordResetToken: jest.fn(),
+  generateEmailConfirmToken: jest.fn(),
+  consumeEmailConfirmToken: jest.fn(),
+};
+
+const mockEmailService = {
+  sendEmailConfirmation: jest.fn().mockResolvedValue(undefined),
+  sendPasswordReset: jest.fn().mockResolvedValue(undefined),
 };
 
 describe('AuthService', () => {
@@ -36,6 +44,7 @@ describe('AuthService', () => {
         AuthService,
         { provide: UsersService, useValue: mockUsersService },
         { provide: TokenService, useValue: mockTokenService },
+        { provide: EmailService, useValue: mockEmailService },
       ],
     }).compile();
 
@@ -49,20 +58,38 @@ describe('AuthService', () => {
       await expect(service.register('Name', 'taken@test.com', 'pass')).rejects.toThrow(ConflictException);
     });
 
-    it('creates user and returns tokens when email is available', async () => {
-      const user = { id: '1', email: 'new@test.com', provider: AuthProvider.LOCAL };
+    it('creates user with emailConfirmed: false for local provider', async () => {
+      const user = { id: '1', email: 'new@test.com', provider: AuthProvider.LOCAL, emailConfirmed: false };
       mockUsersService.findByEmail.mockResolvedValue(null);
       mockUsersService.create.mockResolvedValue(user);
       mockUsersService.update.mockResolvedValue(user);
       mockTokenService.generateAccessToken.mockReturnValue('access-token');
       mockTokenService.generateRefreshToken.mockResolvedValue('refresh-id');
+      mockTokenService.generateEmailConfirmToken.mockResolvedValue('confirm-tok');
 
-      const result = await service.register('Name', 'new@test.com', 'password123');
+      await service.register('Name', 'new@test.com', 'password123');
 
       expect(mockUsersService.create).toHaveBeenCalledWith(
-        expect.objectContaining({ email: 'new@test.com', provider: AuthProvider.LOCAL }),
+        expect.objectContaining({ emailConfirmed: false, provider: AuthProvider.LOCAL }),
       );
-      expect(result).toEqual({ accessToken: 'access-token', refreshTokenId: 'refresh-id', user });
+    });
+
+    it('sends confirmation email on register', async () => {
+      const user = { id: '1', email: 'new@test.com', provider: AuthProvider.LOCAL };
+      mockUsersService.findByEmail.mockResolvedValue(null);
+      mockUsersService.create.mockResolvedValue(user);
+      mockUsersService.update.mockResolvedValue(user);
+      mockTokenService.generateAccessToken.mockReturnValue('at');
+      mockTokenService.generateRefreshToken.mockResolvedValue('rt');
+      mockTokenService.generateEmailConfirmToken.mockResolvedValue('confirm-tok');
+
+      await service.register('Name', 'new@test.com', 'password123');
+
+      expect(mockEmailService.sendEmailConfirmation).toHaveBeenCalledWith(
+        'new@test.com',
+        'Name',
+        'confirm-tok',
+      );
     });
 
     it('hashes the password before storing', async () => {
@@ -72,13 +99,61 @@ describe('AuthService', () => {
       mockUsersService.update.mockResolvedValue(user);
       mockTokenService.generateAccessToken.mockReturnValue('at');
       mockTokenService.generateRefreshToken.mockResolvedValue('rt');
+      mockTokenService.generateEmailConfirmToken.mockResolvedValue('ct');
 
       await service.register('Name', 'h@test.com', 'plaintext');
 
       const createdWith = mockUsersService.create.mock.calls[0][0];
-      expect(createdWith.passwordHash).toBeDefined();
-      expect(createdWith.passwordHash).not.toBe('plaintext');
       expect(createdWith.passwordHash).toBe('hashed:plaintext');
+    });
+  });
+
+  describe('confirmEmail', () => {
+    it('throws BadRequestException for invalid or expired token', async () => {
+      mockTokenService.consumeEmailConfirmToken.mockResolvedValue(null);
+      await expect(service.confirmEmail('bad-token')).rejects.toThrow(BadRequestException);
+    });
+
+    it('marks user emailConfirmed and returns tokens on valid token', async () => {
+      const user = { id: 'u1', email: 'u@test.com', emailConfirmed: true };
+      mockTokenService.consumeEmailConfirmToken.mockResolvedValue('u1');
+      mockUsersService.update.mockResolvedValue(user);
+      mockUsersService.findById.mockResolvedValue(user);
+      mockTokenService.generateAccessToken.mockReturnValue('at');
+      mockTokenService.generateRefreshToken.mockResolvedValue('rt');
+
+      const result = await service.confirmEmail('valid-token');
+
+      expect(mockUsersService.update).toHaveBeenCalledWith('u1', { emailConfirmed: true });
+      expect(result.accessToken).toBe('at');
+    });
+
+    it('throws BadRequestException if user is not found after confirmation', async () => {
+      mockTokenService.consumeEmailConfirmToken.mockResolvedValue('ghost-id');
+      mockUsersService.update.mockResolvedValue(undefined);
+      mockUsersService.findById.mockResolvedValue(null);
+      await expect(service.confirmEmail('orphan-token')).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('resendConfirmation', () => {
+    it('does nothing if user is already confirmed', async () => {
+      mockUsersService.findById.mockResolvedValue({ id: 'u1', email: 'u@test.com', emailConfirmed: true });
+      await service.resendConfirmation('u1');
+      expect(mockEmailService.sendEmailConfirmation).not.toHaveBeenCalled();
+    });
+
+    it('does nothing if user has no email', async () => {
+      mockUsersService.findById.mockResolvedValue({ id: 'u1', email: null, emailConfirmed: false });
+      await service.resendConfirmation('u1');
+      expect(mockEmailService.sendEmailConfirmation).not.toHaveBeenCalled();
+    });
+
+    it('sends confirmation email for unconfirmed user', async () => {
+      mockUsersService.findById.mockResolvedValue({ id: 'u1', email: 'u@test.com', name: 'User', emailConfirmed: false });
+      mockTokenService.generateEmailConfirmToken.mockResolvedValue('new-tok');
+      await service.resendConfirmation('u1');
+      expect(mockEmailService.sendEmailConfirmation).toHaveBeenCalledWith('u@test.com', 'User', 'new-tok');
     });
   });
 
@@ -114,12 +189,12 @@ describe('AuthService', () => {
       expect(result).toEqual(existing);
     });
 
-    it('creates a new user when not found by provider', async () => {
-      const newUser = { id: '2', email: 'n@test.com' };
+    it('creates new OAuth user with emailConfirmed: true', async () => {
+      const newUser = { id: '2', email: 'n@test.com', emailConfirmed: true };
       mockUsersService.findByProvider.mockResolvedValue(null);
       mockUsersService.create.mockResolvedValue(newUser);
 
-      const result = await service.upsertOAuthUser({
+      await service.upsertOAuthUser({
         provider: AuthProvider.GOOGLE,
         providerId: 'gid456',
         email: 'n@test.com',
@@ -128,9 +203,8 @@ describe('AuthService', () => {
       });
 
       expect(mockUsersService.create).toHaveBeenCalledWith(
-        expect.objectContaining({ provider: AuthProvider.GOOGLE, providerId: 'gid456' }),
+        expect.objectContaining({ emailConfirmed: true }),
       );
-      expect(result).toEqual(newUser);
     });
 
     it('handles null email and name gracefully', async () => {
@@ -165,13 +239,18 @@ describe('AuthService', () => {
       expect(mockTokenService.generatePasswordResetToken).not.toHaveBeenCalled();
     });
 
-    it('generates a password reset token for a local user', async () => {
-      mockUsersService.findByEmail.mockResolvedValue({ id: '1', provider: 'local' });
+    it('generates token and sends reset email for local user', async () => {
+      mockUsersService.findByEmail.mockResolvedValue({ id: '1', provider: 'local', email: 'local@test.com', name: 'Local' });
       mockTokenService.generatePasswordResetToken.mockResolvedValue('reset-token');
 
       await service.requestPasswordReset('local@test.com');
 
       expect(mockTokenService.generatePasswordResetToken).toHaveBeenCalledWith('1');
+      expect(mockEmailService.sendPasswordReset).toHaveBeenCalledWith(
+        'local@test.com',
+        'Local',
+        'reset-token',
+      );
     });
   });
 

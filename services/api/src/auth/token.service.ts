@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 const REFRESH_TTL = 60 * 60 * 24 * 7;
 const PWD_RESET_TTL = 60 * 60; // 1 hour
+const EMAIL_CONFIRM_TTL = 60 * 60 * 24; // 24 hours
 
 @Injectable()
 export class TokenService {
@@ -43,6 +44,18 @@ export class TokenService {
   async consumePasswordResetToken(token: string): Promise<string | null> {
     const userId = await this.redis.get(`pwd_reset:${token}`);
     if (userId) await this.redis.del(`pwd_reset:${token}`);
+    return userId;
+  }
+
+  async generateEmailConfirmToken(userId: string): Promise<string> {
+    const token = randomBytes(32).toString('hex');
+    await this.redis.set(`email_confirm:${token}`, userId, 'EX', EMAIL_CONFIRM_TTL);
+    return token;
+  }
+
+  async consumeEmailConfirmToken(token: string): Promise<string | null> {
+    const userId = await this.redis.get(`email_confirm:${token}`);
+    if (userId) await this.redis.del(`email_confirm:${token}`);
     return userId;
   }
 }

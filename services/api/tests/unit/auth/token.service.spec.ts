@@ -110,4 +110,42 @@ describe('TokenService', () => {
       expect(mockRedis.del).not.toHaveBeenCalled();
     });
   });
+
+  describe('generateEmailConfirmToken', () => {
+    it('returns a 64-character hex string and stores it with 24h TTL', async () => {
+      mockRedis.set.mockResolvedValue('OK');
+      const token = await service.generateEmailConfirmToken('user-1');
+      expect(token).toMatch(/^[0-9a-f]{64}$/);
+      expect(mockRedis.set).toHaveBeenCalledWith(
+        `email_confirm:${token}`,
+        'user-1',
+        'EX',
+        60 * 60 * 24,
+      );
+    });
+
+    it('generates a unique token each call', async () => {
+      mockRedis.set.mockResolvedValue('OK');
+      const t1 = await service.generateEmailConfirmToken('user-1');
+      const t2 = await service.generateEmailConfirmToken('user-1');
+      expect(t1).not.toBe(t2);
+    });
+  });
+
+  describe('consumeEmailConfirmToken', () => {
+    it('returns userId and deletes key when token is valid', async () => {
+      mockRedis.get.mockResolvedValue('user-7');
+      mockRedis.del.mockResolvedValue(1);
+      const userId = await service.consumeEmailConfirmToken('confirm-tok');
+      expect(userId).toBe('user-7');
+      expect(mockRedis.del).toHaveBeenCalledWith('email_confirm:confirm-tok');
+    });
+
+    it('returns null and does not delete when token is not found', async () => {
+      mockRedis.get.mockResolvedValue(null);
+      const userId = await service.consumeEmailConfirmToken('expired-tok');
+      expect(userId).toBeNull();
+      expect(mockRedis.del).not.toHaveBeenCalled();
+    });
+  });
 });

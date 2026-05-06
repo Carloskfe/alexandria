@@ -72,6 +72,9 @@ export class User {
   @Column({ type: 'enum', enum: HostingTier, default: HostingTier.BASIC })
   hostingTier: HostingTier;
 
+  @Column({ type: 'boolean', default: true })
+  emailConfirmed: boolean;
+
   @Column({ type: 'boolean', default: false })
   isAdmin: boolean;
 
