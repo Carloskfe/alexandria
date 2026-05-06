@@ -80,6 +80,9 @@ export default function ReaderPage() {
   // Play confirmation — shown when user hits play with saved progress
   const [showPlayConfirm, setShowPlayConfirm] = useState(false);
 
+  // Tap-to-sync — user taps a phrase to set audio start position
+  const [tapToSyncActive, setTapToSyncActive] = useState(false);
+
   const audioRef = useRef<HTMLAudioElement>(null);
   const progressDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const phraseRefs = useRef<(HTMLElement | null)[]>([]);
@@ -145,12 +148,10 @@ export default function ReaderPage() {
     if (!audio) return;
 
     const onTimeUpdate = () => {
-      const t = audio.currentTime;
-      setCurrentTime(t);
-      const idx = phraseAt(phrases, t);
-      if (idx !== activePhraseIndex) {
-        setActivePhraseIndex(idx);
-      }
+      // Use audio.currentTime directly — no stale closure on activePhraseIndex.
+      // React 18 bails out if setActivePhraseIndex receives the same value.
+      setCurrentTime(audio.currentTime);
+      setActivePhraseIndex(phraseAt(phrases, audio.currentTime));
     };
 
     const onDurationChange = () => setDuration(audio.duration);
@@ -175,7 +176,7 @@ export default function ReaderPage() {
       audio.removeEventListener('pause', onPause);
       audio.removeEventListener('error', onError);
     };
-  }, [phrases, activePhraseIndex, bookId]);
+  }, [phrases, bookId]); // activePhraseIndex removed — avoids re-registering listener on every frame
 
   // ── Auto-scroll in Listening mode ─────────────────────────────────────────
 
@@ -220,21 +221,21 @@ export default function ReaderPage() {
     else audio.pause();
   }, []);
 
-  // Floating play button: pause immediately if playing; if paused and there's
-  // saved reading progress, ask the user where to start instead of jumping to 0.
-  const handleFloatingPlayClick = useCallback(() => {
+  // FAB: in listening mode acts as play/pause; in reading mode it opens the
+  // audio panel and always asks where to start (pause first if already playing).
+  const handleFabClick = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
-    if (!audio.paused) {
-      audio.pause();
+    if (mode === 'listening') {
+      if (audio.paused) audio.play();
+      else audio.pause();
       return;
     }
-    if (savedPhraseIndex > 0) {
-      setShowPlayConfirm(true);
-    } else {
-      audio.play();
-    }
-  }, [savedPhraseIndex]);
+    // Reading mode → open audio panel + ask where to start
+    if (!audio.paused) audio.pause();
+    setMode('listening');
+    setShowPlayConfirm(true);
+  }, [mode]);
 
   const handlePlayFromProgress = useCallback(() => {
     setShowPlayConfirm(false);
@@ -249,6 +250,19 @@ export default function ReaderPage() {
       audioRef.current.play();
     }
   }, []);
+
+  // G3: user chose to tap the phrase where they are reading
+  const handlePlayFromTap = useCallback(() => {
+    setShowPlayConfirm(false);
+    setTapToSyncActive(true);
+  }, []);
+
+  // Called when user taps a phrase in tap-to-sync mode
+  const handleTapToSync = useCallback((idx: number) => {
+    setTapToSyncActive(false);
+    seekToIndex(idx);
+    audioRef.current?.play();
+  }, [seekToIndex]);
 
   const handleScrub = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const audio = audioRef.current;
@@ -301,8 +315,12 @@ export default function ReaderPage() {
   }, []);
 
   const handlePhraseClick = useCallback((idx: number) => {
+    if (tapToSyncActive) {
+      handleTapToSync(idx);
+      return;
+    }
     seekToIndex(idx);
-  }, [seekToIndex]);
+  }, [tapToSyncActive, handleTapToSync, seekToIndex]);
 
   const handleStartSelection = useCallback((idx: number, e: React.MouseEvent) => {
     e.preventDefault();
@@ -368,8 +386,10 @@ export default function ReaderPage() {
 
   const getSpanClass = useCallback((i: number) => {
     if (activePhraseIndex === i) return 'bg-yellow-200 text-gray-900';
+    if (audioBookmark?.phraseIndex === i) return 'ring-2 ring-orange-400 rounded';
+    if (tapToSyncActive) return 'cursor-pointer hover:bg-blue-100 hover:text-blue-900 transition-colors';
     return '';
-  }, [activePhraseIndex]);
+  }, [activePhraseIndex, audioBookmark, tapToSyncActive]);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
@@ -411,6 +431,22 @@ export default function ReaderPage() {
         <audio ref={audioRef} src={audioUrl} preload="metadata" />
       )}
 
+      {/* ── Tap-to-sync overlay instruction ─────────────────────────────── */}
+      {tapToSyncActive && (
+        <div className="fixed top-14 left-0 right-0 z-40 bg-blue-600 text-white px-4 py-2.5 flex items-center justify-between shadow-md">
+          <span className="text-sm font-medium flex items-center gap-2">
+            <TouchIcon />
+            Toca la frase donde estás leyendo para iniciar el audio desde allí
+          </span>
+          <button
+            onClick={() => { setTapToSyncActive(false); setMode('reading'); }}
+            className="text-blue-200 hover:text-white text-xs underline ml-4"
+          >
+            Cancelar
+          </button>
+        </div>
+      )}
+
       {/* ── Text column ─────────────────────────────────────────────────── */}
       <main className="flex-1 max-w-2xl mx-auto px-6 pt-14 pb-10 md:pb-16 md:pt-16">
         <header className="mb-8">
@@ -418,7 +454,10 @@ export default function ReaderPage() {
           <p className="text-gray-500 text-sm mt-1">{book.author}</p>
         </header>
 
-        <div className={`leading-relaxed ${fontSizeClass}`} onMouseUp={handleTextMouseUp}>
+        <div
+          className={['leading-relaxed', fontSizeClass, mode === 'listening' ? 'select-none' : ''].join(' ')}
+          onMouseUp={mode === 'listening' ? undefined : handleTextMouseUp}
+        >
           {hasSync ? (
             <PhraseRenderer
               phrases={phrases}
@@ -427,6 +466,7 @@ export default function ReaderPage() {
               onPhraseClick={handlePhraseClick}
               onPhraseContextMenu={handleStartSelection}
               dark={darkMode}
+              tapToSyncActive={tapToSyncActive}
             />
           ) : rawText ? (
             <p className="whitespace-pre-wrap">{rawText}</p>
@@ -439,32 +479,43 @@ export default function ReaderPage() {
       {/* ── Audio sidebar ────────────────────────────────────────────────── */}
       {hasAudio && (
         <>
-          {/* Floating play button — visible when no sidebar shown */}
+          {/* Floating action button — opens audio panel in reading mode, play/pause in listening */}
           <button
-            onClick={handleFloatingPlayClick}
+            onClick={handleFabClick}
             className={[
               'fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg flex items-center justify-center z-50 transition bg-blue-600 text-white',
               mode === 'listening' ? 'md:hidden' : '',
             ].join(' ')}
-            aria-label={playing ? 'Pausar' : 'Reproducir'}
+            aria-label={mode === 'reading' ? 'Abrir modo escucha activa' : playing ? 'Pausar' : 'Reproducir'}
           >
-            {playing ? <PauseIcon /> : <PlayIcon />}
+            {mode === 'reading' ? <HeadphonesSmIcon /> : playing ? <PauseIcon /> : <PlayIcon />}
           </button>
 
           {/* Play confirmation card — appears above the floating button */}
           {showPlayConfirm && (
-            <div className="fixed bottom-24 right-4 z-50 bg-white rounded-2xl shadow-2xl border border-gray-100 w-64 p-4">
+            <div className="fixed bottom-24 right-4 z-50 bg-white rounded-2xl shadow-2xl border border-gray-100 w-72 p-4">
               <p className="text-sm font-semibold text-gray-900 mb-1">¿Dónde empezamos?</p>
               <p className="text-xs text-gray-500 mb-4">
-                Tienes progreso guardado en este libro.
+                Elige desde dónde iniciar el audio.
               </p>
               <div className="flex flex-col gap-2">
-                <button
-                  onClick={handlePlayFromProgress}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl text-sm font-medium transition"
-                >
-                  Continuar desde frase {savedPhraseIndex + 1}
-                </button>
+                {hasSync && (
+                  <button
+                    onClick={handlePlayFromTap}
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-xl text-sm font-medium transition flex items-center justify-center gap-2"
+                  >
+                    <TouchIcon />
+                    Toca donde vas leyendo
+                  </button>
+                )}
+                {savedPhraseIndex > 0 && (
+                  <button
+                    onClick={handlePlayFromProgress}
+                    className="w-full border border-blue-200 hover:border-blue-400 text-blue-700 py-2.5 rounded-xl text-sm font-medium transition"
+                  >
+                    Continuar desde frase {savedPhraseIndex + 1}
+                  </button>
+                )}
                 <button
                   onClick={handlePlayFromStart}
                   className="w-full border border-gray-200 hover:border-gray-300 text-gray-700 py-2.5 rounded-xl text-sm font-medium transition"
@@ -472,7 +523,7 @@ export default function ReaderPage() {
                   Desde el principio
                 </button>
                 <button
-                  onClick={() => setShowPlayConfirm(false)}
+                  onClick={() => { setShowPlayConfirm(false); setMode('reading'); }}
                   className="text-gray-400 hover:text-gray-600 text-xs py-1 transition"
                 >
                   Cancelar
@@ -490,10 +541,32 @@ export default function ReaderPage() {
             ].join(' ')}
           >
             <div className="p-6 sticky top-12">
-              <div className="mb-4">
-                <p className="text-sm font-semibold text-gray-900 truncate">{book.title}</p>
-                <p className="text-xs text-gray-500 truncate">{book.author}</p>
+              {/* Header: mode label + close button */}
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <p className="text-xs font-semibold text-blue-600 uppercase tracking-wide mb-0.5">
+                    Modo Escucha Activa
+                  </p>
+                  <p className="text-sm font-semibold text-gray-900 truncate">{book.title}</p>
+                  <p className="text-xs text-gray-500 truncate">{book.author}</p>
+                </div>
+                <button
+                  onClick={() => setMode('reading')}
+                  aria-label="Cerrar panel de audio"
+                  className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-200 transition ml-2"
+                >
+                  <CloseIcon />
+                </button>
               </div>
+
+              {/* No sync map warning */}
+              {!hasSync && (
+                <div className="mb-4 px-3 py-2 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-xs text-amber-700">
+                    Este libro aún no tiene sincronización texto-audio. El audio se reproduce pero las frases no se resaltarán.
+                  </p>
+                </div>
+              )}
 
               {/* Speed selector — top of panel for easy access */}
               <div className="flex items-center gap-1 mb-4 bg-gray-100 rounded-xl p-1">
@@ -525,7 +598,7 @@ export default function ReaderPage() {
                   aria-label="Retroceder 10 segundos"
                   className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-blue-600 transition"
                 >
-                  <SkipBackIcon />
+                  <ReplayIcon />
                   <span className="text-[10px]">10s</span>
                 </button>
 
@@ -544,7 +617,7 @@ export default function ReaderPage() {
                   aria-label="Avanzar 10 segundos"
                   className="flex flex-col items-center gap-0.5 text-gray-500 hover:text-blue-600 transition"
                 >
-                  <SkipForwardIcon />
+                  <ForwardIcon />
                   <span className="text-[10px]">10s</span>
                 </button>
               </div>
@@ -582,7 +655,7 @@ export default function ReaderPage() {
       {audioBookmark && mode === 'reading' && !showQuoteChoice && (
         <div className="fixed bottom-0 left-0 right-0 z-40 bg-blue-600 text-white px-4 py-3 flex items-center justify-between shadow-lg">
           <span className="text-sm font-medium">
-            ▶ Audio pausado en la frase {audioBookmark.phraseIndex + 1}
+            🔖 Cita marcada en frase {audioBookmark.phraseIndex + 1}
           </span>
           <div className="flex items-center gap-2">
             <button
@@ -595,7 +668,7 @@ export default function ReaderPage() {
               onClick={handleResumeAudio}
               className="bg-white text-blue-600 text-sm font-semibold px-3 py-1 rounded-lg hover:bg-blue-50 transition"
             >
-              Reanudar
+              Ir al audio
             </button>
           </div>
         </div>
@@ -680,9 +753,10 @@ type PhraseRendererProps = {
   onPhraseClick: (i: number) => void;
   onPhraseContextMenu: (i: number, e: React.MouseEvent) => void;
   dark: boolean;
+  tapToSyncActive?: boolean;
 };
 
-function PhraseRenderer({ phrases, phraseRefs, getSpanClass, onPhraseClick, onPhraseContextMenu, dark }: PhraseRendererProps) {
+function PhraseRenderer({ phrases, phraseRefs, getSpanClass, onPhraseClick, onPhraseContextMenu, dark, tapToSyncActive }: PhraseRendererProps) {
   type Block =
     | { kind: 'heading'; i: number; phrase: Phrase }
     | { kind: 'paragraph'; items: Array<{ i: number; phrase: Phrase }> };
@@ -784,20 +858,50 @@ function QuoteIcon() {
   );
 }
 
-function SkipBackIcon() {
+// Semicircular arrow — replay/rewind (counterclockwise)
+function ReplayIcon() {
   return (
     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <polygon points="19 20 9 12 19 4 19 20" />
-      <line x1="5" y1="19" x2="5" y2="5" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 12a9 9 0 109-9H3" />
+      <polyline strokeLinecap="round" strokeLinejoin="round" points="3 3 3 9 9 9" />
     </svg>
   );
 }
 
-function SkipForwardIcon() {
+// Semicircular arrow — forward (clockwise)
+function ForwardIcon() {
   return (
     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-      <polygon points="5 4 15 12 5 20 5 4" />
-      <line x1="19" y1="5" x2="19" y2="19" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 11-9-9h9" />
+      <polyline strokeLinecap="round" strokeLinejoin="round" points="21 3 21 9 15 9" />
+    </svg>
+  );
+}
+
+function HeadphonesSmIcon() {
+  return (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path d="M3 18v-6a9 9 0 0118 0v6" />
+      <path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3z" />
+      <path d="M3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+
+function TouchIcon() {
+  return (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 11V7a3 3 0 016 0v4" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 11H7a1 1 0 00-1 1v6a5 5 0 0010 0v-3a1 1 0 00-1-1h-2" />
     </svg>
   );
 }
