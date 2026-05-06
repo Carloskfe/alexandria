@@ -1,31 +1,34 @@
 ## ADDED Requirements
 
 ### Requirement: Platform templates render styled quote cards
-The image-gen service SHALL render a PNG quote card for each supported platform and format. The card SHALL include: quote text wrapped to fit the card width, author + book attribution line, and an "Noetia" watermark. The background SHALL be either a solid colour or a two-stop vertical gradient. The text colour SHALL be determined as follows: if `textColor` is provided, use it directly; otherwise apply auto-luminance (white when background luminance ≤ 0.179, dark navy `#0D1B2A` otherwise). The font SHALL be selected from 5 bundled TTF typefaces.
+The image-gen service SHALL render a PNG quote card for each supported platform and format. The card SHALL include: quote text wrapped to fit the card width, author + book attribution line, and a "Noetia" watermark. The background SHALL be either a solid colour or a two-stop vertical gradient. The text colour SHALL be determined as follows: if `textColor` is provided, use it directly; otherwise apply auto-luminance (white when background luminance ≤ 0.179, dark navy `#0D1B2A` otherwise). The font SHALL be selected from 5 bundled TTF typefaces.
+
+**Supported platforms:** `linkedin`, `instagram`, `facebook`, `pinterest`
+(`whatsapp` is kept in the renderer map for backwards compatibility but is no longer exposed in the UI.)
 
 #### Scenario: LinkedIn post card renders at correct dimensions
-- **WHEN** `render(fragment, style='post')` is called on the LinkedIn template with valid fragment data
+- **WHEN** `render(fragment, format='post')` is called on the LinkedIn template
 - **THEN** the returned bytes decode to a valid PNG with dimensions 1200×627 px
 
 #### Scenario: Instagram post card renders at correct dimensions
-- **WHEN** `render(fragment, style='post')` is called on the Instagram template with valid fragment data
+- **WHEN** `render(fragment, format='post')` is called on the Instagram template
 - **THEN** the returned bytes decode to a valid PNG with dimensions 1080×1080 px
 
-#### Scenario: Instagram story card renders at correct dimensions
-- **WHEN** `render(fragment, style='story')` is called on the Instagram template
+#### Scenario: Instagram story/reel card renders at correct dimensions
+- **WHEN** `render(fragment, format='story')` or `render(fragment, format='reel')` is called
 - **THEN** the returned bytes decode to a valid PNG with dimensions 1080×1920 px
 
 #### Scenario: Facebook post card renders at correct dimensions
-- **WHEN** `render(fragment, style='post')` is called on the Facebook template
+- **WHEN** `render(fragment, format='post')` is called on the Facebook template
 - **THEN** the returned bytes decode to a valid PNG with dimensions 1200×630 px
 
-#### Scenario: Facebook story card renders at correct dimensions
-- **WHEN** `render(fragment, style='story')` is called on the Facebook template
-- **THEN** the returned bytes decode to a valid PNG with dimensions 1080×1920 px
+#### Scenario: Pinterest standard pin renders at correct dimensions
+- **WHEN** `render(fragment, format='pin')` is called on the Pinterest template
+- **THEN** the returned bytes decode to a valid PNG with dimensions 1000×1500 px
 
-#### Scenario: WhatsApp card renders at correct dimensions
-- **WHEN** `render(fragment)` is called on the WhatsApp template
-- **THEN** the returned bytes decode to a valid PNG with dimensions 800×800 px
+#### Scenario: Pinterest square pin renders at correct dimensions
+- **WHEN** `render(fragment, format='pin-square')` is called on the Pinterest template
+- **THEN** the returned bytes decode to a valid PNG with dimensions 1000×1000 px
 
 #### Scenario: Long text is wrapped and does not overflow
 - **WHEN** `render(fragment)` is called with quote text longer than 200 characters
@@ -43,70 +46,30 @@ The image-gen service SHALL render a PNG quote card for each supported platform 
 - **WHEN** `render_card` is called with `bg_colors=["#FFFFFF"]` and `textColor="#FF0000"`
 - **THEN** the rendered card uses `#FF0000` as the text colour regardless of luminance
 
-#### Scenario: Gradient background renders top-to-bottom
-- **WHEN** `render_card` is called with `bg_type="gradient"` and `bg_colors=["#0D1B2A", "#1A4A4A"]`
-- **THEN** the returned PNG is valid and dimensions are correct
-
 #### Scenario: Each of the 5 fonts produces a valid PNG
 - **WHEN** `render_card` is called with each of: `playfair`, `lato`, `merriweather`, `dancing`, `montserrat`
 - **THEN** each call returns a valid PNG with correct dimensions
 
-#### Scenario: WA Pic card renders at correct dimensions
-- **WHEN** `render(fragment, format='wa-pic')` is called
-- **THEN** the returned bytes decode to a valid PNG with dimensions 1080×1080 px
+### Requirement: POST /generate endpoint accepts fragment metadata and returns a public URL
+The image-gen service SHALL expose `POST /generate` accepting JSON `{ text, author, title, platform, format?, font?, bgType?, bgColors?, textColor? }`. It SHALL render the card, upload the PNG to MinIO `images/` bucket with a UUID filename, and return `{ url: <URL> }` with HTTP 200.
 
-#### Scenario: WA Story card renders at correct dimensions
-- **WHEN** `render(fragment, format='wa-story')` is called
-- **THEN** the returned bytes decode to a valid PNG with dimensions 1080×1920 px
+The returned URL SHALL use the public-facing host from `MINIO_PUBLIC_URL` so browsers can directly download the image. If `MINIO_PUBLIC_URL` is not set, the raw MinIO presigned URL is returned (usable only within the Docker network).
 
-#### Scenario: Reel cover renders at correct dimensions
-- **WHEN** `render(fragment, format='reel')` is called
-- **THEN** the returned bytes decode to a valid PNG with dimensions 1080×1920 px
+Valid values for `platform`: `linkedin`, `instagram`, `facebook`, `pinterest`
+Valid values for `format`: `post`, `story`, `pin`, `pin-square`, `reel`, `twitter-card`
+Defaults: `format=post`, `font=lato`, `bgType=solid`, `bgColors=["#0D1B2A"]`
 
-#### Scenario: Twitter/X card renders at correct dimensions
-- **WHEN** `render(fragment, format='twitter-card')` is called
-- **THEN** the returned bytes decode to a valid PNG with dimensions 1200×675 px
-
-### Requirement: POST /generate endpoint accepts fragment metadata and returns a URL
-The image-gen service SHALL expose `POST /generate` accepting JSON `{ text, author, title, platform, format?, font?, bgType?, bgColors?, textColor? }`. It SHALL render the card using the specified parameters (with defaults: `format=post`, `font=lato`, `bgType=solid`, `bgColors=["#0D1B2A"]`), upload the PNG to MinIO `images/` bucket with a UUID filename, and return `{ url: <pre-signed URL> }` with HTTP 200.
-
-Valid values for `format`: `post`, `story`, `wa-pic`, `wa-story`, `reel`, `twitter-card`.
-
-#### Scenario: Valid request returns pre-signed URL
+#### Scenario: Valid request returns accessible URL
 - **WHEN** a POST request is sent to `/generate` with `{ text, author, title, platform: "linkedin" }`
-- **THEN** the response is HTTP 200 with JSON `{ "url": "<string starting with http>" }`
+- **THEN** the response is HTTP 200 with JSON `{ "url": "<browser-accessible URL>" }`
 
-#### Scenario: Request with all optional params returns 200
-- **WHEN** a POST request is sent with `{ text, author, title, platform: "instagram", format: "story", font: "playfair", bgType: "gradient", bgColors: ["#0D1B2A", "#1A4A4A"], textColor: "#FFFFFF" }`
-- **THEN** the response is HTTP 200 with a URL
-
-#### Scenario: Request with textColor override returns 200
-- **WHEN** a POST request is sent with `{ text, author, title, platform: "linkedin", textColor: "#FF6B6B" }`
-- **THEN** the response is HTTP 200 and the generated PNG uses `#FF6B6B` as the text colour
-
-#### Scenario: Request with wa-story format returns 200
-- **WHEN** a POST request is sent with `{ text, author, title, platform: "whatsapp", format: "wa-story" }`
-- **THEN** the response is HTTP 200 with a URL for a 1080×1920 PNG
-
-#### Scenario: Request with twitter-card format returns 200
-- **WHEN** a POST request is sent with `{ text, author, title, platform: "twitter", format: "twitter-card" }`
-- **THEN** the response is HTTP 200 with a URL for a 1200×675 PNG
+#### Scenario: Pinterest pin request returns 200
+- **WHEN** a POST request is sent with `{ text, author, title, platform: "pinterest", format: "pin" }`
+- **THEN** the response is HTTP 200 with a URL for a 1000×1500 PNG
 
 #### Scenario: Unknown platform returns 400
 - **WHEN** a POST request is sent to `/generate` with `platform: "tiktok"`
 - **THEN** the response is HTTP 400 with `{ "error": "unsupported platform" }`
-
-#### Scenario: Unknown font returns 400
-- **WHEN** a POST request is sent with `font: "comic-sans"`
-- **THEN** the response is HTTP 400 with `{ "error": "unsupported font: comic-sans" }`
-
-#### Scenario: Unknown bgType returns 400
-- **WHEN** a POST request is sent with `bgType: "pattern"`
-- **THEN** the response is HTTP 400 with `{ "error": "unsupported bgType: pattern" }`
-
-#### Scenario: Unknown format returns 400
-- **WHEN** a POST request is sent with `format: "tiktok-story"`
-- **THEN** the response is HTTP 400 with `{ "error": "unsupported format: tiktok-story" }`
 
 #### Scenario: Missing required field returns 400
 - **WHEN** a POST request is sent to `/generate` with `text` omitted
@@ -114,6 +77,8 @@ Valid values for `format`: `post`, `story`, `wa-pic`, `wa-story`, `reel`, `twitt
 
 ## REMOVED Requirements
 
-### Requirement: Fixed colour palette styles (classic/light/dark/warm/bold)
-**Reason:** Replaced by fully customisable `font`, `bgType`, and `bgColors` parameters. Fixed palettes prevented user personalisation and were an internal abstraction with no external contract.
-**Migration:** The `style` parameter is no longer accepted. Callers must use `font`, `bgType`, and `bgColors` instead. Only the internal sharing API called this endpoint — it is updated in the same sprint.
+### Requirement: WhatsApp as a primary sharing platform
+**Reason:** WhatsApp replaced by Pinterest as the fourth sharing platform. Pinterest formats (`pin` 1000×1500, `pin-square` 1000×1000) are now the standard. The `whatsapp` renderer is retained in `app.py` for backward compatibility but is no longer listed as a valid platform in the frontend `share-utils.ts`.
+
+### Requirement: Fixed colour palette styles
+**Reason:** Replaced by fully customisable `font`, `bgType`, and `bgColors` parameters.

@@ -58,6 +58,8 @@ To become the leading platform where knowledge is not only consumed but expresse
 - Facebook Login
 - Apple Sign-In (iOS)
 - Email + Password
+- **Email confirmation** on registration (24h token via SMTP; existing OAuth logins auto-confirmed)
+- **Password recovery** via email reset link (1h token)
 
 ### 2. Content Library
 - Initial catalog: 12 Spanish-language books
@@ -70,12 +72,16 @@ To become the leading platform where knowledge is not only consumed but expresse
 - Controls: Play/Pause, speed adjustment
 - Seamless switching: Reading ↔ Listening ↔ Hybrid
 
-#### Hybrid Reading Mode
-- Combines visible text with live audio playback
-- Active phrase is highlighted in real-time as audio plays
-- Text selection is **disabled** in this mode — user must exit to create fragments
-- Clear mode indicator in the top bar with a single-tap exit action
-- Designed for immersive listen-while-reading without accidental selection
+#### Modo Escucha Activa (formerly "Hybrid Mode")
+- Combines visible text with live audio playback — text and audio sidebar shown simultaneously
+- Active phrase highlighted in real-time (yellow) as audio plays; text auto-scrolls to keep pace
+- Text selection **disabled** in this mode — exit to reading mode to create fragments
+- Clear "Modo Escucha Activa" label in the sidebar header; ✕ button closes sidebar without stopping audio
+- **FAB behavior**: tapping the blue FAB in reading mode opens the audio panel and offers three start options:
+  1. "Toca donde vas leyendo" — user taps the exact phrase where they are; audio seeks and plays from there
+  2. "Continuar desde frase N" — resumes from last saved position
+  3. "Desde el principio"
+- Sync engine: phrase-level highlight driven by `phraseAt()` binary search on `startTime/endTime`; listener registered only when `phrases` changes (not on every frame)
 
 ### 4. Highlight & Fragment System
 - Select text while reading to save as "fragments"
@@ -85,13 +91,22 @@ To become the leading platform where knowledge is not only consumed but expresse
 
 ### 5. Social Content Generator _(Core Differentiator)_
 - Transform fragments into shareable visual quote cards
-- Platform-specific formats: LinkedIn, Instagram, Facebook, WhatsApp, TikTok (future), Snapchat
+- **Four supported platforms:** LinkedIn, Instagram, Facebook, Pinterest
+- Platform-specific formats:
+  - Instagram: Post (1080×1080), Story (1080×1920), Reel (1080×1920)
+  - Facebook: Post (1200×630), Story (1080×1920)
+  - LinkedIn: Post (1200×627)
+  - Pinterest: Pin (1000×1500), Square (1000×1000)
 - Each card includes: quote text, author name, book title, Noetia watermark
-- Template-based design (MVP); server-side rendering
+- Background: solid color or gradient with configurable hex colors
+- Font selection: Playfair, Lato, Merriweather, Dancing Script, Montserrat
+- Server-side PNG generation via Python/Pillow; served via MinIO presigned URLs (`MINIO_PUBLIC_URL` for browser access)
 
 ### 6. Sharing Engine
 - One-click sharing
-- Export as image
+- Export as image (download) — fixed via `MINIO_PUBLIC_URL` presigned URL rewrite
+- Copy link — copies browser-accessible presigned URL
+- **Direct social publish** from the ShareModal: connect LinkedIn, Facebook, Instagram, Pinterest via OAuth; tap "Compartir ahora" to post directly
 - Deep links (future)
 - Attribution tracking (future)
 
@@ -126,10 +141,22 @@ Noetia follows a hybrid model inspired by Audible: users can purchase titles ind
 
 ### 9. Author / Publisher Module
 - Upload books (text + audio + metadata)
-- Hosting tiers: 1 book / 3 books / 12 books
+- Hosting tiers: 1 book / 3 books / 12 books (enforced via `hostingTier` on User)
 - Revenue sharing model
 - Basic analytics: downloads, reads, shares, storage
-- Cloud storage for books, audio files, and generated images
+- Cloud storage in MinIO with folder structure:
+  - `books/covers/{bookId}.png` — book covers (placeholder generator: `image-gen/scripts/generate_book_covers.py`)
+  - `books/{authorId}/{bookId}/` — text files (private)
+  - `audio/{authorId}/{bookId}/` — audio files (private)
+  - `images/share/` — generated quote card PNGs (public read)
+  - `images/backgrounds/presets/` — preset background images (`imagen-1` through `imagen-5`)
+  - `images/backgrounds/user/{userId}/` — user-uploaded custom backgrounds
+
+### 10. Book Collections
+- Books can belong to a named `collection` (e.g. "Biblia")
+- All Bible books (matched by title/author pattern) are automatically seeded into the "Biblia" collection
+- Books with multiple volumes are grouped under their series collection name
+- Collection field: nullable `varchar` on the `books` table (migration 024)
 
 ---
 
