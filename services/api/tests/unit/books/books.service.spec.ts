@@ -1,13 +1,28 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Equal, IsNull, Or } from 'typeorm';
 import { BooksService } from '../../../src/books/books.service';
 import { Book, BookCategory } from '../../../src/books/book.entity';
 import { CreateBookDto } from '../../../src/books/dto/create-book.dto';
 import { HostingTier, User } from '../../../src/users/user.entity';
 
+// QueryBuilder mock — each method returns `this` for chaining; getMany returns books
+const makeQb = (books: unknown[] = []) => {
+  const qb: Record<string, jest.Mock> = {
+    where: jest.fn(),
+    andWhere: jest.fn(),
+    orderBy: jest.fn(),
+    getMany: jest.fn().mockResolvedValue(books),
+  };
+  // Make every method return the same qb so chaining works
+  Object.keys(qb).forEach((k) => {
+    if (k !== 'getMany') qb[k].mockReturnValue(qb);
+  });
+  return qb;
+};
+
 const mockRepo = {
+  createQueryBuilder: jest.fn(),
   find: jest.fn(),
   findOneBy: jest.fn(),
   create: jest.fn(),
@@ -39,74 +54,84 @@ describe('BooksService', () => {
   describe('findAll', () => {
     it('excludes collection books by default (standalone=true)', async () => {
       const books = [{ id: '1', isPublished: true, collection: null }];
-      mockRepo.find.mockResolvedValue(books);
+      const qb = makeQb(books);
+      mockRepo.createQueryBuilder.mockReturnValue(qb);
 
       const result = await service.findAll();
 
-      expect(mockRepo.find).toHaveBeenCalledWith({
-        where: { isPublished: true, collection: Or(IsNull(), Equal('')) },
-        order: { createdAt: 'DESC' },
-      });
+      expect(qb.andWhere).toHaveBeenCalledWith(
+        '(book.collection IS NULL OR book.collection = :empty)',
+        { empty: '' },
+      );
       expect(result).toEqual(books);
     });
 
     it('includes collection books when standalone=false', async () => {
-      mockRepo.find.mockResolvedValue([]);
+      const qb = makeQb([]);
+      mockRepo.createQueryBuilder.mockReturnValue(qb);
       await service.findAll(undefined, undefined, false);
-      expect(mockRepo.find).toHaveBeenCalledWith({
-        where: { isPublished: true },
-        order: { createdAt: 'DESC' },
-      });
+      const standaloneCall = qb.andWhere.mock.calls.find(
+        (c: unknown[]) => typeof c[0] === 'string' && (c[0] as string).includes('collection'),
+      );
+      expect(standaloneCall).toBeUndefined();
     });
 
-    it('adds category to where clause when provided', async () => {
-      mockRepo.find.mockResolvedValue([]);
+    it('adds category filter when provided', async () => {
+      const qb = makeQb([]);
+      mockRepo.createQueryBuilder.mockReturnValue(qb);
       await service.findAll(BookCategory.BUSINESS);
-      expect(mockRepo.find).toHaveBeenCalledWith({
-        where: { isPublished: true, category: BookCategory.BUSINESS, collection: Or(IsNull(), Equal('')) },
-        order: { createdAt: 'DESC' },
-      });
+      expect(qb.andWhere).toHaveBeenCalledWith(
+        'book.category = :category',
+        { category: BookCategory.BUSINESS },
+      );
     });
 
-    it('adds isFree=true to where clause when isFree is true', async () => {
-      mockRepo.find.mockResolvedValue([]);
+    it('adds isFree=true filter when isFree is true', async () => {
+      const qb = makeQb([]);
+      mockRepo.createQueryBuilder.mockReturnValue(qb);
       await service.findAll(undefined, true);
-      expect(mockRepo.find).toHaveBeenCalledWith({
-        where: { isPublished: true, isFree: true, collection: Or(IsNull(), Equal('')) },
-        order: { createdAt: 'DESC' },
-      });
+      expect(qb.andWhere).toHaveBeenCalledWith('book.isFree = :isFree', { isFree: true });
     });
 
-    it('adds isFree=false to where clause when isFree is false', async () => {
-      mockRepo.find.mockResolvedValue([]);
+    it('adds isFree=false filter when isFree is false', async () => {
+      const qb = makeQb([]);
+      mockRepo.createQueryBuilder.mockReturnValue(qb);
       await service.findAll(undefined, false);
-      expect(mockRepo.find).toHaveBeenCalledWith({
-        where: { isPublished: true, isFree: false, collection: Or(IsNull(), Equal('')) },
-        order: { createdAt: 'DESC' },
-      });
+      expect(qb.andWhere).toHaveBeenCalledWith('book.isFree = :isFree', { isFree: false });
     });
 
-    it('omits isFree from where clause when isFree is undefined', async () => {
-      mockRepo.find.mockResolvedValue([]);
+    it('does not add isFree filter when isFree is undefined', async () => {
+      const qb = makeQb([]);
+      mockRepo.createQueryBuilder.mockReturnValue(qb);
       await service.findAll(undefined, undefined);
-      expect(mockRepo.find).toHaveBeenCalledWith({
-        where: { isPublished: true, collection: Or(IsNull(), Equal('')) },
-        order: { createdAt: 'DESC' },
-      });
+      const freeCalls = qb.andWhere.mock.calls.filter(
+        (c: unknown[]) => typeof c[0] === 'string' && (c[0] as string).includes('isFree'),
+      );
+      expect(freeCalls).toHaveLength(0);
     });
 
-    it('combines category and isFree filters together', async () => {
-      mockRepo.find.mockResolvedValue([]);
+    it('combines category and isFree filters', async () => {
+      const qb = makeQb([]);
+      mockRepo.createQueryBuilder.mockReturnValue(qb);
       await service.findAll(BookCategory.CLASSIC, true);
-      expect(mockRepo.find).toHaveBeenCalledWith({
-        where: { isPublished: true, category: BookCategory.CLASSIC, isFree: true, collection: Or(IsNull(), Equal('')) },
-        order: { createdAt: 'DESC' },
-      });
+      expect(qb.andWhere).toHaveBeenCalledWith('book.category = :category', { category: BookCategory.CLASSIC });
+      expect(qb.andWhere).toHaveBeenCalledWith('book.isFree = :isFree', { isFree: true });
     });
 
     it('returns empty array when no books match', async () => {
-      mockRepo.find.mockResolvedValue([]);
+      const qb = makeQb([]);
+      mockRepo.createQueryBuilder.mockReturnValue(qb);
       expect(await service.findAll()).toEqual([]);
+    });
+
+    it('includes collection books and excludes standalone filter when standalone=false', async () => {
+      const qb = makeQb([]);
+      mockRepo.createQueryBuilder.mockReturnValue(qb);
+      await service.findAll(undefined, undefined, false);
+      expect(qb.andWhere).not.toHaveBeenCalledWith(
+        expect.stringContaining('collection'),
+        expect.anything(),
+      );
     });
   });
 
