@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, IsNull, Repository } from 'typeorm';
+import { Equal, FindOptionsWhere, IsNull, Or, Repository } from 'typeorm';
 import { Book, BookCategory } from './book.entity';
 import { CreateBookDto } from './dto/create-book.dto';
 import { HostingTier, HOSTING_TIER_LIMITS, User } from '../users/user.entity';
@@ -18,7 +18,7 @@ export class BooksService {
     if (isFree !== undefined) where.isFree = isFree;
     // Exclude books that belong to a collection from the general catalog by default.
     // Pass standalone=false to include them (e.g. admin views, collection detail pages).
-    if (standalone) where.collection = IsNull();
+    if (standalone) where.collection = Or(IsNull(), Equal(''));
     return this.repo.find({ where, order: { createdAt: 'DESC' } });
   }
 
