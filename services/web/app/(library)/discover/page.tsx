@@ -125,7 +125,7 @@ export default function DiscoverPage() {
   return (
     <div className="max-w-lg mx-auto px-4">
       <div className="pt-12 pb-4 space-y-4">
-        <h1 className="text-2xl font-bold text-gray-900">Descubrir</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Colección General</h1>
 
         {/* Search bar */}
         <div className="relative">
