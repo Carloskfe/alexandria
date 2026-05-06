@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { FindOptionsWhere, Repository } from 'typeorm';
+import { FindOptionsWhere, IsNull, Repository } from 'typeorm';
 import { Book, BookCategory } from './book.entity';
 import { CreateBookDto } from './dto/create-book.dto';
 import { HostingTier, HOSTING_TIER_LIMITS, User } from '../users/user.entity';
@@ -12,10 +12,13 @@ export class BooksService {
     @InjectRepository(User) private readonly userRepo: Repository<User>,
   ) {}
 
-  findAll(category?: BookCategory, isFree?: boolean): Promise<Book[]> {
+  findAll(category?: BookCategory, isFree?: boolean, standalone = true): Promise<Book[]> {
     const where: FindOptionsWhere<Book> = { isPublished: true };
     if (category) where.category = category;
     if (isFree !== undefined) where.isFree = isFree;
+    // Exclude books that belong to a collection from the general catalog by default.
+    // Pass standalone=false to include them (e.g. admin views, collection detail pages).
+    if (standalone) where.collection = IsNull();
     return this.repo.find({ where, order: { createdAt: 'DESC' } });
   }
 

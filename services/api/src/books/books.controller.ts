@@ -48,10 +48,12 @@ export class BooksController {
   findAll(
     @Query('category') category?: BookCategory,
     @Query('isFree') isFree?: string,
+    @Query('includeCollections') includeCollections?: string,
   ) {
     const isFreeFilter =
       isFree === 'true' ? true : isFree === 'false' ? false : undefined;
-    return this.booksService.findAll(category, isFreeFilter);
+    const standalone = includeCollections !== 'true';
+    return this.booksService.findAll(category, isFreeFilter, standalone);
   }
 
   // Must come before /:id to avoid "pending" being matched as an id

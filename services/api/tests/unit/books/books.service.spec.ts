@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { IsNull } from 'typeorm';
 import { BooksService } from '../../../src/books/books.service';
 import { Book, BookCategory } from '../../../src/books/book.entity';
 import { CreateBookDto } from '../../../src/books/dto/create-book.dto';
@@ -36,24 +37,33 @@ describe('BooksService', () => {
   });
 
   describe('findAll', () => {
-    it('returns all published books when no category is given', async () => {
-      const books = [{ id: '1', isPublished: true }];
+    it('excludes collection books by default (standalone=true)', async () => {
+      const books = [{ id: '1', isPublished: true, collection: null }];
       mockRepo.find.mockResolvedValue(books);
 
       const result = await service.findAll();
 
       expect(mockRepo.find).toHaveBeenCalledWith({
-        where: { isPublished: true },
+        where: { isPublished: true, collection: IsNull() },
         order: { createdAt: 'DESC' },
       });
       expect(result).toEqual(books);
+    });
+
+    it('includes collection books when standalone=false', async () => {
+      mockRepo.find.mockResolvedValue([]);
+      await service.findAll(undefined, undefined, false);
+      expect(mockRepo.find).toHaveBeenCalledWith({
+        where: { isPublished: true },
+        order: { createdAt: 'DESC' },
+      });
     });
 
     it('adds category to where clause when provided', async () => {
       mockRepo.find.mockResolvedValue([]);
       await service.findAll(BookCategory.BUSINESS);
       expect(mockRepo.find).toHaveBeenCalledWith({
-        where: { isPublished: true, category: BookCategory.BUSINESS },
+        where: { isPublished: true, category: BookCategory.BUSINESS, collection: IsNull() },
         order: { createdAt: 'DESC' },
       });
     });
@@ -62,7 +72,7 @@ describe('BooksService', () => {
       mockRepo.find.mockResolvedValue([]);
       await service.findAll(undefined, true);
       expect(mockRepo.find).toHaveBeenCalledWith({
-        where: { isPublished: true, isFree: true },
+        where: { isPublished: true, isFree: true, collection: IsNull() },
         order: { createdAt: 'DESC' },
       });
     });
@@ -71,7 +81,7 @@ describe('BooksService', () => {
       mockRepo.find.mockResolvedValue([]);
       await service.findAll(undefined, false);
       expect(mockRepo.find).toHaveBeenCalledWith({
-        where: { isPublished: true, isFree: false },
+        where: { isPublished: true, isFree: false, collection: IsNull() },
         order: { createdAt: 'DESC' },
       });
     });
@@ -80,7 +90,7 @@ describe('BooksService', () => {
       mockRepo.find.mockResolvedValue([]);
       await service.findAll(undefined, undefined);
       expect(mockRepo.find).toHaveBeenCalledWith({
-        where: { isPublished: true },
+        where: { isPublished: true, collection: IsNull() },
         order: { createdAt: 'DESC' },
       });
     });
@@ -89,7 +99,7 @@ describe('BooksService', () => {
       mockRepo.find.mockResolvedValue([]);
       await service.findAll(BookCategory.CLASSIC, true);
       expect(mockRepo.find).toHaveBeenCalledWith({
-        where: { isPublished: true, category: BookCategory.CLASSIC, isFree: true },
+        where: { isPublished: true, category: BookCategory.CLASSIC, isFree: true, collection: IsNull() },
         order: { createdAt: 'DESC' },
       });
     });
