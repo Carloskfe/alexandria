@@ -1,6 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
+    "jsx": "react-jsx",
     "paths": {
       "@/*": ["src/*"],
       "@react-native-async-storage/async-storage": ["tests/__mocks__/@react-native-async-storage/async-storage.ts"]

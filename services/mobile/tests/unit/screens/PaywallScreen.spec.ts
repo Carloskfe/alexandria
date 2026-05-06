@@ -1,4 +1,6 @@
 import { fetchSubscriptionStatus, requiresPaywall } from '../../../src/api/subscriptions';
+import { Linking } from 'react-native';
+import { PaywallScreen } from '../../../src/screens/PaywallScreen';
 
 afterEach(() => jest.restoreAllMocks());
 
@@ -69,5 +71,68 @@ describe('requiresPaywall', () => {
 
   it('returns false for canceling', () => {
     expect(requiresPaywall('canceling')).toBe(false);
+  });
+});
+
+describe('PaywallScreen', () => {
+  const mockLinking = Linking.openURL as jest.Mock;
+
+  beforeEach(() => jest.clearAllMocks());
+
+  it('exports PaywallScreen as a function', () => {
+    expect(typeof PaywallScreen).toBe('function');
+  });
+
+  it('renders without throwing', () => {
+    expect(() => PaywallScreen()).not.toThrow();
+  });
+
+  it('renders a root View element', () => {
+    const element = PaywallScreen() as any;
+    expect(element.type).toBe('View');
+  });
+
+  it('renders the "Noetia Premium" title', () => {
+    const element = PaywallScreen() as any;
+    const title = element.props.children[0];
+    expect(title.type).toBe('Text');
+    expect(title.props.children).toBe('Noetia Premium');
+  });
+
+  it('renders a plan card for each plan', () => {
+    const element = PaywallScreen() as any;
+    const planCards = element.props.children[2]; // third child is the map result
+    expect(Array.isArray(planCards)).toBe(true);
+    expect(planCards).toHaveLength(2);
+  });
+
+  it('renders the Individual plan', () => {
+    const element = PaywallScreen() as any;
+    const planCards = element.props.children[2];
+    const individualCard = planCards[0];
+    const planName = individualCard.props.children[0];
+    expect(planName.props.children).toBe('Individual');
+  });
+
+  it('renders the Dual Reader plan', () => {
+    const element = PaywallScreen() as any;
+    const planCards = element.props.children[2];
+    const dualCard = planCards[1];
+    const planName = dualCard.props.children[0];
+    expect(planName.props.children).toBe('Dual Reader');
+  });
+
+  it('renders a Subscribe CTA button', () => {
+    const element = PaywallScreen() as any;
+    const cta = element.props.children[3];
+    expect(cta.type).toBe('TouchableOpacity');
+    expect(cta.props.accessibilityLabel).toBe('Subscribe now');
+  });
+
+  it('CTA button opens the pricing URL', () => {
+    const element = PaywallScreen() as any;
+    const cta = element.props.children[3];
+    cta.props.onPress();
+    expect(mockLinking).toHaveBeenCalledWith('https://noetia.app/pricing');
   });
 });

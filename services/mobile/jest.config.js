@@ -9,8 +9,9 @@ module.exports = {
   moduleNameMapper: {
     '@react-native-async-storage/async-storage':
       '<rootDir>/tests/__mocks__/@react-native-async-storage/async-storage.ts',
+    '^react-native$': '<rootDir>/tests/__mocks__/react-native.ts',
   },
-  collectCoverageFrom: ['src/**/*.ts', '!src/**/*.tsx'],
+  collectCoverageFrom: ['src/**/*.ts', 'src/**/*.tsx', '!src/navigation/**'],
   coverageDirectory: 'coverage',
   testEnvironment: 'node',
   coverageThreshold: {
