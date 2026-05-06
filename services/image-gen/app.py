@@ -92,20 +92,28 @@ def generate():
     if not isinstance(bg_colors, list) or not bg_colors:
         return jsonify({"error": "bgColors must be a non-empty array"}), 400
 
-    text_color = body.get("textColor") or None
-    citation = body.get("citation") or None
+    text_color    = body.get("textColor")    or None
+    citation      = body.get("citation")      or None
+    text_bold     = bool(body.get("textBold",   False))
+    text_italic   = bool(body.get("textItalic", False))
+    gradient_dir  = body.get("gradientDir") or "to-bottom"
+    bg_image      = body.get("bgImage")     or None
 
     fragment = {
-        "text":     body["text"],
-        "author":   body["author"],
-        "title":    body["title"],
-        "citation": citation,
+        "text":         body["text"],
+        "author":       body["author"],
+        "title":        body["title"],
+        "citation":     citation,
+        "bold":         text_bold,
+        "italic":       text_italic,
     }
 
     try:
         png_bytes = renderer(fragment, format=fmt, font=font,
                              bg_type=bg_type, bg_colors=bg_colors,
-                             text_color_override=text_color)
+                             text_color_override=text_color,
+                             bg_gradient_dir=gradient_dir,
+                             bg_image=bg_image)
         client = MinioClient()
         url = client.upload(png_bytes)
     except Exception:

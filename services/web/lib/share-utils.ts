@@ -57,11 +57,15 @@ export const SHARE_FORMAT_LABELS: Record<ShareFormat, string> = {
 export interface ShareParams {
   format: ShareFormat;
   font: string;
-  bgType: 'solid' | 'gradient';
+  bgType: 'solid' | 'gradient' | 'image';
   bgColors: string[];
   textColor?: string;
   text?: string;
   citation?: string;
+  textBold?: boolean;
+  textItalic?: boolean;
+  gradientDir?: string;
+  bgImage?: string;
 }
 
 export async function shareFragment(fragmentId: string, params: ShareParams): Promise<string> {
@@ -74,9 +78,13 @@ export async function shareFragment(fragmentId: string, params: ShareParams): Pr
       font: params.font,
       bgType: params.bgType,
       bgColors: params.bgColors,
-      ...(params.textColor ? { textColor: params.textColor } : {}),
-      ...(params.text      ? { text:      params.text }      : {}),
-      ...(params.citation  ? { citation:  params.citation }  : {}),
+      ...(params.textColor   ? { textColor:   params.textColor }   : {}),
+      ...(params.text        ? { text:        params.text }        : {}),
+      ...(params.citation    ? { citation:    params.citation }    : {}),
+      ...(params.textBold    ? { textBold:    true }               : {}),
+      ...(params.textItalic  ? { textItalic:  true }               : {}),
+      ...(params.gradientDir ? { gradientDir: params.gradientDir } : {}),
+      ...(params.bgImage     ? { bgImage:     params.bgImage }     : {}),
     }),
   });
   return data.url as string;

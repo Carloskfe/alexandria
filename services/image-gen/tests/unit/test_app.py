@@ -161,15 +161,15 @@ def test_generate_reel_format_returns_200(client):
     assert resp.status_code == 200
 
 
-def test_generate_wa_pic_format_returns_200(client):
+def test_generate_pinterest_pin_format_returns_200(client):
     with patch("app.MinioClient", return_value=_patched_minio()):
-        resp = client.post("/generate", json={**_VALID_BODY, "platform": "whatsapp", "format": "wa-pic"})
+        resp = client.post("/generate", json={**_VALID_BODY, "platform": "pinterest", "format": "pin"})
     assert resp.status_code == 200
 
 
-def test_generate_wa_story_format_returns_200(client):
+def test_generate_pinterest_square_format_returns_200(client):
     with patch("app.MinioClient", return_value=_patched_minio()):
-        resp = client.post("/generate", json={**_VALID_BODY, "platform": "whatsapp", "format": "wa-story"})
+        resp = client.post("/generate", json={**_VALID_BODY, "platform": "pinterest", "format": "pin-square"})
     assert resp.status_code == 200
 
 

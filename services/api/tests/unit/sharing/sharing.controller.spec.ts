@@ -51,7 +51,7 @@ describe('SharingController', () => {
       mockSharingService.generateShareUrl.mockResolvedValue('https://cdn.example.com/image.png');
       mockBookRepo.save.mockResolvedValue(undefined);
 
-      const result = await controller.share('frag-1', 'linkedin', undefined, undefined, undefined, undefined, undefined, undefined, undefined, { user: mockUser });
+      const result = await controller.share('frag-1', 'linkedin', undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, { user: mockUser });
 
       expect(result).toEqual({ url: 'https://cdn.example.com/image.png' });
     });
@@ -63,7 +63,7 @@ describe('SharingController', () => {
       mockSharingService.generateShareUrl.mockResolvedValue('https://cdn.example.com/img.png');
       mockBookRepo.save.mockResolvedValue(undefined);
 
-      await controller.share('frag-1', 'instagram', undefined, undefined, undefined, undefined, undefined, undefined, undefined, { user: mockUser });
+      await controller.share('frag-1', 'instagram', undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, { user: mockUser });
 
       expect(mockBookRepo.save).toHaveBeenCalledWith(expect.objectContaining({ shareCount: 5 }));
     });
@@ -75,7 +75,7 @@ describe('SharingController', () => {
       mockSharingService.generateShareUrl.mockResolvedValue('https://cdn.example.com/img.png');
       mockBookRepo.save.mockResolvedValue(undefined);
 
-      await controller.share('frag-1', 'whatsapp', undefined, undefined, undefined, undefined, undefined, undefined, undefined, { user: mockUser });
+      await controller.share('frag-1', 'whatsapp', undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, { user: mockUser });
 
       expect(mockBookRepo.save).toHaveBeenCalledWith(expect.objectContaining({ shareCount: 1 }));
     });
@@ -84,7 +84,7 @@ describe('SharingController', () => {
       mockFragmentRepo.findOneBy.mockResolvedValue(null);
 
       await expect(
-        controller.share('bad-id', 'linkedin', undefined, undefined, undefined, undefined, undefined, undefined, undefined, { user: mockUser }),
+        controller.share('bad-id', 'linkedin', undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, { user: mockUser }),
       ).rejects.toThrow(NotFoundException);
       expect(mockSharingService.generateShareUrl).not.toHaveBeenCalled();
     });
@@ -94,7 +94,7 @@ describe('SharingController', () => {
       mockBookRepo.findOneBy.mockResolvedValue(null);
 
       await expect(
-        controller.share('frag-1', 'linkedin', undefined, undefined, undefined, undefined, undefined, undefined, undefined, { user: mockUser }),
+        controller.share('frag-1', 'linkedin', undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, undefined, { user: mockUser }),
       ).rejects.toThrow(NotFoundException);
       expect(mockSharingService.generateShareUrl).not.toHaveBeenCalled();
     });
@@ -105,7 +105,7 @@ describe('SharingController', () => {
       mockSharingService.generateShareUrl.mockResolvedValue('https://cdn.example.com/styled.png');
       mockBookRepo.save.mockResolvedValue(undefined);
 
-      await controller.share('frag-1', 'linkedin', 'square', 'serif', 'gradient', ['#fff', '#000'], '#333', undefined, undefined, { user: mockUser });
+      await controller.share('frag-1', 'linkedin', 'square', 'serif', 'gradient', ['#fff', '#000'], '#333', undefined, undefined, undefined, undefined, undefined, undefined, { user: mockUser });
 
       expect(mockSharingService.generateShareUrl).toHaveBeenCalledWith(
         mockFragment,

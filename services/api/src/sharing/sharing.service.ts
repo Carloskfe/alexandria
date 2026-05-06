@@ -10,6 +10,10 @@ export interface ShareOptions {
   textColor?: string;
   textOverride?: string;
   citation?: string;
+  textBold?: boolean;
+  textItalic?: boolean;
+  gradientDir?: string;
+  bgImage?: string;
 }
 
 @Injectable()
@@ -35,7 +39,11 @@ export class SharingService {
         ...(options.bgType    && { bgType:    options.bgType }),
         ...(options.bgColors  && { bgColors:  options.bgColors }),
         ...(options.textColor && { textColor: options.textColor }),
-        ...(options.citation  && { citation:  options.citation }),
+        ...(options.citation    && { citation:    options.citation }),
+        ...(options.textBold    && { textBold:    true }),
+        ...(options.textItalic  && { textItalic:  true }),
+        ...(options.gradientDir && { gradientDir: options.gradientDir }),
+        ...(options.bgImage     && { bgImage:     options.bgImage }),
       }),
     });
 

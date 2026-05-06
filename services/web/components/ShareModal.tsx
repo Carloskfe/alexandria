@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, useId } from 'react';
 import { apiFetch } from '@/lib/api';
 import {
   FORMAT_PLATFORM_MAP,
@@ -14,6 +14,52 @@ import {
   getTextColor,
   shareFragment,
 } from '@/lib/share-utils';
+
+// ── Gradient directions ───────────────────────────────────────────────────────
+
+const GRADIENT_DIRS = [
+  { id: 'to-top-left',     icon: '↖', css: 'to top left' },
+  { id: 'to-top',          icon: '↑', css: 'to top' },
+  { id: 'to-top-right',    icon: '↗', css: 'to top right' },
+  { id: 'to-left',         icon: '←', css: 'to left' },
+  { id: 'radial',          icon: '●', css: null },
+  { id: 'to-right',        icon: '→', css: 'to right' },
+  { id: 'to-bottom-left',  icon: '↙', css: 'to bottom left' },
+  { id: 'to-bottom',       icon: '↓', css: 'to bottom' },
+  { id: 'to-bottom-right', icon: '↘', css: 'to bottom right' },
+] as const;
+type GradientDirId = typeof GRADIENT_DIRS[number]['id'];
+
+function gradientCss(dir: GradientDirId, c1: string, c2: string): string {
+  if (dir === 'radial') return `radial-gradient(circle at center, ${c1}, ${c2})`;
+  const entry = GRADIENT_DIRS.find((d) => d.id === dir);
+  return `linear-gradient(${entry?.css ?? 'to bottom'}, ${c1}, ${c2})`;
+}
+
+// ── Background image presets ──────────────────────────────────────────────────
+
+const BG_PRESETS = [
+  '/backgrounds/imagen-1.png',
+  '/backgrounds/imagen-2.png',
+  '/backgrounds/imagen-3.png',
+  '/backgrounds/imagen-4.png',
+  '/backgrounds/imagen-5.png',
+];
+
+async function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function urlToBase64(url: string): Promise<string> {
+  const res = await fetch(url);
+  const blob = await res.blob();
+  return fileToBase64(blob as File);
+}
 
 // ── Format aspect ratios ──────────────────────────────────────────────────────
 
@@ -47,11 +93,19 @@ type Props = {
 export default function ShareModal({
   fragmentId, fragmentText, author, bookTitle, bookCollection, note, onClose,
 }: Props) {
+  const fileInputId = useId();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const [selectedFormat, setSelectedFormat] = useState<ShareFormat>('ig-post');
   const [selectedFont, setSelectedFont] = useState<FontId>('lato');
-  const [bgType, setBgType] = useState<'solid' | 'gradient'>('solid');
+  const [bgType, setBgType] = useState<'solid' | 'gradient' | 'image'>('solid');
   const [bgColors, setBgColors] = useState<[string, string]>(['#0D1B2A', '#1A4A4A']);
+  const [gradientDir, setGradientDir] = useState<GradientDirId>('to-bottom');
+  const [bgImage, setBgImage] = useState<string | null>(null);
+  const [bgImageLoading, setBgImageLoading] = useState(false);
   const [textColorOverride, setTextColorOverride] = useState<string | null>(null);
+  const [textBold, setTextBold] = useState(false);
+  const [textItalic, setTextItalic] = useState(false);
   const [captionEnabled, setCaptionEnabled] = useState(false);
 
   // E1 — editable fragment text
@@ -75,23 +129,51 @@ export default function ShareModal({
   const downloadRef = useRef<HTMLAnchorElement>(null);
 
   const activeBgColors = bgType === 'gradient' ? [bgColors[0], bgColors[1]] : [bgColors[0]];
-  const autoTextColor = getTextColor(activeBgColors);
+  const autoTextColor = bgType === 'image' ? '#FFFFFF' : getTextColor(activeBgColors);
   const textColor = textColorOverride ?? autoTextColor;
   const fontCss = FONTS.find((f) => f.id === selectedFont)?.css ?? "'Lato', sans-serif";
 
-  const previewBg = bgType === 'gradient'
-    ? `linear-gradient(to bottom, ${bgColors[0]}, ${bgColors[1]})`
-    : bgColors[0];
+  const previewBg =
+    bgType === 'image' && bgImage
+      ? `url("${bgImage}") center/cover`
+      : bgType === 'gradient'
+        ? gradientCss(gradientDir, bgColors[0], bgColors[1])
+        : bgColors[0];
 
   const params: ShareParams = {
     format: selectedFormat,
     font: selectedFont,
     bgType,
-    bgColors: activeBgColors,
-    ...(textColorOverride            ? { textColor: textColorOverride } : {}),
-    ...(editedText !== fragmentText  ? { text: editedText }            : {}),
-    ...(citationEnabled && citationText ? { citation: citationText }   : {}),
+    bgColors: bgType !== 'image' ? activeBgColors : ['#000000'],
+    ...(textColorOverride               ? { textColor:   textColorOverride } : {}),
+    ...(editedText !== fragmentText     ? { text:        editedText }        : {}),
+    ...(citationEnabled && citationText ? { citation:    citationText }      : {}),
+    ...(textBold                        ? { textBold:    true }              : {}),
+    ...(textItalic                      ? { textItalic:  true }              : {}),
+    ...(bgType === 'gradient'           ? { gradientDir }                    : {}),
+    ...(bgType === 'image' && bgImage   ? { bgImage }                        : {}),
   };
+
+  const handleSelectPreset = useCallback(async (url: string) => {
+    setBgImageLoading(true);
+    try {
+      const b64 = await urlToBase64(url);
+      setBgImage(b64);
+    } catch {}
+    setBgImageLoading(false);
+  }, []);
+
+  const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setBgImageLoading(true);
+    try {
+      const b64 = await fileToBase64(file);
+      setBgImage(b64);
+    } catch {}
+    setBgImageLoading(false);
+    e.target.value = '';
+  }, []);
 
   const handleSaveText = useCallback(async () => {
     if (!textChanged) return;
@@ -225,8 +307,12 @@ export default function ShareModal({
                 style={{ background: previewBg, fontFamily: fontCss }}
               >
                 <p
-                  className="text-center text-sm leading-snug font-medium line-clamp-6"
-                  style={{ color: textColor }}
+                  className="text-center text-sm leading-snug line-clamp-6"
+                  style={{
+                    color: textColor,
+                    fontWeight: textBold ? 'bold' : 'normal',
+                    fontStyle: textItalic ? 'italic' : 'normal',
+                  }}
                 >
                   "{editedText}"
                 </p>
@@ -267,6 +353,19 @@ export default function ShareModal({
                   {savingText ? 'Guardando…' : 'Guardar cambios en la biblioteca'}
                 </button>
               )}
+              {/* D2 — Bold / Italic toggles */}
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => setTextBold((v) => !v)}
+                  className={`w-8 h-8 rounded-lg border text-sm font-bold transition ${textBold ? 'bg-gray-800 text-white border-gray-800' : 'border-gray-200 text-gray-600 hover:border-gray-400'}`}
+                  title="Negrita"
+                >B</button>
+                <button
+                  onClick={() => setTextItalic((v) => !v)}
+                  className={`w-8 h-8 rounded-lg border text-sm italic transition ${textItalic ? 'bg-gray-800 text-white border-gray-800' : 'border-gray-200 text-gray-600 hover:border-gray-400'}`}
+                  title="Cursiva"
+                ><em>I</em></button>
+              </div>
             </div>
 
             {/* ── E2: Citation location ─────────────────────────────────── */}
@@ -341,67 +440,135 @@ export default function ShareModal({
               </div>
             </div>
 
-            {/* ── Background ───────────────────────────────────────────── */}
+            {/* ── Background (D3 hex inputs, D4 directions, D7 images) ── */}
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Fondo</p>
+
+              {/* Type tabs */}
               <div className="flex gap-2 mb-3">
-                {(['solid', 'gradient'] as const).map((type) => (
+                {(['solid', 'gradient', 'image'] as const).map((type) => (
                   <button
                     key={type}
                     onClick={() => setBgType(type)}
-                    className={[
-                      'flex-1 text-xs py-1.5 rounded-lg border transition',
+                    className={`flex-1 text-xs py-1.5 rounded-lg border transition ${
                       bgType === type
                         ? 'border-blue-500 bg-blue-50 text-blue-700 font-medium'
-                        : 'border-gray-200 text-gray-600 hover:border-blue-200',
-                    ].join(' ')}
+                        : 'border-gray-200 text-gray-600 hover:border-blue-200'
+                    }`}
                   >
-                    {type === 'solid' ? 'Sólido' : 'Degradado'}
+                    {type === 'solid' ? 'Sólido' : type === 'gradient' ? 'Degradado' : 'Imagen'}
                   </button>
                 ))}
               </div>
-              <div className="flex items-center gap-3">
-                <label className="flex items-center gap-1.5 text-xs text-gray-600">
-                  <span>{bgType === 'gradient' ? 'Color 1' : 'Color'}</span>
-                  <input
-                    type="color"
+
+              {/* Solid/Gradient color pickers with hex inputs (D3) */}
+              {bgType !== 'image' && (
+                <div className="flex flex-wrap gap-3 mb-3">
+                  <ColorPicker
+                    label={bgType === 'gradient' ? 'Color 1' : 'Color'}
                     value={bgColors[0]}
-                    onChange={(e) => setBgColors([e.target.value, bgColors[1]])}
-                    className="w-8 h-8 rounded cursor-pointer border border-gray-200"
+                    onChange={(v) => setBgColors([v, bgColors[1]])}
                   />
-                </label>
-                {bgType === 'gradient' && (
-                  <label className="flex items-center gap-1.5 text-xs text-gray-600">
-                    <span>Color 2</span>
-                    <input
-                      type="color"
+                  {bgType === 'gradient' && (
+                    <ColorPicker
+                      label="Color 2"
                       value={bgColors[1]}
-                      onChange={(e) => setBgColors([bgColors[0], e.target.value])}
-                      className="w-8 h-8 rounded cursor-pointer border border-gray-200"
+                      onChange={(v) => setBgColors([bgColors[0], v])}
                     />
-                  </label>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
+
+              {/* D4 — Gradient direction 3×3 grid */}
+              {bgType === 'gradient' && (
+                <div>
+                  <p className="text-xs text-gray-500 mb-1.5">Dirección del degradado</p>
+                  <div className="grid grid-cols-3 gap-1 w-28">
+                    {GRADIENT_DIRS.map((d) => (
+                      <button
+                        key={d.id}
+                        onClick={() => setGradientDir(d.id)}
+                        title={d.id}
+                        className={`w-8 h-8 rounded-lg border text-base transition flex items-center justify-center ${
+                          gradientDir === d.id
+                            ? 'bg-blue-600 text-white border-blue-600'
+                            : 'border-gray-200 text-gray-600 hover:border-blue-300'
+                        }`}
+                      >
+                        {d.icon}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* D7 — Image presets + upload */}
+              {bgType === 'image' && (
+                <div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {BG_PRESETS.map((url, i) => (
+                      <button
+                        key={url}
+                        onClick={() => handleSelectPreset(url)}
+                        disabled={bgImageLoading}
+                        className={`relative aspect-square rounded-xl overflow-hidden border-2 transition ${
+                          bgImage && !bgImage.startsWith('data:image') && bgImage === url
+                            ? 'border-blue-500'
+                            : 'border-transparent hover:border-blue-300'
+                        }`}
+                      >
+                        <img src={url} alt={`Imagen ${i + 1}`} className="w-full h-full object-cover" />
+                      </button>
+                    ))}
+
+                    {/* Upload slot */}
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={bgImageLoading}
+                      className="aspect-square rounded-xl border-2 border-dashed border-gray-300 hover:border-blue-400 flex flex-col items-center justify-center gap-1 text-gray-400 hover:text-blue-500 transition disabled:opacity-50"
+                    >
+                      <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 16v-8m0 0l-3 3m3-3l3 3M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1" />
+                      </svg>
+                      <span className="text-[10px] font-medium">Subir imagen</span>
+                    </button>
+                  </div>
+
+                  <input
+                    id={fileInputId}
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                  />
+
+                  {bgImageLoading && (
+                    <p className="text-xs text-blue-500 mt-2 text-center">Cargando imagen…</p>
+                  )}
+                  {bgImage && !bgImageLoading && (
+                    <button
+                      onClick={() => setBgImage(null)}
+                      className="mt-2 text-xs text-gray-400 hover:text-red-500 transition"
+                    >
+                      Quitar imagen
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
-            {/* ── Text color picker ────────────────────────────────────── */}
+            {/* ── Text color picker (D3 hex input) ────────────────────── */}
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Color del texto</p>
               <div className="flex items-center gap-3">
-                <label className="flex items-center gap-1.5 text-xs text-gray-600">
-                  <input
-                    type="color"
-                    value={textColor}
-                    onChange={(e) => setTextColorOverride(e.target.value)}
-                    className="w-8 h-8 rounded cursor-pointer border border-gray-200"
-                  />
-                  <span>{textColor.toUpperCase()}</span>
-                </label>
+                <ColorPicker
+                  label=""
+                  value={textColor}
+                  onChange={(v) => setTextColorOverride(v)}
+                />
                 {textColorOverride && (
-                  <button
-                    onClick={() => setTextColorOverride(null)}
-                    className="text-xs text-blue-500 hover:underline"
-                  >
+                  <button onClick={() => setTextColorOverride(null)} className="text-xs text-blue-500 hover:underline">
                     Restablecer
                   </button>
                 )}
@@ -502,6 +669,49 @@ export default function ShareModal({
       {/* eslint-disable-next-line jsx-a11y/anchor-has-content */}
       <a ref={downloadRef} className="hidden" />
     </>
+  );
+}
+
+// ── ColorPicker — color wheel + hex text input (D3) ──────────────────────────
+
+function ColorPicker({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const [hex, setHex] = useState(value);
+
+  // Keep local hex in sync when parent value changes (e.g. reset)
+  if (hex !== value && !hex.startsWith('#') || hex.length === 7 && hex !== value) {
+    // deliberate no-op to avoid render loops; see hex onChange handler
+  }
+
+  function handleHexInput(raw: string) {
+    const v = raw.startsWith('#') ? raw : '#' + raw;
+    setHex(v);
+    if (/^#[0-9A-Fa-f]{6}$/.test(v)) onChange(v);
+  }
+
+  function handleColorWheel(v: string) {
+    setHex(v);
+    onChange(v);
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      {label && <span className="text-xs text-gray-600 w-14 flex-shrink-0">{label}</span>}
+      <input
+        type="color"
+        value={value}
+        onChange={(e) => handleColorWheel(e.target.value)}
+        className="w-8 h-8 rounded cursor-pointer border border-gray-200 flex-shrink-0"
+      />
+      <input
+        type="text"
+        value={hex !== value ? hex : value}
+        onChange={(e) => handleHexInput(e.target.value)}
+        onBlur={() => setHex(value)}
+        maxLength={7}
+        className="w-20 border border-gray-200 rounded-lg px-2 py-1 text-xs font-mono focus:outline-none focus:border-blue-400"
+        placeholder="#000000"
+      />
+    </div>
   );
 }
 
