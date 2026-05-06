@@ -60,6 +60,9 @@ export class Book {
   @Column({ type: 'int', default: 0 })
   shareCount: number;
 
+  @Column({ type: 'varchar', nullable: true })
+  collection: string | null;
+
   @Column({ type: 'boolean', default: false })
   isFree: boolean;
 

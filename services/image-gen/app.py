@@ -4,7 +4,7 @@ import subprocess
 from flask import Flask, jsonify, request
 
 from storage import MinioClient
-from templates import facebook, instagram, linkedin, whatsapp
+from templates import facebook, instagram, linkedin, pinterest, whatsapp
 from templates.base import VALID_FONTS, VALID_BG_TYPES
 
 app = Flask(__name__)
@@ -13,11 +13,12 @@ _RENDERERS = {
     "linkedin":  linkedin.render,
     "instagram": instagram.render,
     "facebook":  facebook.render,
-    "whatsapp":  whatsapp.render,
+    "pinterest": pinterest.render,
+    "whatsapp":  whatsapp.render,  # kept for backwards compatibility
 }
 
 _REQUIRED_FIELDS = ("text", "author", "title", "platform")
-_VALID_FORMATS = {"post", "story", "wa-pic", "wa-story", "reel", "twitter-card"}
+_VALID_FORMATS = {"post", "story", "pin", "pin-square", "reel", "twitter-card"}
 
 
 @app.get("/health")

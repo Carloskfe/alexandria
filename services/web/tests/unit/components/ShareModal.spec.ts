@@ -69,32 +69,37 @@ describe('FONTS registry', () => {
 describe('FORMAT_PLATFORM_MAP completeness', () => {
   const formats: ShareFormat[] = [
     'ig-post', 'ig-story', 'fb-post', 'fb-story', 'li-post',
-    'wa-pic', 'wa-story', 'reel', 'twitter-card',
+    'pin-post', 'pin-square', 'reel',
   ];
 
-  it('has entries for all 9 share formats', () => {
+  it('has entries for all 8 share formats', () => {
     formats.forEach((f) => {
       expect(FORMAT_PLATFORM_MAP[f]).toBeDefined();
     });
   });
 
-  it('wa is no longer in the map', () => {
-    expect((FORMAT_PLATFORM_MAP as Record<string, unknown>)['wa']).toBeUndefined();
+  it('whatsapp is no longer in the map', () => {
+    expect((FORMAT_PLATFORM_MAP as Record<string, unknown>)['wa-pic']).toBeUndefined();
+    expect((FORMAT_PLATFORM_MAP as Record<string, unknown>)['wa-story']).toBeUndefined();
   });
 
   it('story formats map to story format string', () => {
     expect(FORMAT_PLATFORM_MAP['ig-story'].format).toBe('story');
     expect(FORMAT_PLATFORM_MAP['fb-story'].format).toBe('story');
-    expect(FORMAT_PLATFORM_MAP['wa-story'].format).toBe('wa-story');
   });
 
   it('post formats map to correct format strings', () => {
     expect(FORMAT_PLATFORM_MAP['ig-post'].format).toBe('post');
     expect(FORMAT_PLATFORM_MAP['fb-post'].format).toBe('post');
     expect(FORMAT_PLATFORM_MAP['li-post'].format).toBe('post');
-    expect(FORMAT_PLATFORM_MAP['wa-pic'].format).toBe('wa-pic');
     expect(FORMAT_PLATFORM_MAP['reel'].format).toBe('reel');
-    expect(FORMAT_PLATFORM_MAP['twitter-card'].format).toBe('twitter-card');
+    expect(FORMAT_PLATFORM_MAP['pin-post'].format).toBe('pin');
+    expect(FORMAT_PLATFORM_MAP['pin-square'].format).toBe('pin-square');
+  });
+
+  it('pinterest formats route to pinterest platform', () => {
+    expect(FORMAT_PLATFORM_MAP['pin-post'].platform).toBe('pinterest');
+    expect(FORMAT_PLATFORM_MAP['pin-square'].platform).toBe('pinterest');
   });
 });
 
@@ -105,8 +110,8 @@ describe('SHARE_FORMAT_LABELS', () => {
     });
   });
 
-  it('has 9 format labels', () => {
-    expect(Object.keys(SHARE_FORMAT_LABELS)).toHaveLength(9);
+  it('has 8 format labels', () => {
+    expect(Object.keys(SHARE_FORMAT_LABELS)).toHaveLength(8);
   });
 });
 
@@ -214,32 +219,32 @@ describe('shareFragment', () => {
     expect(body.format).toBe('post');
   });
 
-  it('sends wa-pic format and platform=whatsapp for wa-pic', async () => {
+  it('sends pin format and platform=pinterest for pin-post', async () => {
     global.fetch = jest.fn().mockResolvedValueOnce({
       ok: true,
       json: async () => ({ url: 'http://example.com/card.png' }),
     } as Response);
 
-    await shareFragment('frag-1', { ...defaultParams, format: 'wa-pic' });
+    await shareFragment('frag-1', { ...defaultParams, format: 'pin-post' });
 
     const [, init] = (global.fetch as jest.Mock).mock.calls[0];
     const body = JSON.parse(init.body);
-    expect(body.platform).toBe('whatsapp');
-    expect(body.format).toBe('wa-pic');
+    expect(body.platform).toBe('pinterest');
+    expect(body.format).toBe('pin');
   });
 
-  it('sends wa-story format and platform=whatsapp for wa-story', async () => {
+  it('sends pin-square format and platform=pinterest for pin-square', async () => {
     global.fetch = jest.fn().mockResolvedValueOnce({
       ok: true,
       json: async () => ({ url: 'http://example.com/card.png' }),
     } as Response);
 
-    await shareFragment('frag-1', { ...defaultParams, format: 'wa-story' });
+    await shareFragment('frag-1', { ...defaultParams, format: 'pin-square' });
 
     const [, init] = (global.fetch as jest.Mock).mock.calls[0];
     const body = JSON.parse(init.body);
-    expect(body.platform).toBe('whatsapp');
-    expect(body.format).toBe('wa-story');
+    expect(body.platform).toBe('pinterest');
+    expect(body.format).toBe('pin-square');
   });
 
   it('sends reel format and platform=instagram for reel', async () => {
@@ -256,18 +261,18 @@ describe('shareFragment', () => {
     expect(body.format).toBe('reel');
   });
 
-  it('sends twitter-card format routed through linkedin renderer', async () => {
+  it('sends reel format routed through instagram renderer', async () => {
     global.fetch = jest.fn().mockResolvedValueOnce({
       ok: true,
       json: async () => ({ url: 'http://example.com/card.png' }),
     } as Response);
 
-    await shareFragment('frag-1', { ...defaultParams, format: 'twitter-card' });
+    await shareFragment('frag-1', { ...defaultParams, format: 'reel' });
 
     const [, init] = (global.fetch as jest.Mock).mock.calls[0];
     const body = JSON.parse(init.body);
-    expect(body.platform).toBe('linkedin');
-    expect(body.format).toBe('twitter-card');
+    expect(body.platform).toBe('instagram');
+    expect(body.format).toBe('reel');
   });
 
   it('sends format=story and platform=instagram for ig-story', async () => {

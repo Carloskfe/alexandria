@@ -25,37 +25,33 @@ export const GOOGLE_FONTS_URL =
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-export type SharePlatform = 'linkedin' | 'instagram' | 'facebook' | 'whatsapp';
+export type SharePlatform = 'linkedin' | 'instagram' | 'facebook' | 'pinterest';
 export type ShareFormat =
-  | 'ig-post' | 'ig-story'
+  | 'ig-post' | 'ig-story' | 'reel'
   | 'fb-post' | 'fb-story'
   | 'li-post'
-  | 'wa-pic' | 'wa-story'
-  | 'reel'
-  | 'twitter-card';
+  | 'pin-post' | 'pin-square';
 
 export const FORMAT_PLATFORM_MAP: Record<ShareFormat, { platform: SharePlatform; format: string }> = {
-  'ig-post':      { platform: 'instagram', format: 'post' },
-  'ig-story':     { platform: 'instagram', format: 'story' },
-  'fb-post':      { platform: 'facebook',  format: 'post' },
-  'fb-story':     { platform: 'facebook',  format: 'story' },
-  'li-post':      { platform: 'linkedin',  format: 'post' },
-  'wa-pic':       { platform: 'whatsapp',  format: 'wa-pic' },
-  'wa-story':     { platform: 'whatsapp',  format: 'wa-story' },
-  'reel':         { platform: 'instagram', format: 'reel' },
-  'twitter-card': { platform: 'linkedin',  format: 'twitter-card' },
+  'ig-post':    { platform: 'instagram', format: 'post' },
+  'ig-story':   { platform: 'instagram', format: 'story' },
+  'reel':       { platform: 'instagram', format: 'reel' },
+  'fb-post':    { platform: 'facebook',  format: 'post' },
+  'fb-story':   { platform: 'facebook',  format: 'story' },
+  'li-post':    { platform: 'linkedin',  format: 'post' },
+  'pin-post':   { platform: 'pinterest', format: 'pin' },
+  'pin-square': { platform: 'pinterest', format: 'pin-square' },
 };
 
 export const SHARE_FORMAT_LABELS: Record<ShareFormat, string> = {
-  'ig-post':      'IG Post',
-  'ig-story':     'IG Story',
-  'fb-post':      'FB Post',
-  'fb-story':     'FB Story',
-  'li-post':      'LinkedIn',
-  'wa-pic':       'WA Pic',
-  'wa-story':     'WA Story',
-  'reel':         'Reel',
-  'twitter-card': 'Twitter/X',
+  'ig-post':    'IG Post',
+  'ig-story':   'IG Story',
+  'reel':       'Reel',
+  'fb-post':    'FB Post',
+  'fb-story':   'FB Story',
+  'li-post':    'LinkedIn',
+  'pin-post':   'Pinterest Pin',
+  'pin-square': 'Pinterest Sq.',
 };
 
 export interface ShareParams {

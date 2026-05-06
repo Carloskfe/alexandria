@@ -17,15 +17,14 @@ import {
 // ── Format aspect ratios ──────────────────────────────────────────────────────
 
 const FORMAT_ASPECT: Record<ShareFormat, string> = {
-  'ig-post':      'aspect-square',
-  'ig-story':     'aspect-[9/16]',
-  'fb-post':      'aspect-video',
-  'fb-story':     'aspect-[9/16]',
-  'li-post':      'aspect-video',
-  'wa-pic':       'aspect-square',
-  'wa-story':     'aspect-[9/16]',
-  'reel':         'aspect-[9/16]',
-  'twitter-card': 'aspect-[16/9]',
+  'ig-post':    'aspect-square',
+  'ig-story':   'aspect-[9/16]',
+  'reel':       'aspect-[9/16]',
+  'fb-post':    'aspect-video',
+  'fb-story':   'aspect-[9/16]',
+  'li-post':    'aspect-video',
+  'pin-post':   'aspect-[2/3]',
+  'pin-square': 'aspect-square',
 };
 
 const SHARE_FORMATS = Object.keys(FORMAT_PLATFORM_MAP) as ShareFormat[];
