@@ -1,6 +1,6 @@
 # Noetia — Project Stages, Sprints & Tasks
 
-> **Current status (2026-05-07):** Stages 0–4 complete. Stage 5 in progress — rate limiting, Sentry, image optimization, and HTTP caching done. Remaining: DB indexing audit, CDN, DRM audit, load testing, app store submissions.
+> **Current status (2026-05-07):** Stages 0–4 complete. Stage 5 in progress — rate limiting, Sentry, next/image optimization (WebP + lazy loading), HTTP caching, and docker-compose hot-reload for next.config.js done. Remaining: DB indexing audit, CDN, DRM audit, load testing, app store submissions.
 >
 > **P3 UI backlog (not yet in sprints):**
 > - ~~Fragment text editing before image creation (E1)~~ ✅ done

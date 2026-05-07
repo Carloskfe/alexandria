@@ -10,8 +10,10 @@ Noetia is a multimodal reading + social sharing platform. For full product conte
 2. [Tech Stack](#tech-stack)
 3. [Project Structure](#project-structure)
 4. [Environment Variables](#environment-variables)
-5. [Database Migrations](#database-migrations)
-6. [Testing](#testing)
+5. [Docker Dev Volume Mounts](#docker-dev-volume-mounts)
+6. [Content Ingestion](#content-ingestion)
+7. [Database Migrations](#database-migrations)
+8. [Testing](#testing)
 
 ---
 
@@ -246,6 +248,23 @@ Leave all Sentry vars empty in development — the SDK skips initialization when
 
 ### Stripe
 See [`docs/stripe-setup.md`](docs/stripe-setup.md) for full setup instructions.
+
+---
+
+## Docker Dev Volume Mounts
+
+The `docker-compose.yml` mounts source directories as read-only volumes so changes take effect **without a container rebuild**. If a file is NOT listed below, you must `docker compose up -d --build <service>` after changing it.
+
+| Service | Mounted path | What it covers |
+|---------|-------------|----------------|
+| `api` | `services/api/src` | All NestJS source files |
+| `web` | `services/web/app` | Next.js pages and layouts |
+| `web` | `services/web/components` | React components |
+| `web` | `services/web/lib` | Shared utilities |
+| `web` | `services/web/public` | Static assets (covers, backgrounds, presets) |
+| `web` | `services/web/next.config.js` | Next.js config (image domains, rewrites) |
+
+**Files that still require a rebuild:** `package.json`, `Dockerfile`, `tsconfig.json`, `tailwind.config.*`, any new dependency.
 
 ---
 
