@@ -8,6 +8,28 @@ interface WikisourceParseResponse {
 @Injectable()
 export class WikisourceFetcherService {
   /**
+   * Fetches and concatenates multiple individual Wikisource pages into one text.
+   * Used for collected works whose individual poems/stories exist as separate pages
+   * but have no shared index page (e.g. Rafael Pombo's fables).
+   */
+  async fetchMultiple(pageTitles: string[]): Promise<string> {
+    const parts: string[] = [];
+    for (const title of pageTitles) {
+      await this.sleep(400);
+      try {
+        const text = await this.fetchPageHtml(title);
+        if (text.trim().length > 20) {
+          parts.push(`\n\n## ${title} ##\n\n${text}`);
+        }
+      } catch {
+        // skip pages that can't be fetched
+      }
+    }
+    if (parts.length === 0) throw new Error(`None of the provided pages could be fetched`);
+    return parts.join('\n\n');
+  }
+
+  /**
    * Fetches the full text of a Wikisource book. Wikisource structures long
    * works as an index page with per-chapter subpages (e.g. "Title/I",
    * "Title/Capítulo 1"). We detect subpages via the index page's link list

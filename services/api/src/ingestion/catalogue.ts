@@ -7,6 +7,8 @@ export interface CatalogueEntry {
   source: TextSource;
   gutenbergId?: number;
   wikisourceTitle?: string;
+  /** Fetch and concatenate multiple individual Wikisource pages (for collected works with no index page) */
+  wikisourceTitles?: string[];
   librivoxAudioUrl: string;
   /** Override search string passed to LibriVox API when the full title doesn't match */
   librivoxSearchTitle?: string;
@@ -340,7 +342,19 @@ export const CATALOGUE: CatalogueEntry[] = [
     description:
       'La obra más querida del poeta colombiano: fábulas en verso para niños que incluyen El Renacuajo Paseador, Simón el Bobito, La Pobre Viejecita y Mirringa Mirronga. Dominio público.',
     source: 'wikisource',
-    wikisourceTitle: 'Fábulas y verdades',
+    wikisourceTitles: [
+      'El renacuajo paseador',
+      'Simón el bobito',
+      'La pobre viejecita',
+      'Mirringa Mirronga',
+      'El gato bandido',
+      'Pastorcita',
+      'Cutufato y su gato',
+      'El búho y el palomo',
+      'El niño y la mariposa',
+      'La marrana peripuesta',
+      'El coche',
+    ],
     librivoxAudioUrl: 'https://librivox.org/fabulas-y-verdades-by-rafael-pombo/',
     collection: 'Literatura Infantil',
   },

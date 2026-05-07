@@ -55,7 +55,9 @@ export class IngestionService {
     const text =
       entry.source === 'gutenberg'
         ? await this.gutenbergFetcher.fetch(entry.gutenbergId!)
-        : await this.wikisourceFetcher.fetch(entry.wikisourceTitle!);
+        : entry.wikisourceTitles
+          ? await this.wikisourceFetcher.fetchMultiple(entry.wikisourceTitles)
+          : await this.wikisourceFetcher.fetch(entry.wikisourceTitle!);
 
     const phrases = this.phraseSplitter.split(text);
 
