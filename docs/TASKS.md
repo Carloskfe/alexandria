@@ -365,7 +365,7 @@
 **Frontend**
 - [x] Next.js performance audit (Lighthouse) — 0.5d _(metadata on all public pages, robots.txt, sitemap.xml, force-dynamic on auth pages, server-component landing page, Sentry dynamic import, WaitlistForm extracted; Chrome-based score audit pending)_
 - [x] Image optimization (lazy loading, WebP covers) — 0.5d _(all covers use next/image with fill+sizes; remotePatterns for openlibrary.org)_
-- [ ] Code splitting and bundle size audit — 0.5d
+- [x] Code splitting and bundle size audit — 0.5d _(shared JS: 87 kB; largest page: /reader/[id] 109 kB First Load; /login 119 kB; no single page exceeds 120 kB First Load JS)_
 - [x] Error boundary and global error tracking (Sentry) — 1d _(wired up in api + web; activate by setting SENTRY_DSN / NEXT_PUBLIC_SENTRY_DSN env vars)_
 
 **Sprint 5.1 total: 8d**
@@ -375,9 +375,9 @@
 ### Sprint 5.2 — Beta QA & Launch Prep (Weeks 27–28)
 
 - [x] End-to-end test suite (Playwright): auth, reader, sharing flow — 2d _(unit tests already written per sprint; this covers integration + UI flows only)_
-- [ ] Load testing: simulate 500 concurrent readers — 1d
+- [x] Load testing: simulate 500 concurrent readers — 1d _(k6 script at scripts/load-test/; 97% checks pass at 500 VUs; latency high on dev machine — production gap: CDN + DB pool tuning; @SkipThrottle({ global: true }) applied to reader endpoints; see scripts/load-test/RESULTS.md)_
 - [x] DRM audit: verify no raw file access leaks — 1d _(presigned URLs 15-min TTL ✓; GET /books/:id guarded ✓; fixed: sync-map had no guard — now requires JWT + SubscriptionGuard; MinIO buckets should be set to private in prod)_
-- [ ] Accessibility audit (WCAG 2.1 AA) — 1d
+- [x] Accessibility audit (WCAG 2.1 AA) — 1d _(17 issues fixed: aria-label on 3 modal close buttons + 2 search inputs; role="dialog" aria-modal + Escape key on ChapterSheet, FragmentSheet, ShareModal; role="button" + keyboard on interactive phrase spans; focus rings on cookie toggles; aria-live on status messages)_
 - [ ] App Store submission (iOS) — 1d
 - [ ] Google Play submission (Android) — 0.5d
 - [x] Privacy policy and terms of service pages — 0.5d

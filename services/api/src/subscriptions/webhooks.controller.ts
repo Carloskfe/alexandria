@@ -13,7 +13,7 @@ import { Request } from 'express';
 import Stripe from 'stripe';
 import { WebhooksService } from './webhooks.service';
 
-@SkipThrottle()
+@SkipThrottle({ global: true })
 @Controller('webhooks')
 export class WebhooksController {
   private readonly stripe: InstanceType<typeof Stripe>;

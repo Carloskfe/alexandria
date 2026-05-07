@@ -28,8 +28,8 @@ export default function CookiePreferencesModal({ onClose, onSave }: Props) {
           <h2 className="text-base font-semibold text-gray-900">
             Gestionar cookies / Manage cookies
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <XIcon />
+          <button onClick={onClose} aria-label="Cerrar" className="text-gray-400 hover:text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
+            <XIcon aria-hidden="true" />
           </button>
         </div>
 
@@ -66,6 +66,7 @@ export default function CookiePreferencesModal({ onClose, onSave }: Props) {
               className={[
                 'relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none',
                 analytics ? 'bg-blue-600' : 'bg-gray-200',
+                'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
               ].join(' ')}
             >
               <span
@@ -95,6 +96,7 @@ export default function CookiePreferencesModal({ onClose, onSave }: Props) {
               className={[
                 'relative inline-flex h-6 w-11 flex-shrink-0 rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none',
                 marketing ? 'bg-blue-600' : 'bg-gray-200',
+                'focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2',
               ].join(' ')}
             >
               <span

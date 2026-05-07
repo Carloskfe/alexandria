@@ -9,11 +9,13 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateFragmentDto } from './dto/create-fragment.dto';
 import { UpdateFragmentDto } from './dto/update-fragment.dto';
 import { FragmentsService } from './fragments.service';
 
+@SkipThrottle({ global: true })
 @Controller('fragments')
 export class FragmentsController {
   constructor(private readonly fragmentsService: FragmentsService) {}

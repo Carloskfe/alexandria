@@ -39,6 +39,10 @@ export default function FragmentSheet({ fragments, bookAuthor, bookTitle, bookCo
     exitMultiSelect();
   }
 
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Escape') onClose();
+  }
+
   return (
     <>
       {/* Backdrop */}
@@ -48,7 +52,13 @@ export default function FragmentSheet({ fragments, bookAuthor, bookTitle, bookCo
       />
 
       {/* Drawer */}
-      <aside className={['fixed top-0 right-0 h-full w-80 shadow-xl z-50 flex flex-col', dark ? 'bg-gray-900 text-gray-100' : 'bg-white'].join(' ')}>
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label="Fragmentos guardados"
+        onKeyDown={handleKeyDown}
+        className={['fixed top-0 right-0 h-full w-80 shadow-xl z-50 flex flex-col', dark ? 'bg-gray-900 text-gray-100' : 'bg-white'].join(' ')}
+      >
         {/* Header */}
         <div className={['flex items-center justify-between px-5 py-4 border-b', dark ? 'border-gray-700' : 'border-gray-100'].join(' ')}>
           <h2 className={['text-base font-semibold', dark ? 'text-gray-100' : 'text-gray-900'].join(' ')}>Fragmentos</h2>
@@ -69,8 +79,8 @@ export default function FragmentSheet({ fragments, bookAuthor, bookTitle, bookCo
             >
               {multiSelect ? 'Cancelar' : 'Seleccionar'}
             </button>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
-              <XIcon />
+            <button onClick={onClose} aria-label="Cerrar fragmentos" className="text-gray-400 hover:text-gray-600 transition focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
+              <XIcon aria-hidden="true" />
             </button>
           </div>
         </div>

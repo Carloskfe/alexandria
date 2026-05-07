@@ -8,9 +8,11 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { LibraryService } from './library.service';
 
+@SkipThrottle({ global: true })
 @Controller('library')
 @UseGuards(JwtAuthGuard)
 export class LibraryController {

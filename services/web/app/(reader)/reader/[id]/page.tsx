@@ -876,6 +876,9 @@ function PhraseRenderer({ phrases, phraseRefs, getSpanClass, onPhraseClick, onPh
                 data-phrase-index={i}
                 onClick={() => onPhraseClick(i)}
                 onContextMenu={(e) => onPhraseContextMenu(i, e)}
+                onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onPhraseClick(i)}
+                role={tapToSyncActive ? 'button' : undefined}
+                tabIndex={tapToSyncActive ? 0 : undefined}
                 className={['rounded px-0.5 transition-colors', getSpanClass(i)].join(' ')}
               >
                 {phrase.text}{' '}

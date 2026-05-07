@@ -18,15 +18,25 @@ export default function ChapterSheet({ chapters, onChapterSelect, onClose, dark 
     : 'text-gray-800 hover:bg-gray-50';
   const empty = dark ? 'text-gray-500' : 'text-gray-400';
 
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Escape') onClose();
+  }
+
   return (
     <>
       <div className="fixed inset-0 bg-black/20 z-40" onClick={onClose} />
 
-      <aside className={['fixed top-0 right-0 h-full w-80 shadow-xl z-50 flex flex-col', drawer].join(' ')}>
+      <aside
+        role="dialog"
+        aria-modal="true"
+        aria-label="Capítulos del libro"
+        onKeyDown={handleKeyDown}
+        className={['fixed top-0 right-0 h-full w-80 shadow-xl z-50 flex flex-col', drawer].join(' ')}
+      >
         <div className={['flex items-center justify-between px-5 py-4 border-b', border].join(' ')}>
           <h2 className={['text-base font-semibold', heading].join(' ')}>Capítulos</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
-            <XIcon />
+          <button onClick={onClose} aria-label="Cerrar capítulos" className="text-gray-400 hover:text-gray-600 transition focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
+            <XIcon aria-hidden="true" />
           </button>
         </div>
 

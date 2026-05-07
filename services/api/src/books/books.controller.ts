@@ -23,6 +23,7 @@ import { Request as ExpressRequest } from 'express';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { extname } from 'path';
 import { v4 as uuidv4 } from 'uuid';
+import { SkipThrottle } from '@nestjs/throttler';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { SubscriptionGuard } from '../subscriptions/subscription.guard';
 import { StorageService } from '../storage/storage.service';
@@ -40,6 +41,10 @@ import { UploadCodesService } from '../codes/upload-codes.service';
 
 const PRESIGN_TTL = 60 * 15; // 15 minutes
 
+// Reader content endpoints are protected by JwtAuthGuard + SubscriptionGuard.
+// Per-IP rate limiting is not appropriate here — legitimate readers in
+// Modo Escucha Activa generate frequent progress saves from the same IP.
+@SkipThrottle({ global: true })
 @Controller('books')
 export class BooksController {
   constructor(

@@ -1,4 +1,7 @@
 const { withSentryConfig } = require('@sentry/nextjs');
+const withBundleAnalyzer = require('@next/bundle-analyzer')({
+  enabled: process.env.ANALYZE === 'true',
+});
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -21,7 +24,7 @@ const nextConfig = {
 
 const hasSentry = Boolean(process.env.NEXT_PUBLIC_SENTRY_DSN || process.env.SENTRY_DSN);
 
-module.exports = hasSentry
+const finalConfig = hasSentry
   ? withSentryConfig(nextConfig, {
       silent: true,
       org: process.env.SENTRY_ORG,
@@ -31,3 +34,5 @@ module.exports = hasSentry
       disableLogger: true,
     })
   : nextConfig;
+
+module.exports = withBundleAnalyzer(finalConfig);

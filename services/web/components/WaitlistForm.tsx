@@ -71,7 +71,7 @@ export default function WaitlistForm() {
       </label>
 
       {status === 'duplicate' && (
-        <p className="text-amber-400 text-sm" role="alert">Este correo ya está en la lista. ¡Te avisamos pronto!</p>
+        <p className="text-amber-400 text-sm" role="status" aria-live="polite">Este correo ya está en la lista. ¡Te avisamos pronto!</p>
       )}
       {status === 'error' && (
         <p className="text-red-400 text-sm" role="alert">Algo salió mal. Intenta de nuevo.</p>
