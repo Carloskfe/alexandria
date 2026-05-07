@@ -357,6 +357,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     ],
     librivoxAudioUrl: 'https://librivox.org/fabulas-y-verdades-by-rafael-pombo/',
     collection: 'Literatura Infantil',
+    coverUrl: '/covers/fabulas-pombo.png',
   },
   {
     title: 'La Edad de Oro',
@@ -367,6 +368,7 @@ export const CATALOGUE: CatalogueEntry[] = [
     wikisourceTitle: 'La Edad de Oro',
     librivoxAudioUrl: 'https://librivox.org/la-edad-de-oro-by-jose-marti/',
     collection: 'Literatura Infantil',
+    coverUrl: '/covers/la-edad-de-oro.png',
   },
   {
     title: 'Cuentos de la Selva',
@@ -378,5 +380,6 @@ export const CATALOGUE: CatalogueEntry[] = [
     librivoxAudioUrl: 'https://librivox.org/cuentos-de-la-selva-para-los-ninos-by-horacio-quiroga/',
     librivoxSearchTitle: 'Cuentos de la Selva',
     collection: 'Literatura Infantil',
+    coverUrl: '/covers/cuentos-selva.png',
   },
 ];
