@@ -1,160 +1,162 @@
 # Noetia — Author Upload Guide
 
-This document specifies the accepted formats and requirements for books uploaded by authors and publishers. It mirrors the `/upload-guide` page in the web app.
+Specs and workflow for books uploaded by authors and publishers.
+The `/upload-guide` page in the web app is the user-facing version of this document.
+Contact: autores@noetia.app
 
 ---
 
-## 1. Text File
+## Process overview
 
-| Spec | Requirement |
-|------|-------------|
-| Format | `.txt` plain text |
-| Encoding | **UTF-8** (required) |
+1. **Prepare files** — text, cover, audio, optional SRT/VTT sync file
+2. **Upload via author portal** — `/author` page, form submission
+3. **Editorial review** — 3–5 business days
+4. **Publication** — confirmation email, book goes live
+5. **Add/update sync** — available any time from "Mis libros", even post-publication
+
+---
+
+## Text file
+
+| Spec | Value |
+|------|-------|
+| Preferred format | `.txt` (plain text, UTF-8) |
+| Also accepted | `.epub`, `.pdf` |
 | Max size | 10 MB |
 
-### Structure
+### Formatting rules
 
 - Paragraphs separated by a **blank line**.
-- Chapter headings must be on their own line, in ALL CAPS or prefixed with `CAPÍTULO` / `CHAPTER`.
-- Remove page numbers, headers, footers, tables of contents, and footnotes.
+- Chapter headings on their own line, ALL CAPS or prefixed with `CAPÍTULO` / `CHAPTER`.
+- No page numbers, headers, footers, or tables of contents.
+- Footnotes at the end of the chapter in brackets: `[Nota: text]`.
 
 ```
-CAPÍTULO I
+CAPÍTULO I — El comienzo
 
 Era una noche oscura y tormentosa. El viento
 azotaba las ventanas del viejo caserón.
 
-Don Rodrigo no podía dormir. Se levantó y
-caminó hasta la ventana.
+Don Rodrigo no podía dormir.
 ```
 
 ---
 
-## 2. Cover Image
+## Cover image
 
-| Spec | Requirement |
-|------|-------------|
+| Spec | Value |
+|------|-------|
 | Formats | JPG or PNG |
-| Minimum dimensions | 800 × 1200 px (2:3 ratio) |
-| Recommended dimensions | 1600 × 2400 px |
+| Min dimensions | 800 × 1200 px (2:3 ratio) |
+| Recommended | 1600 × 2400 px |
 | Max size | 5 MB |
 | Background | No transparency (no alpha channel) |
 
-Title and author name must be legible at the 120 × 180 px thumbnail size.
+Title and author name must be legible at 120 × 180 px (thumbnail size in-app).
+
+**Stored in MinIO:** `images/covers/{uuid}.{ext}` — URL returned as `publicUrl('images', key)`. Set MinIO `images` bucket to public-read in production.
 
 ---
 
-## 3. Audio File
+## Audio file
 
-| Spec | Requirement |
-|------|-------------|
-| Formats | **MP3** (recommended) or M4A/AAC |
-| Minimum bitrate | 128 kbps |
-| Recommended bitrate | 192 kbps |
+| Spec | Value |
+|------|-------|
+| Preferred format | MP3 |
+| Also accepted | M4A, AAC |
+| Min bitrate | 128 kbps |
+| Recommended | 192 kbps |
 | Sample rate | 44,100 Hz or 48,000 Hz |
 | Channels | Mono or stereo |
 | Max size | 500 MB per file |
 
-### Recommendations
-
-- Record in a quiet room without echo or background noise.
-- For books longer than 2 hours, split by chapter (one file per chapter).
-- No background music — it interferes with phrase-level sync highlighting.
-- Leave 0.5 seconds of silence at the start and end of each file.
+- No background music.
+- 0.5 s silence at start and end.
+- Normalize to −14 LUFS for consistent playback volume.
+- Files > 2 hours can be split by chapter.
 
 ---
 
-## 4. Sync File (SRT / VTT) — Optional
+## Sync file (SRT / VTT) — optional but recommended
 
-A sync file enables **phrase-by-phrase highlighting** in Modo Escucha Activa. Without it, the book works in reading mode only.
+Enables phrase-by-phrase highlighting in Modo Escucha Activa.
 
-| Spec | Requirement |
-|------|-------------|
+| Spec | Value |
+|------|-------|
 | Formats | SRT (`.srt`) or WebVTT (`.vtt`) |
 | Encoding | UTF-8 |
 | Max size | 2 MB |
-| Rule | Each cue = one sentence / phrase from the book |
+| Rule | Each cue = one sentence / phrase |
 
-Sync files are uploaded separately via the API after the book is created:
-
-```
-POST /books/:id/sync-map/srt
-Authorization: Bearer <token>
-Content-Type: text/plain
-Body: raw SRT or VTT content (max 2 MB)
-
-Response 200:
-{
-  "id": "uuid",
-  "bookId": "uuid",
-  "syncSource": "srt",   // or "vtt"
-  "phrases": [...],
-  "updatedAt": "ISO date"
-}
-```
-
-### SRT Format
+### SRT format
 
 ```srt
 1
 00:00:01,000 --> 00:00:03,500
-Era una noche oscura y tormentosa.
+Primera frase del libro.
 
 2
 00:00:03,700 --> 00:00:06,200
-El viento azotaba las ventanas del caserón.
-
-3
-00:00:06,500 --> 00:00:09,100
-Don Rodrigo no podía dormir.
+Segunda frase del libro.
 ```
 
-- Separator between seconds and milliseconds: **comma** (`,`).
-- Each block: sequence number → timing line → text → blank line.
-
-### WebVTT Format
+### WebVTT format
 
 ```vtt
 WEBVTT
 
 00:00:01.000 --> 00:00:03.500
-Era una noche oscura y tormentosa.
-
-00:00:03.700 --> 00:00:06.200
-El viento azotaba las ventanas del caserón.
+Primera frase del libro.
 ```
 
-- First line must be `WEBVTT`.
-- Separator between seconds and milliseconds: **period** (`.`).
-- Cue identifiers and `NOTE` blocks are ignored by the parser.
+VTT uses period (`.`) not comma (`,`) in timestamps.
 
 ### Recommended tools
 
-| Tool | Platform | Cost | Notes |
-|------|----------|------|-------|
-| **Subtitle Edit** | Windows | Free | Manual sync with waveform display |
-| **Aegisub** | Win / macOS / Linux | Free | Frame-accurate subtitle editor |
-| **Descript** | Web / Desktop | Freemium | Automatic transcription → exports SRT |
-| **oTranscribe** | Browser | Free | Keyboard-shortcut-driven manual transcription |
+| Tool | Platform | Cost |
+|------|----------|------|
+| Subtitle Edit | Windows | Free |
+| Aegisub | Win / macOS / Linux | Free |
+| Descript | Web / Desktop | Freemium |
+| oTranscribe | Browser | Free |
+
+### API endpoint (used by the author portal form)
+
+```
+POST /books/:bookId/sync-map/srt
+Authorization: Bearer <jwt>
+Content-Type: text/plain
+Body: raw SRT or VTT text (max 2 MB)
+
+200 OK:
+{
+  "id": "uuid",
+  "bookId": "uuid",
+  "syncSource": "srt",    // or "vtt"
+  "phrases": [...],
+  "updatedAt": "ISO 8601"
+}
+```
+
+Authorized for: admins and the book's own uploader (`book.uploadedById`).  
+The author portal posts to this endpoint from the SRT upload button in "Mis libros".
 
 ---
 
-## 5. Review Process
-
-1. **Upload** — Text, cover, and audio via the author portal.
-2. **Sync** — Optional SRT/VTT file uploaded via the API.
-3. **Review** — Editorial team reviews content within 3–5 business days.
-4. **Publication** — Confirmation email sent; book goes live on the platform.
-
----
-
-## 6. syncSource Values
-
-The `syncSource` field on a sync map tracks how phrase timestamps were generated:
+## syncSource values
 
 | Value | Meaning |
 |-------|---------|
-| `auto` | Phrases split from plain text; no timestamps (startTime/endTime = 0) |
-| `srt` | Timestamps from an uploaded SRT file |
-| `vtt` | Timestamps from an uploaded WebVTT file |
-| `manual` | Timestamps set directly via the admin JSON API |
+| `auto` | Auto-split from plain text; `startTime`/`endTime` = 0 |
+| `srt` | Timestamps from uploaded SRT file |
+| `vtt` | Timestamps from uploaded WebVTT file |
+| `manual` | Timestamps set via admin JSON API |
+
+---
+
+## Production checklist
+
+- [ ] Set MinIO `images` bucket policy to allow public reads on `covers/` prefix
+- [ ] Configure `MINIO_PUBLIC_URL` to CDN or S3 public endpoint
+- [ ] Verify `autores@noetia.app` inbox is monitored
+- [ ] Set up email notification on book submission (currently manual review)

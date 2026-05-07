@@ -100,6 +100,7 @@ export class BooksController {
       [
         { name: 'textFile', maxCount: 1 },
         { name: 'audioFile', maxCount: 1 },
+        { name: 'coverFile', maxCount: 1 },
       ],
       { limits: { fileSize: 500 * 1024 * 1024 } },
     ),
@@ -108,7 +109,7 @@ export class BooksController {
     @Request() req: any,
     @Body() dto: CreateBookDto,
     @UploadedFiles()
-    files: { textFile?: Express.Multer.File[]; audioFile?: Express.Multer.File[] },
+    files: { textFile?: Express.Multer.File[]; audioFile?: Express.Multer.File[]; coverFile?: Express.Multer.File[] },
   ) {
     const { isAdmin, userType } = req.user;
     const canUpload =
@@ -136,6 +137,14 @@ export class BooksController {
       audioFileKey = `${uuidv4()}${extname(f.originalname)}`;
       audioFileSizeBytes = f.size;
       await this.storageService.upload('audio', audioFileKey, f.buffer, f.mimetype);
+    }
+
+    // Cover file upload — stored in images bucket, returns a permanent public URL
+    if (files.coverFile?.[0] && !dto.coverUrl) {
+      const f = files.coverFile[0];
+      const coverKey = `covers/${uuidv4()}${extname(f.originalname)}`;
+      await this.storageService.upload('images', coverKey, f.buffer, f.mimetype);
+      dto.coverUrl = this.storageService.publicUrl('images', coverKey);
     }
 
     // Admin uploads go live immediately; author/editorial submissions need review

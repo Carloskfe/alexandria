@@ -30,6 +30,20 @@ export class StorageService {
 
   async presign(bucket: string, key: string, ttlSeconds: number): Promise<string> {
     const command = new GetObjectCommand({ Bucket: bucket, Key: key });
-    return getSignedUrl(this.client, command, { expiresIn: ttlSeconds });
+    const signed = await getSignedUrl(this.client, command, { expiresIn: ttlSeconds });
+    // Rewrite internal Docker hostname to the public URL so browsers can reach MinIO
+    const publicBase = process.env.MINIO_PUBLIC_URL;
+    if (publicBase) {
+      const url = new URL(signed);
+      const internal = `${url.protocol}//${url.host}`;
+      return signed.replace(internal, publicBase);
+    }
+    return signed;
+  }
+
+  /** Returns a permanent public URL — requires the bucket to allow public reads (set in prod). */
+  publicUrl(bucket: string, key: string): string {
+    const base = process.env.MINIO_PUBLIC_URL ?? `http://storage:9000`;
+    return `${base}/${bucket}/${key}`;
   }
 }
