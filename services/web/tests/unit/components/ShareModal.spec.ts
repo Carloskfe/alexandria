@@ -15,7 +15,7 @@ import {
   ShareFormat,
 } from '../../../lib/share-utils';
 
-const sessionStorageMock = {
+const localStorageMock = {
   getItem: jest.fn(() => null),
   setItem: jest.fn(),
   removeItem: jest.fn(),
@@ -23,7 +23,7 @@ const sessionStorageMock = {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  Object.defineProperty(global, 'sessionStorage', { value: sessionStorageMock, writable: true });
+  Object.defineProperty(global, 'localStorage', { value: localStorageMock, writable: true });
 });
 
 // ── FONTS registry ────────────────────────────────────────────────────────────

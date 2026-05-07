@@ -111,7 +111,7 @@ export default function AuthorPage() {
   const [srtState, setSrtState] = useState<Record<string, { loading?: boolean; success?: string; error?: string }>>({});
 
   const token = useCallback(() =>
-    typeof window !== 'undefined' ? sessionStorage.getItem('access_token') ?? '' : '',
+    typeof window !== 'undefined' ? localStorage.getItem('access_token') ?? '' : '',
     [],
   );
 

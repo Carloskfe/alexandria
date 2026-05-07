@@ -87,7 +87,7 @@ export default function AdminPage() {
   const [copied, setCopied] = useState<string | null>(null);
 
   const getToken = () =>
-    typeof window !== 'undefined' ? sessionStorage.getItem('access_token') ?? '' : '';
+    typeof window !== 'undefined' ? localStorage.getItem('access_token') ?? '' : '';
 
   const fetchWaitlist = useCallback(async () => {
     try {
@@ -150,7 +150,7 @@ export default function AdminPage() {
   }, []);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && !sessionStorage.getItem('access_token')) {
+    if (typeof window !== 'undefined' && !localStorage.getItem('access_token')) {
       router.replace('/login');
       return;
     }

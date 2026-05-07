@@ -8,7 +8,7 @@ import {
 } from '../../../lib/share-utils';
 
 const mockStorage: Record<string, string> = {};
-const sessionStorageMock = {
+const localStorageMock = {
   getItem: jest.fn((key: string) => mockStorage[key] ?? null),
   setItem: jest.fn(),
   removeItem: jest.fn(),
@@ -16,7 +16,7 @@ const sessionStorageMock = {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  Object.defineProperty(global, 'sessionStorage', { value: sessionStorageMock, writable: true });
+  Object.defineProperty(global, 'localStorage', { value: localStorageMock, writable: true });
 });
 
 // ── FORMAT_PLATFORM_MAP ────────────────────────────────────────────────────────

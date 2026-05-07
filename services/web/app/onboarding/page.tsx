@@ -7,20 +7,20 @@ import { apiFetch, saveUserType } from '@/lib/api';
 const TYPES = [
   {
     value: 'personal',
-    label: 'Personal reader',
-    description: 'I read for personal growth, learning, or enjoyment.',
+    label: 'Lector personal',
+    description: 'Leo para mi crecimiento personal, aprender o disfrutar.',
     icon: '📖',
   },
   {
     value: 'author',
-    label: 'Author',
-    description: 'I write books and want to share my work with readers.',
+    label: 'Autor',
+    description: 'Escribo libros y quiero compartir mi trabajo con lectores.',
     icon: '✍️',
   },
   {
     value: 'editorial',
-    label: 'Editorial company',
-    description: 'I represent a publisher or editorial house.',
+    label: 'Casa editorial',
+    description: 'Represento una editorial o casa publicadora.',
     icon: '🏢',
   },
 ] as const;
@@ -46,7 +46,7 @@ export default function OnboardingPage() {
       router.push(selected === 'personal' ? '/onboarding/preferences' : '/library');
     } catch (err: any) {
       if (err.status === 401) { router.replace('/login'); return; }
-      setError(err.message ?? 'Something went wrong. Please try again.');
+      setError(err.message ?? 'Algo salió mal. Inténtalo de nuevo.');
       setLoading(false);
     }
   }
@@ -84,7 +84,7 @@ export default function OnboardingPage() {
           disabled={!selected || loading}
           className="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 disabled:opacity-40 transition"
         >
-          {loading ? 'Saving…' : 'Continue'}
+          {loading ? 'Guardando…' : 'Continuar'}
         </button>
       </div>
     </div>

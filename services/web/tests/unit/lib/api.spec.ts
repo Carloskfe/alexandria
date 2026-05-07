@@ -1,7 +1,7 @@
 import { saveToken, clearToken, saveUserType, getUserType, postAuthRedirect } from '../../../lib/api';
 
 const mockStorage: Record<string, string> = {};
-const sessionStorageMock = {
+const localStorageMock = {
   getItem: jest.fn((key: string) => mockStorage[key] ?? null),
   setItem: jest.fn((key: string, value: string) => { mockStorage[key] = value; }),
   removeItem: jest.fn((key: string) => { delete mockStorage[key]; }),
@@ -10,32 +10,32 @@ const sessionStorageMock = {
 beforeEach(() => {
   jest.clearAllMocks();
   Object.keys(mockStorage).forEach(k => delete mockStorage[k]);
-  Object.defineProperty(global, 'sessionStorage', { value: sessionStorageMock, writable: true });
+  Object.defineProperty(global, 'localStorage', { value: localStorageMock, writable: true });
 });
 
 describe('saveToken', () => {
-  it('stores the token under "access_token" in sessionStorage', () => {
+  it('stores the token under "access_token" in localStorage', () => {
     saveToken('tok-abc');
-    expect(sessionStorageMock.setItem).toHaveBeenCalledWith('access_token', 'tok-abc');
+    expect(localStorageMock.setItem).toHaveBeenCalledWith('access_token', 'tok-abc');
   });
 });
 
 describe('clearToken', () => {
-  it('removes "access_token" from sessionStorage', () => {
+  it('removes "access_token" from localStorage', () => {
     clearToken();
-    expect(sessionStorageMock.removeItem).toHaveBeenCalledWith('access_token');
+    expect(localStorageMock.removeItem).toHaveBeenCalledWith('access_token');
   });
 });
 
 describe('saveUserType', () => {
-  it('stores a non-null userType in sessionStorage', () => {
+  it('stores a non-null userType in localStorage', () => {
     saveUserType('personal');
-    expect(sessionStorageMock.setItem).toHaveBeenCalledWith('user_type', 'personal');
+    expect(localStorageMock.setItem).toHaveBeenCalledWith('user_type', 'personal');
   });
 
   it('removes "user_type" when null is passed', () => {
     saveUserType(null);
-    expect(sessionStorageMock.removeItem).toHaveBeenCalledWith('user_type');
+    expect(localStorageMock.removeItem).toHaveBeenCalledWith('user_type');
   });
 });
 
@@ -77,7 +77,7 @@ describe('apiFetch', () => {
     const { apiFetch } = await import('../../../lib/api');
     const mockRes = { ok: true, json: jest.fn().mockResolvedValue({ id: 1 }) };
     global.fetch = jest.fn().mockResolvedValue(mockRes);
-    sessionStorageMock.getItem.mockReturnValue(null as unknown as string);
+    localStorageMock.getItem.mockReturnValue(null as unknown as string);
 
     const result = await apiFetch('/books');
 
@@ -92,7 +92,7 @@ describe('apiFetch', () => {
     const { apiFetch } = await import('../../../lib/api');
     const mockRes = { ok: true, json: jest.fn().mockResolvedValue({}) };
     global.fetch = jest.fn().mockResolvedValue(mockRes);
-    sessionStorageMock.getItem.mockReturnValue('my-access-token');
+    localStorageMock.getItem.mockReturnValue('my-access-token');
 
     await apiFetch('/protected');
 
@@ -104,7 +104,7 @@ describe('apiFetch', () => {
     const { apiFetch } = await import('../../../lib/api');
     const mockRes = { ok: false, status: 401, json: jest.fn().mockResolvedValue({ message: 'Unauthorized' }) };
     global.fetch = jest.fn().mockResolvedValue(mockRes);
-    sessionStorageMock.getItem.mockReturnValue(null as unknown as string);
+    localStorageMock.getItem.mockReturnValue(null as unknown as string);
 
     await expect(apiFetch('/secure')).rejects.toMatchObject({ status: 401 });
   });

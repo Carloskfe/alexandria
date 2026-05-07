@@ -1,7 +1,7 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 export async function apiFetch(path: string, init: RequestInit = {}) {
-  const token = typeof window !== 'undefined' ? sessionStorage.getItem('access_token') : null;
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
 
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
@@ -19,20 +19,20 @@ export async function apiFetch(path: string, init: RequestInit = {}) {
 }
 
 export function saveToken(token: string) {
-  sessionStorage.setItem('access_token', token);
+  localStorage.setItem('access_token', token);
 }
 
 export function clearToken() {
-  sessionStorage.removeItem('access_token');
+  localStorage.removeItem('access_token');
 }
 
 export function saveUserType(userType: string | null) {
-  if (userType) sessionStorage.setItem('user_type', userType);
-  else sessionStorage.removeItem('user_type');
+  if (userType) localStorage.setItem('user_type', userType);
+  else localStorage.removeItem('user_type');
 }
 
 export function getUserType(): string | null {
-  return typeof window !== 'undefined' ? sessionStorage.getItem('user_type') : null;
+  return typeof window !== 'undefined' ? localStorage.getItem('user_type') : null;
 }
 
 export function postAuthRedirect(userType: string | null): string {

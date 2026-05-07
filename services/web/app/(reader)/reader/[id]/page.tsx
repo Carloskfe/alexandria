@@ -17,6 +17,7 @@ import FragmentPopover from '@/components/FragmentPopover';
 import FragmentSheet from '@/components/FragmentSheet';
 import ChapterSheet from '@/components/ChapterSheet';
 import ReaderTopBar from '@/components/ReaderTopBar';
+import ReaderTutorial, { hasSeenReaderTutorial } from '@/components/ReaderTutorial';
 
 const FONT_SIZE_CLASSES: Record<FontSize, string> = {
   sm: 'text-base',
@@ -78,6 +79,9 @@ export default function ReaderPage() {
   const [audioBookmark, setAudioBookmark] = useState<AudioBookmark | null>(null);
   const [showQuoteChoice, setShowQuoteChoice] = useState(false);
 
+  // First-open tutorial
+  const [showTutorial, setShowTutorial] = useState(false);
+
   // Play confirmation — shown when user hits play with saved progress
   const [showPlayConfirm, setShowPlayConfirm] = useState(false);
   // Which mode the play confirm is for (affects whether "Toca donde vas leyendo" is offered)
@@ -107,7 +111,7 @@ export default function ReaderPage() {
   useEffect(() => {
     if (!bookId) return;
 
-    const token = typeof window !== 'undefined' ? sessionStorage.getItem('access_token') : null;
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
 
     Promise.all([
       apiFetch(`/books/${bookId}`),
@@ -133,7 +137,10 @@ export default function ReaderPage() {
         }
       })
       .catch((err) => setError(err.message ?? 'Error loading book'))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        setLoading(false);
+        if (!hasSeenReaderTutorial()) setShowTutorial(true);
+      });
   }, [bookId]);
 
   // ── Scroll to saved phrase on load ────────────────────────────────────────
@@ -193,7 +200,7 @@ export default function ReaderPage() {
 
   useEffect(() => {
     if (activePhraseIndex < 0) return;
-    const token = typeof window !== 'undefined' ? sessionStorage.getItem('access_token') : null;
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
     if (!token) return;
 
     if (progressDebounceRef.current) clearTimeout(progressDebounceRef.current);
@@ -422,6 +429,8 @@ export default function ReaderPage() {
 
   return (
     <div className={['flex flex-col md:flex-row min-h-screen', darkMode ? 'bg-gray-950 text-gray-100' : 'bg-white text-gray-800'].join(' ')}>
+      {showTutorial && <ReaderTutorial onDismiss={() => setShowTutorial(false)} />}
+
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
       <ReaderTopBar
         title={book.title}
