@@ -68,7 +68,7 @@ export class IngestionService {
       category: BookCategory.CLASSIC,
       isFree: true,
       isPublished: true,
-      language: 'es',
+      language: entry.language ?? 'es',
       audioFileKey: entry.librivoxAudioUrl,
       ...(entry.collection ? { collection: entry.collection } : {}),
       ...(entry.coverUrl   ? { coverUrl:   entry.coverUrl }   : {}),

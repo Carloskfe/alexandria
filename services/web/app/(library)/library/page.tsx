@@ -12,10 +12,48 @@ type Book = {
   coverUrl: string | null;
   category: string;
   language: string;
+  collection: string | null;
 };
+
+type CollectionMeta = { name: string; slug: string; coverUrl: string | null };
+
+type CollectionGroup = {
+  name: string;
+  coverUrl: string | null;
+  slug: string | null;
+  books: Book[];
+};
+
+function groupLibrary(
+  books: Book[],
+  collectionMeta: Map<string, CollectionMeta>,
+): { groups: CollectionGroup[]; standalone: Book[] } {
+  const map = new Map<string, CollectionGroup>();
+  const standalone: Book[] = [];
+
+  for (const book of books) {
+    if (book.collection) {
+      if (!map.has(book.collection)) {
+        const meta = collectionMeta.get(book.collection);
+        map.set(book.collection, {
+          name: book.collection,
+          coverUrl: meta?.coverUrl ?? book.coverUrl,
+          slug: meta?.slug ?? null,
+          books: [],
+        });
+      }
+      map.get(book.collection)!.books.push(book);
+    } else {
+      standalone.push(book);
+    }
+  }
+
+  return { groups: Array.from(map.values()), standalone };
+}
 
 export default function LibraryPage() {
   const [allBooks, setAllBooks] = useState<Book[]>([]);
+  const [collectionMeta, setCollectionMeta] = useState<Map<string, CollectionMeta>>(new Map());
   const [searchHits, setSearchHits] = useState<Book[] | null>(null);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
@@ -24,8 +62,14 @@ export default function LibraryPage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    apiFetch('/library')
-      .then((data) => setAllBooks(data))
+    Promise.all([
+      apiFetch('/library'),
+      apiFetch('/collections').catch(() => [] as CollectionMeta[]),
+    ])
+      .then(([books, cols]: [Book[], CollectionMeta[]]) => {
+        setAllBooks(books);
+        setCollectionMeta(new Map(cols.map((c) => [c.name, c])));
+      })
       .catch((err) => setError(err.message ?? 'Error loading library'))
       .finally(() => setLoading(false));
   }, []);
@@ -57,7 +101,8 @@ export default function LibraryPage() {
     };
   }, [query]);
 
-  const displayed = searchHits ?? allBooks;
+  const { groups, standalone } = groupLibrary(searchHits ?? allBooks, collectionMeta);
+  const isSearching = Boolean(query.trim());
 
   return (
     <div className="max-w-lg mx-auto px-4">
@@ -95,12 +140,95 @@ export default function LibraryPage() {
         <p className="text-center text-red-500 text-sm mt-16">{error}</p>
       ) : allBooks.length === 0 ? (
         <EmptyLibrary />
-      ) : displayed.length === 0 && query ? (
+      ) : isSearching && searchHits?.length === 0 ? (
         <p className="text-center text-gray-400 text-sm mt-16">
           No se encontraron resultados para &ldquo;{query}&rdquo;
         </p>
       ) : (
-        <BookGrid books={displayed} />
+        <>
+          {/* Collection groups — hidden during search (flat results work better) */}
+          {!isSearching && groups.length > 0 && (
+            <div className="mb-6 space-y-3">
+              {groups.map((group) => (
+                <CollectionCard key={group.name} group={group} />
+              ))}
+            </div>
+          )}
+
+          {/* Standalone books + search results */}
+          {(isSearching ? (searchHits ?? []) : standalone).length > 0 && (
+            <BookGrid books={isSearching ? (searchHits ?? []) : standalone} />
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+function CollectionCard({ group }: { group: CollectionGroup }) {
+  const [expanded, setExpanded] = useState(false);
+  const previewBooks = group.books.slice(0, 3);
+  const slug = group.slug;
+
+  return (
+    <div className="rounded-2xl border border-gray-100 bg-white shadow-sm overflow-hidden">
+      <button
+        onClick={() => setExpanded((v) => !v)}
+        className="w-full flex items-center gap-4 p-4 hover:bg-gray-50 transition text-left"
+      >
+        {/* Collection cover */}
+        <div className="w-12 flex-shrink-0 aspect-[2/3] rounded-lg overflow-hidden bg-gray-200 shadow-sm">
+          {group.coverUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={group.coverUrl} alt={group.name} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-indigo-700 flex items-end p-1">
+              <span className="text-white text-[8px] font-semibold leading-tight line-clamp-2">{group.name}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <p className="font-semibold text-gray-900 text-sm leading-tight">{group.name}</p>
+          <p className="text-xs text-gray-400 mt-0.5">{group.books.length} {group.books.length === 1 ? 'libro' : 'libros'}</p>
+          {/* Mini preview strip */}
+          <div className="flex gap-1 mt-2">
+            {previewBooks.map((b) => (
+              <div key={b.id} className="w-7 aspect-[2/3] rounded overflow-hidden bg-gray-100 flex-shrink-0">
+                {b.coverUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={b.coverUrl} alt={b.title} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-gray-300" />
+                )}
+              </div>
+            ))}
+            {group.books.length > 3 && (
+              <div className="w-7 aspect-[2/3] rounded bg-gray-100 flex items-center justify-center flex-shrink-0">
+                <span className="text-gray-400 text-[8px] font-medium">+{group.books.length - 3}</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Chevron */}
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          className={['w-5 h-5 text-gray-400 flex-shrink-0 transition-transform', expanded ? 'rotate-180' : ''].join(' ')}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {/* Expanded book grid */}
+      {expanded && (
+        <div className="px-4 pb-4 border-t border-gray-100 pt-4">
+          <BookGrid books={group.books} />
+        </div>
       )}
     </div>
   );

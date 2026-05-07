@@ -1,5 +1,15 @@
 import Link from 'next/link';
 
+const LANG_LABELS: Record<string, string> = {
+  en: 'EN',
+  fr: 'FR',
+  de: 'DE',
+  it: 'IT',
+  pt: 'PT',
+  ru: 'RU',
+  el: 'EL',
+};
+
 type Book = {
   id: string;
   title: string;
@@ -20,6 +30,7 @@ export function BookGrid({ books, libraryBookIds, onAdd }: Props) {
     <div className="grid grid-cols-2 gap-4 pb-6">
       {books.map((book) => {
         const inLibrary = libraryBookIds?.has(book.id) ?? false;
+        const langLabel = book.language && book.language !== 'es' ? LANG_LABELS[book.language] ?? book.language.toUpperCase() : null;
         return (
           <div key={book.id} className="relative group">
             <Link href={`/reader/${book.id}`} className="block">
@@ -29,6 +40,11 @@ export function BookGrid({ books, libraryBookIds, onAdd }: Props) {
                   <img src={book.coverUrl} alt={book.title} className="w-full h-full object-cover" />
                 ) : (
                   <BookCoverPlaceholder title={book.title} author={book.author} />
+                )}
+                {langLabel && (
+                  <span className="absolute bottom-1.5 left-1.5 bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                    {langLabel}
+                  </span>
                 )}
               </div>
               <p className="text-sm font-semibold text-gray-900 line-clamp-2 leading-tight">{book.title}</p>

@@ -229,6 +229,17 @@ Copy `.env.example` to `.env` and fill in the required values. Key variables:
 | `SOCIAL_TOKEN_SECRET` | AES-256 key for encrypting stored tokens — **change in production** |
 | `INSTAGRAM_PUBLISH_ENABLED` | `false` — set `true` only after Meta App Review |
 
+### Sentry (error tracking)
+Leave all Sentry vars empty in development — the SDK skips initialization when DSN is absent.
+
+| Variable | Notes |
+|----------|-------|
+| `SENTRY_DSN` | API (server-side) DSN from your Sentry project |
+| `NEXT_PUBLIC_SENTRY_DSN` | Web (browser-side) DSN — same or separate project |
+| `SENTRY_ORG` | Sentry org slug (for source-map uploads during CI build) |
+| `SENTRY_PROJECT` | Sentry project slug |
+| `SENTRY_AUTH_TOKEN` | Token for source-map uploads — set in CI secrets only |
+
 ### Stripe
 See [`docs/stripe-setup.md`](docs/stripe-setup.md) for full setup instructions.
 
@@ -272,6 +283,13 @@ docker compose exec api npm run migration:run
 | 022 | `AddBookAnalytics` | shareCount on books |
 | 023 | `AddEmailConfirmed` | emailConfirmed boolean (default true for existing users; new local registrations start false) |
 | 024 | `AddBookCollection` | collection varchar on books; auto-seeds Bible books with collection='Biblia' |
+| 025 | `SeedCollectionsFromBookField` | Populates collections table from existing books.collection values |
+| 026 | `FixCollectionsAndCovers` | Corrects collection slugs and adds themed cover URLs |
+| 027 | `FixCollectionDataFinal` | Normalizes empty string → NULL, canonical Bible order, excludes Blasco Ibáñez |
+| 028 | `UpdateThemedCoverUrls` | Sets /covers/*.png paths for 10 books + 2 collections |
+| 029 | `LiteraturaInfantilCoverUrls` | Cover URLs for Literatura Infantil books (superseded by migration 030) |
+| 030 | `CleanupLiteraturaInfantil` | Removes La Edad de Oro and Literatura Infantil collection; Pombo/Quiroga → standalone |
+| 031 | `FixCuentosSelvaLanguage` | Deletes English Gutenberg text; re-ingested from Spanish Wikisource |
 
 ---
 

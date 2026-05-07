@@ -11,6 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { Throttle } from '@nestjs/throttler';
 import { Response } from 'express';
 import { AuthService } from './auth.service';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
@@ -38,6 +39,7 @@ function safeUser(user: any) {
 }
 
 @Controller('auth')
+@Throttle({ default: { ttl: 60_000, limit: 20 } })
 export class AuthController {
   constructor(
     private readonly authService: AuthService,

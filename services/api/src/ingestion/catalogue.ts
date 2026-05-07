@@ -16,6 +16,8 @@ export interface CatalogueEntry {
   coverUrl?: string;
   /** Collection this book belongs to (sets books.collection and filters from general catalog) */
   collection?: string;
+  /** BCP-47 language code of the ingested text — defaults to 'es' if omitted */
+  language?: string;
 }
 
 export const CATALOGUE: CatalogueEntry[] = [
@@ -363,8 +365,8 @@ export const CATALOGUE: CatalogueEntry[] = [
     author: 'Horacio Quiroga',
     description:
       'Ocho cuentos para niños ambientados en la selva misionera: La Abeja Haragana, Las Medias de los Flamencos, La Tortuga Gigante y más. Obra hermana de los Cuentos de Amor ya disponibles en Noetia. Dominio público.',
-    source: 'gutenberg',
-    gutenbergId: 20097,
+    source: 'wikisource',
+    wikisourceTitle: 'Cuentos de la selva',
     librivoxAudioUrl: 'https://librivox.org/cuentos-de-la-selva-para-los-ninos-by-horacio-quiroga/',
     librivoxSearchTitle: 'Cuentos de la Selva',
     coverUrl: '/covers/cuentos-selva.png',

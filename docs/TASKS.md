@@ -1,20 +1,14 @@
 # Noetia — Project Stages, Sprints & Tasks
 
-> **Current status (2026-05-06):** Stages 0–3 and Stage 4 offline/mobile shell are **complete**. Stage 5 E2E tests are done. Remaining: Stage 5 performance/monitoring, app store submissions, and a P3 backlog of UI improvements (see below).
->
-> **Pending migrations to run:**
-> ```bash
-> docker compose exec api npm run migration:run
-> ```
-> This applies migration 023 (emailConfirmed) and 024 (bookCollection).
+> **Current status (2026-05-07):** Stages 0–3 and Stage 4 offline/mobile shell are **complete**. Stage 5 E2E tests are done. Rate limiting and Sentry are wired up (activate with env vars). Library collection grouping is live. Remaining: Stage 5 CDN/performance, load testing, app store submissions.
 >
 > **P3 UI backlog (not yet in sprints):**
 > - ~~Fragment text editing before image creation (E1)~~ ✅ done
 > - ~~Citation location in fragment image (E2)~~ ✅ done
+> - ~~Bible / volume collection grouping in Library UI (B2/B3)~~ ✅ done
 > - Hex color picker for background in ShareModal (D3)
 > - Gradient direction options (D4)
 > - Integrate background preset images into ShareModal UI (D7)
-> - Bible / volume collection grouping in Library UI (B2/B3 — migration done, UI pending)
 > - **Profile page** — build `/profile` screen with customer-facing fields:
 >   name, avatar, email (read-only), account type (personal/author/editorial),
 >   country, preferred languages, reading interests, subscription status,
@@ -361,14 +355,14 @@
 - [x] Grafana dashboards: API latency, error rate, queue depth — 1d
 - [ ] CDN setup for MinIO assets (CloudFront or Cloudflare) — 1d
 - [ ] Database query optimization and indexing audit — 1d
-- [ ] API rate limiting and abuse protection — 0.5d
+- [x] API rate limiting and abuse protection — 0.5d _(ThrottlerModule: 120 req/min global, 20/min on auth endpoints; Stripe webhook exempt)_
 - [ ] Content streaming caching strategy — 0.5d
 
 **Frontend**
 - [ ] Next.js performance audit (Lighthouse) — 0.5d
 - [ ] Image optimization (lazy loading, WebP covers) — 0.5d
 - [ ] Code splitting and bundle size audit — 0.5d
-- [ ] Error boundary and global error tracking (Sentry) — 1d
+- [x] Error boundary and global error tracking (Sentry) — 1d _(wired up in api + web; activate by setting SENTRY_DSN / NEXT_PUBLIC_SENTRY_DSN env vars)_
 
 **Sprint 5.1 total: 8d**
 

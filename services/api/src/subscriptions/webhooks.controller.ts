@@ -8,10 +8,12 @@ import {
   Req,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { SkipThrottle } from '@nestjs/throttler';
 import { Request } from 'express';
 import Stripe from 'stripe';
 import { WebhooksService } from './webhooks.service';
 
+@SkipThrottle()
 @Controller('webhooks')
 export class WebhooksController {
   private readonly stripe: InstanceType<typeof Stripe>;
