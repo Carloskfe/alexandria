@@ -1,4 +1,11 @@
+import type { Metadata } from 'next';
 import BottomNav from '@/components/BottomNav';
+
+export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = {
+  robots: { index: false }, // Library pages require login — don't index
+};
 
 export default function LibraryLayout({ children }: { children: React.ReactNode }) {
   return (
