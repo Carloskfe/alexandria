@@ -61,6 +61,7 @@ services:
       - ./services/web/components:/app/components:ro
       - ./services/web/lib:/app/lib:ro
       - ./services/web/public:/app/public:ro
+      - ./services/web/next.config.js:/app/next.config.js:ro
     networks:
       - noetia_net
     restart: unless-stopped
