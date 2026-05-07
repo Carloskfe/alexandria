@@ -5,7 +5,7 @@
 > 2. **Author/company experience** — content supply chain; upload, sync tooling, analytics
 > 3. **Free library** — beta acquisition only; not expanded after 6–12 months; UI hero will yield to author content
 >
-> **Current status (2026-05-07):** Stages 0–4 complete. Stage 5 in progress — rate limiting, Sentry, next/image optimization, HTTP caching, DB indexing (migration 032), and DRM audit done. Author portal overhauled (cover upload, SRT upload, progress bar, per-book sync). Remaining: CDN, load testing, app store submissions.
+> **Current status (2026-05-07):** Stages 0–4 complete. Stage 5 in progress — rate limiting, Sentry, next/image optimization, HTTP caching, DB indexing (migration 032), DRM audit, load testing, and WCAG 2.1 AA accessibility audit done. Security maintenance: Next.js patched to 14.2.35 (CVE-2025-29927), bundle-analyzer dev-only guard, telemetry disabled. AWS hosting strategy decided: EC2 + S3 + CloudFront + RDS. Remaining: CDN (S3 + CloudFront implementation), app store submissions.
 >
 > **P3 UI backlog (not yet in sprints):**
 > - ~~Fragment text editing before image creation (E1)~~ ✅ done
