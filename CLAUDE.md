@@ -4,6 +4,23 @@ Noetia is a multimodal reading + social sharing platform. For full product conte
 
 ---
 
+## Product Hierarchy
+
+**Every engineering decision must respect this order:**
+
+### 1. Reader experience — top priority
+The reader is the daily active user. The reading engine (sync, audio, fragments, sharing) must be fast, correct, and reliable before any other work ships. When two features compete for time, the one that affects active readers wins.
+
+### 2. Author and company experience — second priority
+Authors are the content supply chain. Without their books, there are no readers. The upload pipeline, sync tooling, review workflow, and author analytics are business-critical infrastructure — not admin tools.
+
+### 3. Free library — beta acquisition tool, not the business
+The ~40 public-domain books exist to give beta users a complete reading experience before the author catalog grows. **New free-library titles will not be added after 6–12 months.** Do not over-engineer free-library ingestion, sync maps, or catalog management. Once there are 50+ author titles, the free library hero placement in the UI will be replaced by curated author content.
+
+> This hierarchy is not about importance to the company — authors are as important as readers. It reflects **frequency of interaction**: readers use the app daily; authors upload occasionally. Features that affect daily active users are prioritized over features that affect the occasional upload flow.
+
+---
+
 ## Table of Contents
 
 1. [Git Workflow](#git-workflow)

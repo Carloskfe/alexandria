@@ -9,16 +9,18 @@ Noetia is a multimodal reading platform that synchronizes text and audio at a ph
 ## Table of Contents
 
 1. [Vision](#vision)
-2. [Target Users](#target-users)
-3. [MVP Scope](#mvp-scope)
-4. [Core Features](#core-features)
-5. [Security & DRM](#security--drm)
-6. [Engineering Quality](#engineering-quality)
-7. [Key Metrics (KPIs)](#key-metrics-kpis)
-8. [Risks](#risks)
-9. [Growth Strategy](#growth-strategy)
-10. [Roadmap](#roadmap)
-11. [Future Enhancements](#future-enhancements)
+2. [Product Hierarchy](#product-hierarchy)
+3. [Target Users](#target-users)
+4. [Business Architecture](#business-architecture)
+5. [MVP Scope](#mvp-scope)
+6. [Core Features](#core-features)
+7. [Security & DRM](#security--drm)
+8. [Engineering Quality](#engineering-quality)
+9. [Key Metrics (KPIs)](#key-metrics-kpis)
+10. [Risks](#risks)
+11. [Growth Strategy](#growth-strategy)
+12. [Roadmap](#roadmap)
+13. [Future Enhancements](#future-enhancements)
 
 ---
 
@@ -27,27 +29,93 @@ Noetia is a multimodal reading platform that synchronizes text and audio at a ph
 To become the leading platform where knowledge is not only consumed but expressed — turning reading into a social identity behavior.
 
 **Core value proposition:**
-- Synchronized Reading + Listening
-- Frictionless Knowledge Capture
-- Instant Social Content Creation
+- Synchronized Reading + Listening (phrase-level, seamless switching)
+- Frictionless Knowledge Capture (fragments, highlights)
+- Instant Social Content Creation (branded quote cards for LinkedIn, Instagram, etc.)
+
+**What Noetia is not:** a content publisher. Noetia is a distribution and reading platform. The catalog is built by authors, publishers, and companies — not by Noetia. This distinction is fundamental to every product decision.
+
+---
+
+## Product Hierarchy
+
+**This hierarchy governs every design, engineering, and prioritization decision.**
+
+### Priority 1 — Reader experience
+
+The reader is the daily active user. Every feature, every screen, every performance decision is evaluated first through the lens of the person who opens the app every day to read or listen. A reader who loves the experience becomes a paying subscriber, creates fragments, shares content, and refers others — which in turn creates demand for author content.
+
+Reader-first means:
+- The reading and listening engine must be fast, smooth, and reliable before anything else ships.
+- Every UI change is tested for impact on the reading flow first.
+- Performance budgets, caching strategy, and DRM all serve the reader first.
+
+### Priority 2 — Author and company experience
+
+Authors and publishers are the business. Without a growing catalog of quality content, there are no readers. Without readers, there is no subscription revenue. The author upload, review, and publishing pipeline must be as seamless as possible because it is the primary content supply chain.
+
+Author-first (within their tier) means:
+- The upload guide, portal, and sync tooling must be polished and clear — authors are not developers.
+- Review turnaround (3–5 business days) must be treated as a business SLA, not a backlog item.
+- Author analytics (readers, shares, revenue) are the author's ROI signal — they must be accurate and current.
+
+### The free library — beta acquisition tool only
+
+The current catalog of public-domain Spanish-language books (Gutenberg, Wikisource, LibriVox) exists for one reason: to give beta users a complete reading experience from day one, before the author catalog is built.
+
+**The free library is not the business.** After 6–12 months of operation, new free-library titles will not be added. The slot in the UI currently occupied by "Biblioteca gratuita" will be replaced by curated author content. All engineering decisions about the free library should be made with this sunset in mind — good enough for beta, not worth over-investing in.
 
 ---
 
 ## Target Users
 
-### Primary — "Insight Creators"
+### Tier 1 — Readers ("Insight Creators")
 - Age: 30–70
 - Geography: Spanish-speaking users (Latin America, US Hispanic market, Spain)
 - Profile: Professionals, learners, and growth-oriented individuals active on LinkedIn, Instagram, etc.
+- Daily behavior: opens the app to continue a book, saves fragments, shares quotes
+- Revenue: monthly subscription ($9.99–$14.99/mo) or per-title purchase
 
-### Secondary — Authors & Publishers
-- Independent authors, publishing houses, content creators seeking distribution and visibility
+### Tier 2 — Authors, Publishers, and Companies
+- Independent authors, publishing houses, content creators, corporate training teams
+- Revenue to Noetia: hosting tiers + revenue share on reader purchases
+- Their success = more catalog = more reader retention = more subscriptions
+- Key need: frictionless upload, fast review, real-time analytics
+
+> **Note on framing:** "Secondary" in earlier versions of this document was incorrect. Authors are not secondary — they are the content supply chain. Without them, there is no platform. They are called Tier 2 only because readers interact with Noetia daily while authors interact less frequently.
+
+---
+
+## Business Architecture
+
+Noetia is a **marketplace**, not a content company.
+
+```
+Authors / Publishers / Companies
+        ↓  upload content
+    Noetia Platform
+        ↓  delivers reading experience
+    Readers (daily active users)
+        ↓  pay subscriptions / per-title
+    Revenue
+        ↓  shared back
+    Authors / Publishers / Companies
+```
+
+**Noetia's role:** curate and deliver. Noetia reviews uploaded content for quality, stores and serves it with DRM, and provides the reading + social sharing layer. Noetia does not write books.
+
+**The free library's role in this architecture:** it fills the catalog gap during beta while the author pipeline is built. Once there are 50+ author titles, the free library becomes a secondary section — still valuable for user acquisition, but no longer the main content surface.
 
 ---
 
 ## MVP Scope
 
-**Goal:** Validate the multimodal reading experience and social sharing behavior as a growth engine.
+**Goal:** Validate the multimodal reading experience and social sharing behavior as a growth engine, while simultaneously onboarding the first cohort of authors.
+
+**Beta phase priorities:**
+1. Prove the reading + listening + fragment + share loop with real users using the free library.
+2. Sign and onboard the first 10–20 authors/publishers.
+3. Use the free library data to show authors real engagement metrics (reads, shares, fragments per book).
 
 ---
 
@@ -58,56 +126,56 @@ To become the leading platform where knowledge is not only consumed but expresse
 - Facebook Login
 - Apple Sign-In (iOS)
 - Email + Password
-- **Email confirmation** on registration (24h token via SMTP; existing OAuth logins auto-confirmed)
-- **Password recovery** via email reset link (1h token)
+- Email confirmation on registration (24h token via SMTP; OAuth logins auto-confirmed)
+- Password recovery via email reset link (1h token)
 
-### 2. Content Library
-- Initial catalog: 12 Spanish-language books
-- Categories: Leadership, Personal Development, Business
-- Only titles with existing audio + text
+### 2. Content Catalog
 
-### 3. Synchronized Reading Engine
+#### Author Catalog (the business)
+- Books uploaded by authors and publishers via the author portal
+- Each book has a price set by the publisher (pay-per-title or credit redemption)
+- Searchable, discoverable, featured on the Colección General home screen
+- Author analytics: readers, shares, storage, revenue
+
+#### Beta Catalog (acquisition / engagement)
+- ~40 Spanish-language public-domain classics (Gutenberg, Wikisource, LibriVox)
+- Free for all users — no subscription required
+- Visible in "Colección General" as a secondary section ("Clásicos gratuitos")
+- Not expanded after the first 6–12 months of operation
+- UI positioning: yields to author content when author content exists in the same category
+
+### 3. Synchronized Reading Engine ← Priority 1 feature
 - Phrase-by-phrase synchronization between text and audio
 - Visual highlight of active phrase
-- Controls: Play/Pause, speed adjustment
-- Seamless switching: Reading ↔ Listening ↔ Hybrid
+- Controls: Play/Pause, speed adjustment (0.75×–2×)
+- Seamless switching: Reading ↔ Audio (background) ↔ Escucha Activa (hybrid)
 
-#### Modo Escucha Activa (formerly "Hybrid Mode")
-- Combines visible text with live audio playback — text and audio sidebar shown simultaneously
-- Active phrase highlighted in real-time (yellow) as audio plays; text auto-scrolls to keep pace
-- Text selection **disabled** in this mode — exit to reading mode to create fragments
-- Clear "Modo Escucha Activa" label in the sidebar header; ✕ button closes sidebar without stopping audio
-- **FAB behavior**: tapping the blue FAB in reading mode opens the audio panel and offers three start options:
-  1. "Toca donde vas leyendo" — user taps the exact phrase where they are; audio seeks and plays from there
+#### Modo Escucha Activa (Core differentiator)
+- Combines visible text with live audio — text auto-scrolls, active phrase highlighted in real-time
+- Text selection disabled in this mode; exit to reading mode to create fragments
+- FAB behavior in reading mode: tap opens audio panel with three start options:
+  1. "Toca donde vas leyendo" — user taps exact phrase, audio seeks and plays
   2. "Continuar desde frase N" — resumes from last saved position
   3. "Desde el principio"
-- Sync engine: phrase-level highlight driven by `phraseAt()` binary search on `startTime/endTime`; listener registered only when `phrases` changes (not on every frame)
+- Sync engine: phrase-level highlight driven by `phraseAt()` binary search on `startTime/endTime`
+- Sync timestamps come from SRT/VTT files uploaded by authors; public-domain books have `startTime=0`
 
 ### 4. Highlight & Fragment System
 - Select text while reading to save as "fragments"
+- Per-book Fragment Sheet per user: store, combine (non-consecutive), and edit
 - Voice-triggered highlight (future)
-- Per-book Fragment Sheet per user:
-  - Store, combine (non-consecutive), and edit fragments
 
-### 5. Social Content Generator _(Core Differentiator)_
-- Transform fragments into shareable visual quote cards
-- **Four supported platforms:** LinkedIn, Instagram, Facebook, Pinterest
-- Platform-specific formats:
-  - Instagram: Post (1080×1080), Story (1080×1920), Reel (1080×1920)
-  - Facebook: Post (1200×630), Story (1080×1920)
-  - LinkedIn: Post (1200×627)
-  - Pinterest: Pin (1000×1500), Square (1000×1000)
-- Each card includes: quote text, author name, book title, Noetia watermark
-- Background: solid color or gradient with configurable hex colors
-- Font selection: Playfair, Lato, Merriweather, Dancing Script, Montserrat
-- Server-side PNG generation via Python/Pillow; served via MinIO presigned URLs (`MINIO_PUBLIC_URL` for browser access)
+### 5. Social Content Generator — Core Differentiator
+- Transform fragments into branded visual quote cards
+- Four platforms: LinkedIn, Instagram, Facebook, Pinterest
+- Platform-specific formats (IG Post/Story/Reel, FB Post/Story, LI Post, Pinterest Pin/Square)
+- Customization: font (7 options), background (solid/gradient/image), text color, bold/italic, citation
+- Server-side PNG generation via Python/Pillow; served via MinIO presigned URLs
 
 ### 6. Sharing Engine
-- One-click sharing
-- Export as image (download) — fixed via `MINIO_PUBLIC_URL` presigned URL rewrite
-- Copy link — copies browser-accessible presigned URL
-- **Direct social publish** from the ShareModal: connect LinkedIn, Facebook, Instagram, Pinterest via OAuth; tap "Compartir ahora" to post directly
-- Deep links (future)
+- Export as image (download)
+- Copy link
+- Direct social publish: connect LinkedIn, Facebook, Instagram, Pinterest via OAuth
 - Attribution tracking (future)
 
 ### 7. Offline Mode
@@ -115,145 +183,141 @@ To become the leading platform where knowledge is not only consumed but expresse
 - Store fragments offline
 - Sync progress when back online
 
-### 8. Subscription & Monetization Model
+### 8. Subscription & Monetization
 
-Noetia follows a hybrid model inspired by Audible: users can purchase titles individually or subscribe monthly to receive credits that permanently unlock books.
+Noetia follows a hybrid model inspired by Audible.
 
 #### Pay-per-Title
-- Every book has a fixed price set by the publisher
-- One-time purchase — permanently unlocks reading + listening for that title
+- Fixed price set by the publisher; permanently unlocks reading + listening
 
 #### Monthly Subscription Plans
 
-| Plan         | Monthly | Annual | Credits/month | Max books unlocked/month |
-|--------------|---------|--------|---------------|--------------------------|
-| Individual   | $9.99   | $89    | 1 credit      | 1 book                   |
-| Reader       | $14.99  | $135   | 2 credits     | 2 books                  |
+| Plan       | Monthly | Annual | Credits/month |
+|------------|---------|--------|---------------|
+| Individual | $9.99   | $89    | 1 credit      |
+| Reader     | $14.99  | $135   | 2 credits     |
 
 #### Credit Mechanics
-- 1 credit = 1 book of any list price (like Audible's credit system)
-- Credits are issued at the start of each billing cycle
-- Credits expire at end of billing cycle and do not roll over (MVP)
-- Redeeming a credit permanently unlocks the title in the user's library
-- Subscribers can also buy additional titles at list price without using a credit
-
+- 1 credit = 1 book of any list price
+- Credits issued at the start of each billing cycle; expire at end of cycle (MVP)
+- Subscribers can also purchase titles at list price without using a credit
 - Free trial: 14 days
 
-### 9. Author / Publisher Module
-- Upload books (text + audio + metadata)
-- Hosting tiers: 1 book / 3 books / 12 books (enforced via `hostingTier` on User)
-- Revenue sharing model
-- Basic analytics: downloads, reads, shares, storage
-- Cloud storage in MinIO with folder structure:
-  - `books/covers/{bookId}.png` — book covers (placeholder generator: `image-gen/scripts/generate_book_covers.py`)
-  - `books/{authorId}/{bookId}/` — text files (private)
-  - `audio/{authorId}/{bookId}/` — audio files (private)
-  - `images/share/` — generated quote card PNGs (public read)
-  - `images/backgrounds/presets/` — preset background images (`imagen-1` through `imagen-5`)
-  - `images/backgrounds/user/{userId}/` — user-uploaded custom backgrounds
+### 9. Author / Publisher Module ← Priority 2 feature
+- Upload: text (.txt/.epub/.pdf), audio (MP3/M4A), cover image (.jpg/.png), sync file (SRT/VTT)
+- Review workflow: submission → 3–5 day editorial review → publication
+- Hosting tiers: 1 / 3 / 12 books (enforced via `hostingTier` on User)
+- SRT/VTT sync upload: activates phrase-level highlighting in Modo Escucha Activa
+  - Each cue in the SRT = one phrase of the book; `syncSource` field tracks origin (`auto`/`srt`/`vtt`)
+  - Can be uploaded at any time, even post-publication
+- Analytics: readers, shares, storage per book
+- Revenue sharing model (implementation in Phase 2)
+- Upload guide: `/upload-guide` — step-by-step instructions for file preparation, tool recommendations (Subtitle Edit, Descript), FAQ
 
 ### 10. Book Collections
-- Books can belong to a named `collection` (e.g. "Biblia")
-- All Bible books (matched by title/author pattern) are automatically seeded into the "Biblia" collection
-- Books with multiple volumes are grouped under their series collection name
-- Collection field: nullable `varchar` on the `books` table (migration 024)
+- Books can belong to a named `collection` (e.g. "Biblia Reina-Valera", "Don Quijote de la Mancha")
+- Displayed as collapsible collection cards in Mi Biblioteca
+- Shown as a horizontal scrollable row in Colección General
 
 ---
 
 ## Security & DRM
 
-- Encrypted content streaming
-- Limited offline access
-- No raw file downloads
-- Controlled sharing (fragments only)
+- JWT-authenticated access to all book content (text, audio, sync maps)
+- SubscriptionGuard enforces entitlement on every content endpoint
+- Presigned MinIO URLs with 15-minute TTL for text and audio
+- No raw file downloads available to users
+- Controlled sharing: fragments (text excerpts) only — no full-text export
 
 ---
 
 ## Engineering Quality
 
-Every backend service shipped as part of Noetia must meet the following non-negotiable quality gates before it is considered production-ready:
+Every backend service must meet:
+- Unit test coverage ≥ 80% per service (CI gate on every PR)
+- No real I/O in unit tests — all external dependencies mocked
+- End-to-end tests (Playwright) covering: sign-up → read, highlight → share, subscribe → unlock
 
-- **Unit test coverage ≥ 80%** per service, verified by CI on every pull request.
-- **No real I/O in unit tests** — all external dependencies (database, MinIO, Stripe, Meilisearch, image-gen HTTP) must be mocked.
-- **Test-driven Definition of Done** — a feature is not complete until its service tests pass and coverage is above threshold.
-- **End-to-end tests** (Playwright) cover the three critical user flows: sign-up → read, highlight → share, subscribe → unlock.
-
-These standards directly reduce the risks identified in the [Risks](#risks) section and protect the phrase-level sync engine and DRM implementation — the two highest-complexity areas — from regressions during rapid iteration.
-
-For implementation details (file structure, naming conventions, run commands per service) see [CLAUDE.md — Testing](../CLAUDE.md#testing).
+See [CLAUDE.md — Testing](../CLAUDE.md#testing) for naming conventions and run commands.
 
 ---
 
 ## Key Metrics (KPIs)
 
-### User
-- Sign-up conversion rate
-- Trial → Paid conversion
-- Retention: 7-day, 30-day
-
-### Engagement
-- Highlights per user
-- Fragments created
-- Time spent reading/listening
-
-### Growth
+### Reader Health
+- Daily Active Readers (the north star)
+- Session length (time spent reading/listening per session)
+- 7-day and 30-day retention
+- Trial → Paid conversion rate
+- Fragments created per user
 - Shares per user
-- Referral installs
-- Viral coefficient
 
-### Content
-- Completion rate per book
-- Most shared fragments
-- Most popular titles
+### Author Health
+- Books submitted per month
+- Time from submission to publication
+- Reads per author book
+- Shares per author book
+- Author retention (authors who upload a second title)
+
+### Platform Health
+- Catalog size (author titles)
+- Subscription revenue (MRR)
+- Viral coefficient (shares that convert to sign-ups)
 
 ---
 
 ## Risks
 
-| Area      | Risk                                                  | Mitigation                                        |
-|-----------|-------------------------------------------------------|---------------------------------------------------|
-| Market    | Competition from Kindle/Audible, Spotify, Apple Books | Focus on social-sharing differentiator            |
-| Technical | Complexity of phrase-level sync; mobile performance   | Mandatory unit tests (≥ 80% coverage) + CI gate   |
-| Business  | Content licensing costs; user acquisition cost        | Author partnership model; referral program        |
+| Area | Risk | Mitigation |
+|------|------|------------|
+| Content supply | Author catalog grows too slowly; free library dominates too long | Prioritize author onboarding; set hard deadline to shift hero placement |
+| Market | Competition from Kindle/Audible, Spotify, Apple Books | Focus on social-sharing differentiator; Spanish-language niche |
+| Technical | Phrase-level sync quality for author-uploaded content | SRT tooling + editorial review checklist includes sync validation |
+| Business | Low author upload rate; content quality below expectations | Clear upload guide, fast review turnaround, dedicated autores@noetia.app inbox |
+| Engagement | Readers use free library but don't convert to paid | Gate Modo Escucha Activa and Fragment Sharing on subscription after beta |
 
 ---
 
 ## Growth Strategy
 
-### Phase 1 — MVP Launch
-- Target Spanish-speaking communities
-- Direct author partnerships
-- Referral program
+### Phase 1 — Beta (current)
+- Free library as the engagement hook for first users
+- Simultaneously: sign first 10–20 authors/publishers
+- Prove the read → fragment → share loop drives organic referrals
+- Collect data: which book categories convert best to subscriptions
 
-### Phase 2
-- Influencer collaborations
-- Social content virality
-- Expand catalog
+### Phase 2 — Author Catalog Launch
+- Author content replaces free library as the primary hero in Colección General
+- Free library demoted to a secondary "Clásicos gratuitos" section
+- Gate advanced features (Modo Escucha Activa, direct social publishing) behind subscription
+- Revenue share activated for authors
 
-### Phase 3
-- English market
-- Publisher partnerships
-- Institutional deals
+### Phase 3 — Scale
+- English market entry
+- Publisher partnerships (Penguin Random House Latam, Planeta, etc.)
+- Institutional deals (corporate training, universities)
+- AI-generated sync for author books that don't have SRT files
 
 ---
 
 ## Roadmap
 
-| Phase | Name         | Focus                                                       | Services                                 |
-|-------|--------------|-------------------------------------------------------------|------------------------------------------|
-| 0     | Planning     | Finalize PRD, legal review, design system                   | —                                        |
-| 1     | Build        | Auth, reader engine, library                                | `api`, `db`, `web`, `proxy`, `storage`   |
-| 2     | Social Layer | Fragments, image generation, sharing                        | `image-gen`, `worker`, `cache`, `search` |
-| 3     | Launch       | Beta release, feedback loop, optimization                   | All services                             |
-| 4     | Scale        | English market, publisher partnerships, institutional deals | Kubernetes, S3, CDN                      |
+| Phase | Name | Focus |
+|-------|------|-------|
+| 0 | Planning | PRD, legal review, design system |
+| 1 | Build | Auth, reader engine, library |
+| 2 | Social Layer | Fragments, image gen, sharing |
+| 3 | Beta Launch | Free library as hook; first author onboarding |
+| 4 | Author Catalog | Author content as hero; subscription gate |
+| 5 | Scale | English market, publisher partnerships, AI sync |
 
 ---
 
 ## Future Enhancements
 
-- AI-generated voice narration
-- AI-generated visual styles for quote cards
+- AI-generated voice narration for author books without audio
+- AI-generated sync timestamps (eliminate SRT requirement for authors)
 - Smart book recommendations
-- Community features: follow users, like fragments
-- In-app social feed
-- Author monetization tools
+- Community features: follow users, like fragments, social feed
+- Author monetization dashboard with payout tracking
+- Institutional licensing (bulk seats for companies and universities)

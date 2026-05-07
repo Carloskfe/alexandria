@@ -1,6 +1,11 @@
 # Noetia — Project Stages, Sprints & Tasks
 
-> **Current status (2026-05-07):** Stages 0–4 complete. Stage 5 in progress — rate limiting, Sentry, next/image optimization, HTTP caching, DB indexing (migration 032), and DRM audit done. Remaining: CDN, load testing, app store submissions.
+> **Product hierarchy (governs all prioritization):**
+> 1. **Reader experience** — daily active user; reading engine, sync, fragments, sharing
+> 2. **Author/company experience** — content supply chain; upload, sync tooling, analytics
+> 3. **Free library** — beta acquisition only; not expanded after 6–12 months; UI hero will yield to author content
+>
+> **Current status (2026-05-07):** Stages 0–4 complete. Stage 5 in progress — rate limiting, Sentry, next/image optimization, HTTP caching, DB indexing (migration 032), and DRM audit done. Author portal overhauled (cover upload, SRT upload, progress bar, per-book sync). Remaining: CDN, load testing, app store submissions.
 >
 > **P3 UI backlog (not yet in sprints):**
 > - ~~Fragment text editing before image creation (E1)~~ ✅ done

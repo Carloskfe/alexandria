@@ -25,13 +25,14 @@ type CollectionSummary = {
   bookCount: number;
 };
 
+// Author content categories appear first; free classics last (beta acquisition, not the business)
 const TABS = [
   { label: 'Todo', value: 'all' },
-  { label: 'Gratis', value: 'free' },
-  { label: 'Clásicos', value: 'classic' },
   { label: 'Liderazgo', value: 'leadership' },
   { label: 'Desarrollo Personal', value: 'personal-development' },
   { label: 'Negocios', value: 'business' },
+  { label: 'Clásicos', value: 'classic' },
+  { label: 'Gratis', value: 'free' },
 ];
 
 function buildUrl(tab: string): string {
@@ -44,6 +45,7 @@ export default function DiscoverPage() {
   const [activeTab, setActiveTab] = useState('all');
   const [allBooks, setAllBooks] = useState<Book[]>([]);
   const [freeBooks, setFreeBooks] = useState<Book[]>([]);
+  const [paidBooks, setPaidBooks] = useState<Book[]>([]);
   const [collections, setCollections] = useState<CollectionSummary[]>([]);
   const [libraryIds, setLibraryIds] = useState<Set<string>>(new Set());
   const [searchHits, setSearchHits] = useState<Book[] | null>(null);
@@ -53,10 +55,15 @@ export default function DiscoverPage() {
   const [error, setError] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Prefetch free books for the hero banner and user's library IDs
+  // Prefetch books for hero banners and user's library IDs
   useEffect(() => {
     apiFetch('/books?isFree=true')
       .then((data) => setFreeBooks(data))
+      .catch(() => {});
+
+    // Author/paid content — drives the hero when available; falls back to free library
+    apiFetch('/books?isFree=false')
+      .then((data) => setPaidBooks(data))
       .catch(() => {});
 
     apiFetch('/library/ids')
@@ -121,7 +128,10 @@ export default function DiscoverPage() {
   }, []);
 
   const displayed = searchHits ?? allBooks;
-  const showHero = activeTab === 'all' && !query.trim() && freeBooks.length > 0;
+  const isHome = activeTab === 'all' && !query.trim();
+  // Author content takes the hero when it exists; free library is the beta fallback
+  const showPaidHero = isHome && paidBooks.length > 0;
+  const showFreeHero = isHome && !showPaidHero && freeBooks.length > 0;
 
   return (
     <div className="max-w-lg mx-auto px-4">
@@ -186,7 +196,7 @@ export default function DiscoverPage() {
         )
       ) : loading ? (
         <>
-          {showHero && <HeroSkeleton />}
+          {isHome && <HeroSkeleton />}
           <GridSkeleton />
         </>
       ) : error ? (
@@ -198,8 +208,11 @@ export default function DiscoverPage() {
             <CollectionsRow collections={collections} />
           )}
 
-          {/* Free library hero — shown on "Todo" tab */}
-          {showHero && <FreeLibraryHero books={freeBooks} />}
+          {/* Author content hero — replaces free library hero once paid books exist */}
+          {showPaidHero && <PaidBooksHero books={paidBooks} libraryIds={libraryIds} onAdd={handleAdd} />}
+
+          {/* Free library hero — beta fallback when no paid books exist yet */}
+          {showFreeHero && <FreeLibraryHero books={freeBooks} />}
 
           {displayed.length === 0 ? (
             <p className="text-center text-gray-400 text-sm mt-16">
@@ -214,20 +227,35 @@ export default function DiscoverPage() {
   );
 }
 
+/** Hero shown when author/paid books exist — the permanent state once the catalog grows. */
+function PaidBooksHero({ books, libraryIds, onAdd }: { books: Book[]; libraryIds: Set<string>; onAdd: (id: string) => void }) {
+  const preview = books.slice(0, 4);
+  return (
+    <div className="mb-8">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-base font-semibold text-gray-900">Disponibles ahora</h2>
+        <button onClick={() => {}} className="text-xs text-blue-600 font-medium">Ver todos</button>
+      </div>
+      <BookGrid books={preview} libraryBookIds={libraryIds} onAdd={onAdd} />
+    </div>
+  );
+}
+
+/** Beta fallback hero — shown only while the author catalog is being built. */
 function FreeLibraryHero({ books }: { books: Book[] }) {
   const preview = books.slice(0, 3);
   return (
     <Link href="?tab=free" as="/discover" onClick={() => {}} className="block mb-8">
-      <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-blue-600 to-indigo-700 p-5 shadow-md">
+      <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-slate-600 to-slate-800 p-5 shadow-md">
         <div className="relative z-10">
           <span className="inline-block bg-white/20 text-white text-xs font-semibold px-2.5 py-1 rounded-full mb-3">
-            Biblioteca gratuita
+            Clásicos gratuitos
           </span>
           <h2 className="text-white text-lg font-bold leading-tight mb-1">
-            {books.length} libros clásicos
+            {books.length} clásicos de la literatura universal
           </h2>
-          <p className="text-white/80 text-sm mb-4">
-            Literatura universal y textos sagrados, disponibles sin costo.
+          <p className="text-white/70 text-sm mb-4">
+            Disponibles sin costo para todos los lectores.
           </p>
           <div className="flex gap-2">
             {preview.map((book) => (
