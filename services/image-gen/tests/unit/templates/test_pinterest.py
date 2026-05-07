@@ -38,7 +38,7 @@ def test_render_unknown_format_falls_back_to_pin():
 
 
 def test_render_respects_font_parameter():
-    data_lato = render(FRAGMENT, font='lato')
+    data_oswald = render(FRAGMENT, font='oswald')
     data_playfair = render(FRAGMENT, font='playfair')
-    assert isinstance(data_lato, bytes)
+    assert isinstance(data_oswald, bytes)
     assert isinstance(data_playfair, bytes)

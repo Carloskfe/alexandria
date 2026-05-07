@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from templates.base import render_card
 
-FONTS = ['playfair', 'lato', 'merriweather', 'dancing', 'montserrat']
+FONTS = ['playfair', 'montserrat', 'merriweather', 'oswald', 'baskerville', 'dancing', 'pacifico']
 
 SAMPLE = {
     "text":   "La lectura es un viaje",

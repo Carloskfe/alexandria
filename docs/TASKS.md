@@ -1,6 +1,6 @@
 # Noetia — Project Stages, Sprints & Tasks
 
-> **Current status (2026-05-07):** Stages 0–4 complete. Stage 5 in progress — rate limiting, Sentry, next/image optimization (WebP + lazy loading), HTTP caching, and docker-compose hot-reload for next.config.js done. Remaining: DB indexing audit, CDN, DRM audit, load testing, app store submissions.
+> **Current status (2026-05-07):** Stages 0–4 complete. Stage 5 in progress — rate limiting, Sentry, next/image optimization, HTTP caching, and docker-compose hot-reload done. Profile page confirmed complete. Font set refreshed (Oswald, Libre Baskerville, Pacifico replace Lato/Lora/Raleway). Remaining: DB indexing audit, CDN, DRM audit, load testing, app store submissions.
 >
 > **P3 UI backlog (not yet in sprints):**
 > - ~~Fragment text editing before image creation (E1)~~ ✅ done
@@ -8,10 +8,11 @@
 > - ~~Bible / volume collection grouping in Library UI (B2/B3)~~ ✅ done
 > - ~~Image optimization — WebP covers via next/image~~ ✅ done
 > - ~~Content streaming caching — HTTP Cache-Control on sync-map, books list, collections~~ ✅ done
+> - ~~Profile page — name, avatar, subscription status, social accounts, Editar perfil~~ ✅ done
+> - ~~ShareModal fonts — refreshed to 7 visually distinct options~~ ✅ done
 > - Hex color picker for background in ShareModal (D3)
 > - Gradient direction options (D4)
 > - Integrate background preset images into ShareModal UI (D7)
-> - **Profile page** — `/profile` screen with name, avatar, subscription status, connected social accounts, and "Editar perfil" flow (route exists, page is empty)
 > - ~~Bottom nav — "Mi Biblioteca" and "Colección General" names + icons aligned~~ ✅ done
 
 **Estimation key:** Each task is estimated in days (1 dev). Sprints are 2 weeks (10 working days).

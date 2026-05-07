@@ -80,7 +80,7 @@ def generate():
     if fmt not in _VALID_FORMATS:
         return jsonify({"error": f"unsupported format: {fmt}"}), 400
 
-    font = (body.get("font") or "lato").lower()
+    font = (body.get("font") or "playfair").lower()
     if font not in VALID_FONTS:
         return jsonify({"error": f"unsupported font: {font}"}), 400
 

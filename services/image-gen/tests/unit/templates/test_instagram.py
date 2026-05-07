@@ -63,7 +63,7 @@ def test_render_accepts_populated_fragment():
 
 
 def test_render_all_fonts_produce_valid_png():
-    for font in ("playfair", "lato", "merriweather", "dancing", "montserrat"):
+    for font in ("playfair", "montserrat", "merriweather", "oswald", "dancing"):
         result = render({}, font=font)
         assert result[:8] == b'\x89PNG\r\n\x1a\n', f"Font {font} did not produce valid PNG"
 

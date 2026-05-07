@@ -97,7 +97,7 @@ export default function ShareModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedFormat, setSelectedFormat] = useState<ShareFormat>('ig-post');
-  const [selectedFont, setSelectedFont] = useState<FontId>('lato');
+  const [selectedFont, setSelectedFont] = useState<FontId>('playfair');
   const [fontMenuOpen, setFontMenuOpen] = useState(false);
   const [bgType, setBgType] = useState<'solid' | 'gradient' | 'image'>('solid');
   const [bgColors, setBgColors] = useState<[string, string]>(['#0D1B2A', '#1A4A4A']);

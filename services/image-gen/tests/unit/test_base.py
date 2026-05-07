@@ -105,7 +105,7 @@ def test_valid_fonts_has_seven_entries():
 
 def test_valid_fonts_contains_expected_keys():
     assert set(VALID_FONTS.keys()) == {
-        'playfair', 'lato', 'lora', 'merriweather', 'dancing', 'montserrat', 'raleway',
+        'playfair', 'montserrat', 'merriweather', 'oswald', 'baskerville', 'dancing', 'pacifico',
     }
 
 
@@ -155,7 +155,7 @@ def test_render_card_empty_fragment():
 
 
 def test_render_card_all_fonts_produce_valid_png():
-    for font_id in ('playfair', 'lato', 'lora', 'merriweather', 'dancing', 'montserrat', 'raleway'):
+    for font_id in ('playfair', 'montserrat', 'merriweather', 'oswald', 'baskerville', 'dancing', 'pacifico'):
         result = render_card(_FRAGMENT, 800, 800, font=font_id)
         assert result[:8] == b'\x89PNG\r\n\x1a\n', f"Font {font_id} did not produce valid PNG"
 
@@ -194,9 +194,9 @@ def test_render_card_no_override_preserves_auto_luminance_light():
 def test_render_card_falls_back_to_default_font_on_missing_file():
     from templates import base as base_module
     original = base_module.VALID_FONTS.copy()
-    base_module.VALID_FONTS['lato'] = '/nonexistent/path/lato.ttf'
+    base_module.VALID_FONTS['oswald'] = '/nonexistent/path/oswald.ttf'
     try:
-        result = render_card(_FRAGMENT, 800, 800, font='lato')
+        result = render_card(_FRAGMENT, 800, 800, font='oswald')
         assert result[:8] == b'\x89PNG\r\n\x1a\n'
     finally:
         base_module.VALID_FONTS.update(original)

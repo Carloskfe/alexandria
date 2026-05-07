@@ -102,7 +102,7 @@ def test_generate_unknown_font_returns_400(client):
 
 def test_generate_valid_font_returns_200(client):
     with patch("app.MinioClient", return_value=_patched_minio()):
-        for font in ("playfair", "lato", "merriweather", "dancing", "montserrat"):
+        for font in ("playfair", "montserrat", "merriweather", "oswald", "dancing"):
             resp = client.post("/generate", json={**_VALID_BODY, "font": font})
             assert resp.status_code == 200, f"Font {font} failed"
 
@@ -208,7 +208,7 @@ def test_generate_defaults_applied_when_optional_params_omitted(client):
         client.post("/generate", json={**_VALID_BODY, "platform": "instagram"})
     _, kwargs = mock_render.call_args
     assert kwargs["format"] == "post"
-    assert kwargs["font"] == "lato"
+    assert kwargs["font"] == "playfair"
     assert kwargs["bg_type"] == "solid"
     assert kwargs["bg_colors"] == ["#0D1B2A"]
 

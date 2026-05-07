@@ -9,7 +9,7 @@ import pytest
 from PIL import Image
 
 
-FONTS = ['playfair', 'lato', 'merriweather', 'dancing', 'montserrat']
+FONTS = ['playfair', 'montserrat', 'merriweather', 'oswald', 'dancing']
 
 
 def _png_dimensions(data: bytes):

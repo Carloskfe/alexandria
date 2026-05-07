@@ -9,19 +9,19 @@ export interface FontDef {
 }
 
 export const FONTS: readonly FontDef[] = [
-  { id: 'lato',          label: 'Lato',            css: "'Lato', sans-serif" },
-  { id: 'playfair',      label: 'Playfair Display', css: "'Playfair Display', serif" },
-  { id: 'lora',          label: 'Lora',             css: "'Lora', serif" },
-  { id: 'merriweather',  label: 'Merriweather',     css: "'Merriweather', serif" },
-  { id: 'dancing',       label: 'Dancing Script',   css: "'Dancing Script', cursive" },
-  { id: 'montserrat',    label: 'Montserrat',       css: "'Montserrat', sans-serif" },
-  { id: 'raleway',       label: 'Raleway',          css: "'Raleway', sans-serif" },
+  { id: 'playfair',    label: 'Playfair Display', css: "'Playfair Display', serif" },
+  { id: 'montserrat',  label: 'Montserrat',       css: "'Montserrat', sans-serif" },
+  { id: 'merriweather',label: 'Merriweather',     css: "'Merriweather', serif" },
+  { id: 'oswald',      label: 'Oswald',           css: "'Oswald', sans-serif" },
+  { id: 'baskerville', label: 'Libre Baskerville', css: "'Libre Baskerville', serif" },
+  { id: 'dancing',     label: 'Dancing Script',   css: "'Dancing Script', cursive" },
+  { id: 'pacifico',    label: 'Pacifico',         css: "'Pacifico', cursive" },
 ] as const;
 
 export type FontId = (typeof FONTS)[number]['id'];
 
 export const GOOGLE_FONTS_URL =
-  'https://fonts.googleapis.com/css2?family=Lato&family=Playfair+Display&family=Lora&family=Merriweather&family=Dancing+Script&family=Montserrat&family=Raleway&display=swap';
+  'https://fonts.googleapis.com/css2?family=Playfair+Display&family=Montserrat&family=Merriweather&family=Oswald&family=Libre+Baskerville&family=Dancing+Script&family=Pacifico&display=swap';
 
 // ─────────────────────────────────────────────────────────────────────────────
 

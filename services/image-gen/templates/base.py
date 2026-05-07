@@ -12,12 +12,12 @@ _FONT_DIR = os.path.join(os.path.dirname(__file__), '..', 'fonts')
 
 FONT_REGISTRY = {
     'playfair':     os.path.join(_FONT_DIR, 'playfair.ttf'),
-    'lato':         os.path.join(_FONT_DIR, 'lato.ttf'),
-    'lora':         os.path.join(_FONT_DIR, 'lora.ttf'),
-    'merriweather': os.path.join(_FONT_DIR, 'merriweather.ttf'),
-    'dancing':      os.path.join(_FONT_DIR, 'dancing.ttf'),
     'montserrat':   os.path.join(_FONT_DIR, 'montserrat.ttf'),
-    'raleway':      os.path.join(_FONT_DIR, 'raleway.ttf'),
+    'merriweather': os.path.join(_FONT_DIR, 'merriweather.ttf'),
+    'oswald':       os.path.join(_FONT_DIR, 'oswald.ttf'),
+    'baskerville':  os.path.join(_FONT_DIR, 'baskerville.ttf'),
+    'dancing':      os.path.join(_FONT_DIR, 'dancing.ttf'),
+    'pacifico':     os.path.join(_FONT_DIR, 'pacifico.ttf'),
 }
 # Keep old name for backwards compat with scripts that import VALID_FONTS
 VALID_FONTS = FONT_REGISTRY
