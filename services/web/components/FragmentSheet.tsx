@@ -12,15 +12,12 @@ type Props = {
   onClose: () => void;
   onDelete: (id: string) => void;
   onCombine: (ids: string[]) => void;
-  onNoteUpdate: (id: string, note: string) => void;
   dark?: boolean;
 };
 
-export default function FragmentSheet({ fragments, bookAuthor, bookTitle, bookCollection, onClose, onDelete, onCombine, onNoteUpdate, dark = false }: Props) {
+export default function FragmentSheet({ fragments, bookAuthor, bookTitle, bookCollection, onClose, onDelete, onCombine, dark = false }: Props) {
   const [multiSelect, setMultiSelect] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [editingNoteId, setEditingNoteId] = useState<string | null>(null);
-  const [noteValue, setNoteValue] = useState('');
   const [sharingFragment, setSharingFragment] = useState<{ id: string; text: string; note: string | null } | null>(null);
 
   function toggleSelect(id: string) {
@@ -40,16 +37,6 @@ export default function FragmentSheet({ fragments, bookAuthor, bookTitle, bookCo
   function handleCombine() {
     onCombine([...selected]);
     exitMultiSelect();
-  }
-
-  function startEditNote(f: Fragment) {
-    setEditingNoteId(f.id);
-    setNoteValue(f.note ?? '');
-  }
-
-  function saveNote(id: string) {
-    onNoteUpdate(id, noteValue);
-    setEditingNoteId(null);
   }
 
   return (
@@ -130,38 +117,11 @@ export default function FragmentSheet({ fragments, bookAuthor, bookTitle, bookCo
                   )}
                 </div>
 
-                {/* Note */}
-                {editingNoteId === f.id ? (
-                  <div className="space-y-1">
-                    <textarea
-                      value={noteValue}
-                      onChange={(e) => setNoteValue(e.target.value)}
-                      className="w-full text-xs border border-gray-200 rounded-lg p-2 resize-none focus:outline-none focus:ring-1 focus:ring-blue-400"
-                      rows={2}
-                      autoFocus
-                    />
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => saveNote(f.id)}
-                        className="text-xs text-blue-600 hover:underline"
-                      >
-                        Guardar
-                      </button>
-                      <button
-                        onClick={() => setEditingNoteId(null)}
-                        className="text-xs text-gray-400 hover:underline"
-                      >
-                        Cancelar
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => startEditNote(f)}
-                    className={['text-xs transition text-left', dark ? 'text-gray-500 hover:text-blue-400' : 'text-gray-400 hover:text-blue-500'].join(' ')}
-                  >
-                    {f.note ? f.note : '+ Añadir nota'}
-                  </button>
+                {/* Note (read-only display if exists) */}
+                {f.note && (
+                  <p className={['text-xs leading-snug', dark ? 'text-gray-500' : 'text-gray-400'].join(' ')}>
+                    {f.note}
+                  </p>
                 )}
               </div>
             ))

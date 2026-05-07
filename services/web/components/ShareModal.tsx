@@ -126,7 +126,7 @@ export default function ShareModal({
   const [publishingPlatform, setPublishingPlatform] = useState<string | null>(null);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [publishToast, setPublishToast] = useState<{ platform: string; postUrl: string } | null>(null);
-  const downloadRef = useRef<HTMLAnchorElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const activeBgColors = bgType === 'gradient' ? [bgColors[0], bgColors[1]] : [bgColors[0]];
   const autoTextColor = bgType === 'image' ? '#FFFFFF' : getTextColor(activeBgColors);
@@ -266,10 +266,20 @@ export default function ShareModal({
   const handleDownload = useCallback(async () => {
     const url = await generate();
     if (!url) return;
-    const a = downloadRef.current!;
-    a.href = url;
-    a.download = `noetia-${selectedFormat}.png`;
-    a.click();
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = `noetia-${selectedFormat}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(objectUrl);
+    } catch {
+      setError('No se pudo descargar la imagen');
+    }
   }, [generate, selectedFormat]);
 
   const handleCopy = useCallback(async () => {
@@ -353,19 +363,6 @@ export default function ShareModal({
                   {savingText ? 'Guardando…' : 'Guardar cambios en la biblioteca'}
                 </button>
               )}
-              {/* D2 — Bold / Italic toggles */}
-              <div className="flex gap-2 mt-2">
-                <button
-                  onClick={() => setTextBold((v) => !v)}
-                  className={`w-8 h-8 rounded-lg border text-sm font-bold transition ${textBold ? 'bg-gray-800 text-white border-gray-800' : 'border-gray-200 text-gray-600 hover:border-gray-400'}`}
-                  title="Negrita"
-                >B</button>
-                <button
-                  onClick={() => setTextItalic((v) => !v)}
-                  className={`w-8 h-8 rounded-lg border text-sm italic transition ${textItalic ? 'bg-gray-800 text-white border-gray-800' : 'border-gray-200 text-gray-600 hover:border-gray-400'}`}
-                  title="Cursiva"
-                ><em>I</em></button>
-              </div>
             </div>
 
             {/* ── E2: Citation location ─────────────────────────────────── */}
@@ -396,47 +393,41 @@ export default function ShareModal({
             {/* ── Format selection ──────────────────────────────────────── */}
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Formato</p>
-              <div className="grid grid-cols-3 gap-1.5">
+              <select
+                value={selectedFormat}
+                onChange={(e) => setSelectedFormat(e.target.value as ShareFormat)}
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-blue-400 bg-white"
+              >
                 {SHARE_FORMATS.map((fmt) => (
-                  <button
-                    key={fmt}
-                    onClick={() => setSelectedFormat(fmt)}
-                    className={[
-                      'text-xs py-2 px-1 rounded-lg border transition font-medium',
-                      selectedFormat === fmt
-                        ? 'border-blue-500 bg-blue-50 text-blue-700'
-                        : 'border-gray-200 text-gray-600 hover:border-blue-200 hover:bg-blue-50',
-                    ].join(' ')}
-                  >
-                    {SHARE_FORMAT_LABELS[fmt]}
-                  </button>
+                  <option key={fmt} value={fmt}>{SHARE_FORMAT_LABELS[fmt]}</option>
                 ))}
-              </div>
+              </select>
             </div>
 
-            {/* ── Font picker ───────────────────────────────────────────── */}
+            {/* ── Font + Bold/Italic ────────────────────────────────────── */}
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Fuente</p>
-              <div className="space-y-1">
-                {FONTS.map((f) => (
-                  <button
-                    key={f.id}
-                    onClick={() => setSelectedFont(f.id as FontId)}
-                    className={[
-                      'w-full text-left px-3 py-2 rounded-xl border transition',
-                      selectedFont === f.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-gray-200 hover:border-blue-200 hover:bg-gray-50',
-                    ].join(' ')}
-                  >
-                    <p style={{ fontFamily: f.css }} className="text-sm font-medium text-gray-900 leading-snug">
-                      {f.label}
-                    </p>
-                    <p style={{ fontFamily: f.css }} className="text-xs text-gray-400 leading-snug">
-                      El inicio de algo grande
-                    </p>
-                  </button>
-                ))}
+              <div className="flex items-center gap-2">
+                <select
+                  value={selectedFont}
+                  onChange={(e) => setSelectedFont(e.target.value as FontId)}
+                  className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-blue-400 bg-white"
+                  style={{ fontFamily: fontCss }}
+                >
+                  {FONTS.map((f) => (
+                    <option key={f.id} value={f.id} style={{ fontFamily: f.css }}>{f.label}</option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => setTextBold((v) => !v)}
+                  title="Negrita"
+                  className={`w-9 h-9 flex-shrink-0 rounded-xl border text-sm font-bold transition ${textBold ? 'bg-gray-800 text-white border-gray-800' : 'border-gray-200 text-gray-600 hover:border-gray-400'}`}
+                >B</button>
+                <button
+                  onClick={() => setTextItalic((v) => !v)}
+                  title="Cursiva"
+                  className={`w-9 h-9 flex-shrink-0 rounded-xl border text-sm italic transition ${textItalic ? 'bg-gray-800 text-white border-gray-800' : 'border-gray-200 text-gray-600 hover:border-gray-400'}`}
+                ><em>I</em></button>
               </div>
             </div>
 
@@ -521,7 +512,7 @@ export default function ShareModal({
                       </button>
                     ))}
 
-                    {/* Upload slot */}
+                    {/* Upload from folder */}
                     <button
                       onClick={() => fileInputRef.current?.click()}
                       disabled={bgImageLoading}
@@ -532,13 +523,35 @@ export default function ShareModal({
                       </svg>
                       <span className="text-[10px] font-medium">Subir imagen</span>
                     </button>
+
+                    {/* Camera capture */}
+                    <button
+                      onClick={() => cameraInputRef.current?.click()}
+                      disabled={bgImageLoading}
+                      className="aspect-square rounded-xl border-2 border-dashed border-gray-300 hover:border-green-400 flex flex-col items-center justify-center gap-1 text-gray-400 hover:text-green-500 transition disabled:opacity-50"
+                    >
+                      <svg className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0zM18.75 10.5h.008v.008h-.008V10.5z" />
+                      </svg>
+                      <span className="text-[10px] font-medium">Cámara</span>
+                    </button>
                   </div>
 
+                  {/* File inputs — hidden */}
                   <input
                     id={fileInputId}
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"
+                    className="hidden"
+                    onChange={handleFileUpload}
+                  />
+                  <input
+                    ref={cameraInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
                     className="hidden"
                     onChange={handleFileUpload}
                   />
@@ -665,9 +678,6 @@ export default function ShareModal({
         </div>
       </div>
 
-      {/* Hidden download anchor */}
-      {/* eslint-disable-next-line jsx-a11y/anchor-has-content */}
-      <a ref={downloadRef} className="hidden" />
     </>
   );
 }

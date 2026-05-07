@@ -801,7 +801,6 @@ export default function ReaderPage() {
           onClose={() => setShowDrawer(false)}
           onDelete={handleDeleteFragment}
           onCombine={handleCombineFragments}
-          onNoteUpdate={handleNoteUpdate}
           dark={darkMode}
         />
       )}
