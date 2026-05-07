@@ -1,20 +1,18 @@
 # Noetia — Project Stages, Sprints & Tasks
 
-> **Current status (2026-05-07):** Stages 0–3 and Stage 4 offline/mobile shell are **complete**. Stage 5 E2E tests are done. Rate limiting and Sentry are wired up (activate with env vars). Library collection grouping is live. Remaining: Stage 5 CDN/performance, load testing, app store submissions.
+> **Current status (2026-05-07):** Stages 0–4 complete. Stage 5 in progress — rate limiting, Sentry, image optimization, and HTTP caching done. Remaining: DB indexing audit, CDN, DRM audit, load testing, app store submissions.
 >
 > **P3 UI backlog (not yet in sprints):**
 > - ~~Fragment text editing before image creation (E1)~~ ✅ done
 > - ~~Citation location in fragment image (E2)~~ ✅ done
 > - ~~Bible / volume collection grouping in Library UI (B2/B3)~~ ✅ done
+> - ~~Image optimization — WebP covers via next/image~~ ✅ done
+> - ~~Content streaming caching — HTTP Cache-Control on sync-map, books list, collections~~ ✅ done
 > - Hex color picker for background in ShareModal (D3)
 > - Gradient direction options (D4)
 > - Integrate background preset images into ShareModal UI (D7)
-> - **Profile page** — build `/profile` screen with customer-facing fields:
->   name, avatar, email (read-only), account type (personal/author/editorial),
->   country, preferred languages, reading interests, subscription status,
->   connected social accounts, and "Editar perfil" flow.
->   Currently the route exists but the page is empty.
-> - **Bottom nav** — "Mi Biblioteca" and "Colección General" names + icons aligned ✅ done
+> - **Profile page** — `/profile` screen with name, avatar, subscription status, connected social accounts, and "Editar perfil" flow (route exists, page is empty)
+> - ~~Bottom nav — "Mi Biblioteca" and "Colección General" names + icons aligned~~ ✅ done
 
 **Estimation key:** Each task is estimated in days (1 dev). Sprints are 2 weeks (10 working days).
 **Legend:** `[ ]` pending · `[x]` done · `[~]` in progress
@@ -356,11 +354,11 @@
 - [ ] CDN setup for MinIO assets (CloudFront or Cloudflare) — 1d
 - [ ] Database query optimization and indexing audit — 1d
 - [x] API rate limiting and abuse protection — 0.5d _(ThrottlerModule: 120 req/min global, 20/min on auth endpoints; Stripe webhook exempt)_
-- [ ] Content streaming caching strategy — 0.5d
+- [x] Content streaming caching strategy — 0.5d _(HTTP Cache-Control on /books, /books/:id/sync-map, /collections)_
 
 **Frontend**
 - [ ] Next.js performance audit (Lighthouse) — 0.5d
-- [ ] Image optimization (lazy loading, WebP covers) — 0.5d
+- [x] Image optimization (lazy loading, WebP covers) — 0.5d _(all covers use next/image with fill+sizes; remotePatterns for openlibrary.org)_
 - [ ] Code splitting and bundle size audit — 0.5d
 - [x] Error boundary and global error tracking (Sentry) — 1d _(wired up in api + web; activate by setting SENTRY_DSN / NEXT_PUBLIC_SENTRY_DSN env vars)_
 
