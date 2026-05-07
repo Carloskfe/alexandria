@@ -363,7 +363,7 @@
 - [x] Content streaming caching strategy — 0.5d _(HTTP Cache-Control on /books, /books/:id/sync-map, /collections)_
 
 **Frontend**
-- [ ] Next.js performance audit (Lighthouse) — 0.5d
+- [x] Next.js performance audit (Lighthouse) — 0.5d _(metadata on all public pages, robots.txt, sitemap.xml, force-dynamic on auth pages, server-component landing page, Sentry dynamic import, WaitlistForm extracted; Chrome-based score audit pending)_
 - [x] Image optimization (lazy loading, WebP covers) — 0.5d _(all covers use next/image with fill+sizes; remotePatterns for openlibrary.org)_
 - [ ] Code splitting and bundle size audit — 0.5d
 - [x] Error boundary and global error tracking (Sentry) — 1d _(wired up in api + web; activate by setting SENTRY_DSN / NEXT_PUBLIC_SENTRY_DSN env vars)_
