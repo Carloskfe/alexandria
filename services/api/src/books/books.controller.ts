@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -11,11 +12,14 @@ import {
   Patch,
   Post,
   Query,
+  RawBodyRequest,
+  Req,
   Request,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { Request as ExpressRequest } from 'express';
 import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { extname } from 'path';
 import { v4 as uuidv4 } from 'uuid';
@@ -29,6 +33,7 @@ import { BooksService } from './books.service';
 import { CreateBookDto } from './dto/create-book.dto';
 import { SyncMapService } from './sync-map.service';
 import { SyncPhrase } from './sync-map.entity';
+import { SrtParserService } from './srt-parser.service';
 import { ReadingProgressService } from './reading-progress.service';
 import { FragmentsService } from '../fragments/fragments.service';
 
@@ -40,6 +45,7 @@ export class BooksController {
     private readonly booksService: BooksService,
     private readonly storageService: StorageService,
     private readonly syncMapService: SyncMapService,
+    private readonly srtParserService: SrtParserService,
     private readonly readingProgressService: ReadingProgressService,
     private readonly fragmentsService: FragmentsService,
     private readonly searchService: SearchService,
@@ -187,6 +193,29 @@ export class BooksController {
   ) {
     if (!req.user.isAdmin) throw new ForbiddenException();
     return this.syncMapService.upsert(id, body.phrases);
+  }
+
+  @Post(':id/sync-map/srt')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard)
+  async upsertSyncMapFromSrt(
+    @Param('id') id: string,
+    @Request() req: any,
+    @Req() rawReq: RawBodyRequest<ExpressRequest>,
+  ) {
+    const book = await this.booksService.findById(id);
+    const isOwner = book.uploadedById === req.user.id;
+    if (!req.user.isAdmin && !isOwner) throw new ForbiddenException();
+
+    const body = rawReq.rawBody?.toString('utf8') ?? '';
+    if (!body.trim()) throw new BadRequestException('SRT/VTT body must not be empty');
+    if (Buffer.byteLength(body, 'utf8') > 2 * 1024 * 1024) {
+      throw new BadRequestException('Body exceeds 2 MB limit');
+    }
+
+    const { phrases, source } = this.srtParserService.parse(body);
+    if (!phrases.length) throw new BadRequestException('No valid cues found in the provided SRT/VTT');
+    return this.syncMapService.upsert(id, phrases, source);
   }
 
   // ── Reading Progress ──────────────────────────────────────────────────────

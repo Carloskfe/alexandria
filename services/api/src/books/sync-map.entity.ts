@@ -17,6 +17,8 @@ export interface SyncPhrase {
   type?: 'text' | 'heading' | 'paragraph-break';
 }
 
+export type SyncSource = 'auto' | 'srt' | 'vtt' | 'manual';
+
 @Entity('sync_maps')
 export class SyncMap {
   @PrimaryGeneratedColumn('uuid')
@@ -31,6 +33,9 @@ export class SyncMap {
 
   @Column({ type: 'jsonb', default: [] })
   phrases: SyncPhrase[];
+
+  @Column({ type: 'varchar', default: 'auto' })
+  syncSource: SyncSource;
 
   @CreateDateColumn()
   createdAt: Date;

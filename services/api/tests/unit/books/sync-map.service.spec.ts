@@ -66,7 +66,7 @@ describe('SyncMapService', () => {
 
       const result = await service.upsert('b-1', samplePhrases);
 
-      expect(mockRepo.create).toHaveBeenCalledWith({ bookId: 'b-1', phrases: samplePhrases });
+      expect(mockRepo.create).toHaveBeenCalledWith({ bookId: 'b-1', phrases: samplePhrases, syncSource: 'auto' });
       expect(mockRepo.save).toHaveBeenCalledWith(created);
       expect(result).toEqual(created);
     });

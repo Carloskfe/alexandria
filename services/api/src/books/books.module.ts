@@ -7,6 +7,7 @@ import { ReadingProgress } from './reading-progress.entity';
 import { BooksController } from './books.controller';
 import { BooksService } from './books.service';
 import { SyncMapService } from './sync-map.service';
+import { SrtParserService } from './srt-parser.service';
 import { ReadingProgressService } from './reading-progress.service';
 import { UserBook } from '../library/user-book.entity';
 import { Subscription } from '../subscriptions/subscription.entity';
@@ -17,7 +18,7 @@ import { SearchModule } from '../search/search.module';
 @Module({
   imports: [TypeOrmModule.forFeature([Book, SyncMap, ReadingProgress, Subscription, User, UserBook]), FragmentsModule, SubscriptionsModule, SearchModule],
   controllers: [BooksController],
-  providers: [BooksService, SyncMapService, ReadingProgressService],
+  providers: [BooksService, SyncMapService, SrtParserService, ReadingProgressService],
   exports: [BooksService],
 })
 export class BooksModule {}

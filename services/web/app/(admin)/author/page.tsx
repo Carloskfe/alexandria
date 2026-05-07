@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 const CATEGORIES = [
@@ -221,9 +222,12 @@ export default function AuthorPage() {
         {/* Submit form */}
         <div>
           <h1 className="text-2xl font-bold text-gray-900 mb-1">Portal de autores</h1>
-          <p className="text-gray-500 text-sm mb-6">
+          <p className="text-gray-500 text-sm mb-1">
             Sube tu libro. El equipo de Noetia lo revisará antes de publicarlo.
           </p>
+          <Link href="/upload-guide" className="text-xs text-blue-600 hover:underline mb-6 inline-block">
+            ¿Cómo preparar tus archivos? Ver guía de publicación →
+          </Link>
 
           {quotaFull ? (
             <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center">
