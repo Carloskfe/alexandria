@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
+import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
 import { BookGrid } from '@/components/BookGrid';
@@ -76,9 +77,8 @@ export default function CollectionPage() {
 
         <div className="flex items-start gap-4 mb-4">
           {collection.coverUrl && (
-            <div className="w-16 aspect-[2/3] rounded-xl overflow-hidden shadow-sm flex-shrink-0">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={collection.coverUrl} alt={collection.name} className="w-full h-full object-cover" />
+            <div className="w-16 aspect-[2/3] rounded-xl overflow-hidden shadow-sm flex-shrink-0 relative">
+              <Image src={collection.coverUrl} alt={collection.name} fill sizes="64px" className="object-cover" />
             </div>
           )}
           <div className="flex-1 min-w-0">

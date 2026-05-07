@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { apiFetch } from '@/lib/api';
 import { BookGrid } from '@/components/BookGrid';
 
@@ -230,10 +231,9 @@ function FreeLibraryHero({ books }: { books: Book[] }) {
           </p>
           <div className="flex gap-2">
             {preview.map((book) => (
-              <div key={book.id} className="w-12 aspect-[2/3] rounded-lg overflow-hidden shadow-md bg-white/10 flex-shrink-0">
+              <div key={book.id} className="w-12 aspect-[2/3] rounded-lg overflow-hidden shadow-md bg-white/10 flex-shrink-0 relative">
                 {book.coverUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={book.coverUrl} alt={book.title} className="w-full h-full object-cover opacity-90" />
+                  <Image src={book.coverUrl} alt={book.title} fill sizes="48px" className="object-cover opacity-90" />
                 ) : (
                   <div className="w-full h-full bg-white/20 flex items-center justify-center">
                     <span className="text-white text-xs font-bold">{book.title[0]}</span>
@@ -266,8 +266,7 @@ function CollectionsRow({ collections }: { collections: CollectionSummary[] }) {
           >
             <div className="aspect-[2/3] rounded-xl overflow-hidden mb-2 shadow-sm group-hover:shadow-md transition relative bg-gray-200">
               {col.coverUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={col.coverUrl} alt={col.name} className="w-full h-full object-cover" />
+                <Image src={col.coverUrl} alt={col.name} fill sizes="160px" className="object-cover" />
               ) : (
                 <div className="absolute inset-0 bg-indigo-700 flex items-end p-3">
                   <span className="text-white text-xs font-semibold leading-tight line-clamp-2">{col.name}</span>

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
 const LANG_LABELS: Record<string, string> = {
   en: 'EN',
@@ -30,19 +31,26 @@ export function BookGrid({ books, libraryBookIds, onAdd }: Props) {
     <div className="grid grid-cols-2 gap-4 pb-6">
       {books.map((book) => {
         const inLibrary = libraryBookIds?.has(book.id) ?? false;
-        const langLabel = book.language && book.language !== 'es' ? LANG_LABELS[book.language] ?? book.language.toUpperCase() : null;
+        const langLabel = book.language && book.language !== 'es'
+          ? LANG_LABELS[book.language] ?? book.language.toUpperCase()
+          : null;
         return (
           <div key={book.id} className="relative group">
             <Link href={`/reader/${book.id}`} className="block">
               <div className="aspect-[2/3] rounded-xl overflow-hidden mb-2 shadow-sm group-hover:shadow-md transition relative bg-gray-200">
                 {book.coverUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={book.coverUrl} alt={book.title} className="w-full h-full object-cover" />
+                  <Image
+                    src={book.coverUrl}
+                    alt={book.title}
+                    fill
+                    sizes="(max-width: 640px) 46vw, 230px"
+                    className="object-cover"
+                  />
                 ) : (
                   <BookCoverPlaceholder title={book.title} author={book.author} />
                 )}
                 {langLabel && (
-                  <span className="absolute bottom-1.5 left-1.5 bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                  <span className="absolute bottom-1.5 left-1.5 bg-black/70 text-white text-[9px] font-bold px-1.5 py-0.5 rounded z-10">
                     {langLabel}
                   </span>
                 )}

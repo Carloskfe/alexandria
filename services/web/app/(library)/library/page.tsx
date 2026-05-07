@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { apiFetch } from '@/lib/api';
 import { BookGrid } from '@/components/BookGrid';
 
@@ -177,10 +178,9 @@ function CollectionCard({ group }: { group: CollectionGroup }) {
         className="w-full flex items-center gap-4 p-4 hover:bg-gray-50 transition text-left"
       >
         {/* Collection cover */}
-        <div className="w-12 flex-shrink-0 aspect-[2/3] rounded-lg overflow-hidden bg-gray-200 shadow-sm">
+        <div className="w-12 flex-shrink-0 aspect-[2/3] rounded-lg overflow-hidden bg-gray-200 shadow-sm relative">
           {group.coverUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={group.coverUrl} alt={group.name} className="w-full h-full object-cover" />
+            <Image src={group.coverUrl} alt={group.name} fill sizes="48px" className="object-cover" />
           ) : (
             <div className="w-full h-full bg-indigo-700 flex items-end p-1">
               <span className="text-white text-[8px] font-semibold leading-tight line-clamp-2">{group.name}</span>
@@ -195,10 +195,9 @@ function CollectionCard({ group }: { group: CollectionGroup }) {
           {/* Mini preview strip */}
           <div className="flex gap-1 mt-2">
             {previewBooks.map((b) => (
-              <div key={b.id} className="w-7 aspect-[2/3] rounded overflow-hidden bg-gray-100 flex-shrink-0">
+              <div key={b.id} className="w-7 aspect-[2/3] rounded overflow-hidden bg-gray-100 flex-shrink-0 relative">
                 {b.coverUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={b.coverUrl} alt={b.title} className="w-full h-full object-cover" />
+                  <Image src={b.coverUrl} alt={b.title} fill sizes="28px" className="object-cover" />
                 ) : (
                   <div className="w-full h-full bg-gray-300" />
                 )}

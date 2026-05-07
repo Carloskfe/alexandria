@@ -3,6 +3,11 @@ const { withSentryConfig } = require('@sentry/nextjs');
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: 'covers.openlibrary.org' },
+    ],
+  },
   async rewrites() {
     const apiUrl = process.env.INTERNAL_API_URL ?? 'http://localhost:4000';
     return [
