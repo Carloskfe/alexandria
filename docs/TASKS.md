@@ -382,7 +382,7 @@
 - [ ] Google Play submission (Android) — 0.5d
 - [x] Privacy policy and terms of service pages — 0.5d
 - [x] Onboarding flow for new users — 1d
-- [ ] Beta invite system and waitlist page — 0.5d
+- [x] Beta invite system and waitlist page — 0.5d _(landing page at /, waitlist API with confirmation + invite emails, admin view with invite button)_
 
 **Sprint 5.2 total: 9.5d**
 

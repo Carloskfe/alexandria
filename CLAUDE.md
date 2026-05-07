@@ -360,6 +360,7 @@ docker compose exec api npm run migration:run
 | 032 | `AddMissingIndexes` | idx_books_published_free, idx_books_collection, idx_books_category, idx_books_uploaded_by, idx_subscriptions_plan |
 | 033 | `AddSyncSource` | syncSource VARCHAR on sync_maps ('auto'\|'srt'\|'vtt'\|'manual') |
 | 034 | `CreateUploadCodes` | upload_codes table — admin-issued single-use courtesy upload codes |
+| 035 | `CreateWaitlist` | waitlist_entries table — email, name, isAuthor, invitedAt |
 
 ---
 

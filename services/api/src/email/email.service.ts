@@ -41,6 +41,23 @@ export class EmailService {
     });
   }
 
+  async sendWaitlistConfirmation(to: string, name: string): Promise<void> {
+    await this.send({
+      to,
+      subject: '¡Estás en la lista de espera de Noetia!',
+      html: this.waitlistConfirmationTemplate(name),
+    });
+  }
+
+  async sendWaitlistInvite(to: string, name: string): Promise<void> {
+    const link = `${this.webUrl}/register?email=${encodeURIComponent(to)}`;
+    await this.send({
+      to,
+      subject: '¡Tu acceso a Noetia Beta está listo!',
+      html: this.waitlistInviteTemplate(name, link),
+    });
+  }
+
   private async send(opts: { to: string; subject: string; html: string }): Promise<void> {
     try {
       await this.transporter.sendMail({ from: this.from, ...opts });
@@ -129,6 +146,77 @@ export class EmailService {
   </table>
 </body>
 </html>`;
+  }
+
+  private waitlistConfirmationTemplate(name: string): string {
+    return `
+<!DOCTYPE html><html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;padding:40px 0;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+        <tr><td style="background:#0D1B2A;padding:32px 40px;text-align:center;">
+          <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:700;letter-spacing:2px;">NOETIA</h1>
+          <p style="margin:6px 0 0;color:#94A3B8;font-size:13px;">Lee. Escucha. Comparte.</p>
+        </td></tr>
+        <tr><td style="padding:40px;">
+          <p style="margin:0 0 16px;color:#1E293B;font-size:18px;font-weight:600;">¡Ya estás en la lista, ${this.escape(name)}!</p>
+          <p style="margin:0 0 24px;color:#475569;font-size:15px;line-height:1.6;">
+            Gracias por tu interés en Noetia. Somos una plataforma de lectura sincronizada con audio y generación de citas visuales para compartir en redes sociales.
+          </p>
+          <p style="margin:0 0 24px;color:#475569;font-size:15px;line-height:1.6;">
+            Te avisaremos por este correo en cuanto tu acceso beta esté disponible. No necesitas hacer nada más.
+          </p>
+          <div style="background:#F1F5F9;border-radius:8px;padding:20px;margin:0 0 24px;">
+            <p style="margin:0 0 8px;color:#0D1B2A;font-size:14px;font-weight:600;">¿Qué es Noetia?</p>
+            <p style="margin:0;color:#475569;font-size:14px;line-height:1.6;">
+              🎧 <strong>Escucha Activa</strong> — texto y audio sincronizados frase por frase.<br>
+              ✍️ <strong>Fragmentos</strong> — captura las ideas que más te impactan.<br>
+              📲 <strong>Comparte</strong> — crea tarjetas visuales para LinkedIn, Instagram y más.
+            </p>
+          </div>
+          <p style="margin:0;color:#CBD5E1;font-size:12px;text-align:center;">© ${new Date().getFullYear()} Noetia. Todos los derechos reservados.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
+  }
+
+  private waitlistInviteTemplate(name: string, link: string): string {
+    return `
+<!DOCTYPE html><html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;padding:40px 0;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+        <tr><td style="background:#0D1B2A;padding:32px 40px;text-align:center;">
+          <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:700;letter-spacing:2px;">NOETIA</h1>
+          <p style="margin:6px 0 0;color:#94A3B8;font-size:13px;">Lee. Escucha. Comparte.</p>
+        </td></tr>
+        <tr><td style="padding:40px;">
+          <p style="margin:0 0 8px;color:#0D1B2A;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;">Acceso Beta</p>
+          <p style="margin:0 0 16px;color:#1E293B;font-size:22px;font-weight:700;">Tu acceso está listo, ${this.escape(name)}</p>
+          <p style="margin:0 0 28px;color:#475569;font-size:15px;line-height:1.6;">
+            Eres uno de los primeros lectores en acceder a Noetia. Crea tu cuenta y empieza a leer con el modo de Escucha Activa.
+          </p>
+          <table cellpadding="0" cellspacing="0" style="margin:0 auto 32px;">
+            <tr><td style="background:#0D1B2A;border-radius:8px;padding:16px 40px;text-align:center;">
+              <a href="${link}" style="color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;">Crear mi cuenta →</a>
+            </td></tr>
+          </table>
+          <p style="margin:0 0 8px;color:#94A3B8;font-size:13px;text-align:center;">
+            Si el botón no funciona, copia este enlace:
+          </p>
+          <p style="margin:0 0 32px;color:#0D1B2A;font-size:12px;text-align:center;word-break:break-all;">${link}</p>
+          <p style="margin:0;color:#CBD5E1;font-size:12px;text-align:center;">© ${new Date().getFullYear()} Noetia. Todos los derechos reservados.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body></html>`;
   }
 
   private escape(s: string): string {

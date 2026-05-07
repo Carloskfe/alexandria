@@ -15,6 +15,7 @@ import { SocialModule } from './social/social.module';
 import { UsersModule } from './users/users.module';
 import { LibraryModule } from './library/library.module';
 import { CodesModule } from './codes/codes.module';
+import { WaitlistModule } from './waitlist/waitlist.module';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import { CodesModule } from './codes/codes.module';
     UsersModule,
     LibraryModule,
     CodesModule,
+    WaitlistModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

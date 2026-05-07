@@ -4,6 +4,18 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiFetch } from '@/lib/api';
 
+type WaitlistEntry = {
+  id: string;
+  email: string;
+  name: string | null;
+  isAuthor: boolean;
+  message: string | null;
+  invitedAt: string | null;
+  createdAt: string;
+};
+
+type WaitlistStats = { total: number; authors: number; invited: number };
+
 type UploadCode = {
   id: string;
   code: string;
@@ -59,6 +71,12 @@ export default function AdminPage() {
   const [loadingPending, setLoadingPending] = useState(true);
   const [actionError, setActionError] = useState('');
 
+  // Waitlist state
+  const [waitlist, setWaitlist] = useState<WaitlistEntry[]>([]);
+  const [waitlistStats, setWaitlistStats] = useState<WaitlistStats | null>(null);
+  const [waitlistLoading, setWaitlistLoading] = useState(true);
+  const [inviting, setInviting] = useState<string | null>(null);
+
   // Codes state
   const [codes, setCodes] = useState<UploadCode[]>([]);
   const [codesLoading, setCodesLoading] = useState(true);
@@ -70,6 +88,25 @@ export default function AdminPage() {
 
   const getToken = () =>
     typeof window !== 'undefined' ? sessionStorage.getItem('access_token') ?? '' : '';
+
+  const fetchWaitlist = useCallback(async () => {
+    try {
+      const [entries, stats] = await Promise.all([
+        apiFetch('/waitlist'),
+        apiFetch('/waitlist/stats'),
+      ]);
+      setWaitlist(entries);
+      setWaitlistStats(stats);
+    } catch { /* ignore */ } finally { setWaitlistLoading(false); }
+  }, []);
+
+  async function handleInvite(id: string) {
+    setInviting(id);
+    try {
+      await apiFetch(`/waitlist/${id}/invite`, { method: 'POST' });
+      fetchWaitlist();
+    } catch { /* ignore */ } finally { setInviting(null); }
+  }
 
   const fetchCodes = useCallback(async () => {
     try {
@@ -119,7 +156,8 @@ export default function AdminPage() {
     }
     fetchPending();
     fetchCodes();
-  }, [router, fetchPending, fetchCodes]);
+    fetchWaitlist();
+  }, [router, fetchPending, fetchCodes, fetchWaitlist]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -179,6 +217,67 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-2xl mx-auto space-y-10">
+
+        {/* ── Lista de espera ────────────────────────────────────────────── */}
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-1">Lista de espera</h2>
+          <p className="text-gray-500 text-sm mb-4">
+            Usuarios registrados en la landing page esperando acceso beta.
+          </p>
+
+          {/* Stats */}
+          {waitlistStats && (
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              {[
+                { label: 'Total', value: waitlistStats.total },
+                { label: 'Autores', value: waitlistStats.authors },
+                { label: 'Invitados', value: waitlistStats.invited },
+              ].map(({ label, value }) => (
+                <div key={label} className="bg-white rounded-xl border border-gray-100 p-3 text-center shadow-sm">
+                  <p className="text-xl font-bold text-gray-900">{value}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">{label}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Entries */}
+          {waitlistLoading ? (
+            <p className="text-gray-400 text-sm">Cargando…</p>
+          ) : waitlist.length === 0 ? (
+            <p className="text-gray-400 text-sm">Nadie en la lista todavía.</p>
+          ) : (
+            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div className="divide-y divide-gray-50">
+                {waitlist.map((e) => (
+                  <div key={e.id} className="flex items-center gap-3 px-5 py-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900 truncate">
+                        {e.name ?? <span className="text-gray-400 font-normal">Sin nombre</span>}
+                        {e.isAuthor && <span className="ml-2 bg-purple-100 text-purple-700 text-[10px] font-semibold px-1.5 py-0.5 rounded-full">AUTOR</span>}
+                      </p>
+                      <p className="text-xs text-gray-400 truncate">{e.email}</p>
+                    </div>
+                    <span className="text-xs text-gray-400 hidden sm:block flex-shrink-0">
+                      {formatDate(e.createdAt)}
+                    </span>
+                    {e.invitedAt ? (
+                      <span className="text-xs font-medium text-green-600 flex-shrink-0">✓ Invitado</span>
+                    ) : (
+                      <button
+                        onClick={() => handleInvite(e.id)}
+                        disabled={inviting === e.id}
+                        className="text-xs bg-blue-600 text-white px-3 py-1.5 rounded-lg hover:bg-blue-700 disabled:opacity-40 transition flex-shrink-0"
+                      >
+                        {inviting === e.id ? '…' : 'Invitar'}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* ── Códigos de cortesía ───────────────────────────────────────── */}
         <div>
