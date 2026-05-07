@@ -222,4 +222,60 @@ describe('WikisourceFetcherService', () => {
       expect(result).toBe('Direct page text here.');
     });
   });
+
+  describe('fetchMultiple', () => {
+    it('concatenates pages with ##HEADING## prefix using the last path segment', async () => {
+      mockFetch
+        .mockResolvedValueOnce(HTML_RESPONSE('<p>El texto del renacuajo paseador aquí.</p>'))
+        .mockResolvedValueOnce(HTML_RESPONSE('<p>El texto de Simón el Bobito aquí.</p>'));
+
+      const result = await service.fetchMultiple([
+        'Rafael Pombo/El Renacuajo Paseador',
+        'Rafael Pombo/Simón el Bobito',
+      ]);
+
+      expect(result).toContain('##HEADING## El Renacuajo Paseador');
+      expect(result).toContain('##HEADING## Simón el Bobito');
+      expect(result).toContain('El texto del renacuajo paseador aquí.');
+      expect(result).toContain('El texto de Simón el Bobito aquí.');
+    });
+
+    it('uses the full title as heading when there is no slash', async () => {
+      mockFetch.mockResolvedValueOnce(HTML_RESPONSE('<p>Texto del poema sin ruta.</p>'));
+
+      const result = await service.fetchMultiple(['El Renacuajo Paseador']);
+
+      expect(result).toContain('##HEADING## El Renacuajo Paseador');
+    });
+
+    it('skips pages with near-empty text', async () => {
+      mockFetch
+        .mockResolvedValueOnce(HTML_RESPONSE('<p>ok</p>'))  // too short — skipped
+        .mockResolvedValueOnce(HTML_RESPONSE('<p>El texto largo de este poema va aquí.</p>'));
+
+      const result = await service.fetchMultiple(['Titulo/Corto', 'Titulo/Largo']);
+
+      expect(result).not.toContain('##HEADING## Corto');
+      expect(result).toContain('##HEADING## Largo');
+    });
+
+    it('skips pages that throw without failing the whole batch', async () => {
+      mockFetch
+        .mockResolvedValueOnce({ ok: false, status: 404 })
+        .mockResolvedValueOnce(HTML_RESPONSE('<p>Texto de la segunda página del poema.</p>'));
+
+      const result = await service.fetchMultiple(['Pagina/Uno', 'Pagina/Dos']);
+
+      expect(result).not.toContain('##HEADING## Uno');
+      expect(result).toContain('##HEADING## Dos');
+    });
+
+    it('throws when none of the pages can be fetched', async () => {
+      mockFetch.mockResolvedValue({ ok: false, status: 404 });
+
+      await expect(service.fetchMultiple(['Pagina/Uno', 'Pagina/Dos'])).rejects.toThrow(
+        'None of the provided pages could be fetched',
+      );
+    });
+  });
 });

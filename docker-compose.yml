@@ -60,6 +60,7 @@ services:
       - ./services/web/app:/app/app:ro
       - ./services/web/components:/app/components:ro
       - ./services/web/lib:/app/lib:ro
+      - ./services/web/public:/app/public:ro
     networks:
       - noetia_net
     restart: unless-stopped

@@ -19,7 +19,8 @@ export class WikisourceFetcherService {
       try {
         const text = await this.fetchPageHtml(title);
         if (text.trim().length > 20) {
-          parts.push(`\n\n## ${title} ##\n\n${text}`);
+          const shortTitle = title.split('/').pop() ?? title;
+          parts.push(`\n\n##HEADING## ${shortTitle}\n\n${text}`);
         }
       } catch {
         // skip pages that can't be fetched
