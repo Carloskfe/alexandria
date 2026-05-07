@@ -98,6 +98,7 @@ export default function ShareModal({
 
   const [selectedFormat, setSelectedFormat] = useState<ShareFormat>('ig-post');
   const [selectedFont, setSelectedFont] = useState<FontId>('lato');
+  const [fontMenuOpen, setFontMenuOpen] = useState(false);
   const [bgType, setBgType] = useState<'solid' | 'gradient' | 'image'>('solid');
   const [bgColors, setBgColors] = useState<[string, string]>(['#0D1B2A', '#1A4A4A']);
   const [gradientDir, setGradientDir] = useState<GradientDirId>('to-bottom');
@@ -114,9 +115,12 @@ export default function ShareModal({
   const textChanged = editedText !== fragmentText;
 
   // E2 — citation location
-  const defaultCitation = bookCollection === 'Biblia'
-    ? `Biblia · ${bookTitle}`
-    : bookTitle;
+  const isBible = bookCollection === 'Biblia Reina-Valera';
+  const defaultCitation = isBible
+    ? `${bookTitle}, Capítulo X, versículo Y`
+    : bookCollection
+      ? `${bookCollection} · ${bookTitle}, Capítulo X, p. N`
+      : `${bookTitle}, Capítulo X, p. N`;
   const [citationText, setCitationText] = useState(defaultCitation);
   const [citationEnabled, setCitationEnabled] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -385,14 +389,14 @@ export default function ShareModal({
                   value={citationText}
                   onChange={(e) => setCitationText(e.target.value)}
                   className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-blue-400 transition"
-                  placeholder={bookCollection === 'Biblia' ? 'Biblia · Salmos, 22, 9' : `${bookTitle}, Capítulo X, p. N`}
+                  placeholder={isBible ? `${bookTitle}, Capítulo 23, versículo 1` : bookCollection ? `${bookCollection} · ${bookTitle}, Capítulo X, p. N` : `${bookTitle}, Capítulo X, p. N`}
                 />
               )}
             </div>
 
             {/* ── Format selection ──────────────────────────────────────── */}
             <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Formato</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Formato Imagen</p>
               <select
                 value={selectedFormat}
                 onChange={(e) => setSelectedFormat(e.target.value as ShareFormat)}
@@ -408,16 +412,48 @@ export default function ShareModal({
             <div>
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Fuente</p>
               <div className="flex items-center gap-2">
-                <select
-                  value={selectedFont}
-                  onChange={(e) => setSelectedFont(e.target.value as FontId)}
-                  className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm text-gray-800 focus:outline-none focus:border-blue-400 bg-white"
-                  style={{ fontFamily: fontCss }}
-                >
-                  {FONTS.map((f) => (
-                    <option key={f.id} value={f.id} style={{ fontFamily: f.css }}>{f.label}</option>
-                  ))}
-                </select>
+                {/* Custom font dropdown — shows sample text in each font */}
+                <div className="relative flex-1">
+                  <button
+                    type="button"
+                    onClick={() => setFontMenuOpen((v) => !v)}
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm text-left bg-white flex items-center justify-between hover:border-blue-300 transition"
+                  >
+                    <div>
+                      <span className="text-xs text-gray-400 block leading-none mb-0.5">
+                        {FONTS.find((f) => f.id === selectedFont)?.label}
+                      </span>
+                      <span
+                        className="text-sm text-gray-800 leading-none"
+                        style={{ fontFamily: fontCss }}
+                      >
+                        El inicio de algo grande
+                      </span>
+                    </div>
+                    <svg className="w-4 h-4 text-gray-400 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+
+                  {fontMenuOpen && (
+                    <div className="absolute left-0 right-0 top-full mt-1 z-20 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                      {FONTS.map((f) => (
+                        <button
+                          key={f.id}
+                          type="button"
+                          onClick={() => { setSelectedFont(f.id as FontId); setFontMenuOpen(false); }}
+                          className={`w-full text-left px-3 py-2.5 hover:bg-blue-50 transition border-b border-gray-100 last:border-0 ${selectedFont === f.id ? 'bg-blue-50' : ''}`}
+                        >
+                          <span className="text-[10px] text-gray-400 block leading-none mb-0.5">{f.label}</span>
+                          <span className="text-sm text-gray-800" style={{ fontFamily: f.css }}>
+                            El inicio de algo grande
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <button
                   onClick={() => setTextBold((v) => !v)}
                   title="Negrita"

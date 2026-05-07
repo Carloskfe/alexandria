@@ -46,10 +46,10 @@ export const FORMAT_PLATFORM_MAP: Record<ShareFormat, { platform: SharePlatform;
 export const SHARE_FORMAT_LABELS: Record<ShareFormat, string> = {
   'ig-post':    'IG Post',
   'ig-story':   'IG Story',
-  'reel':       'Instagram Reel',
+  'reel':       'IG Reel',
   'fb-post':    'FB Post',
   'fb-story':   'FB Story',
-  'li-post':    'LinkedIn',
+  'li-post':    'LinkedIn Post',
   'pin-post':   'Pinterest Pin',
   'pin-square': 'Pinterest Sq.',
 };
