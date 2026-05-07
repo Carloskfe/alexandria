@@ -206,19 +206,17 @@ def make_don_juan_tenorio():
     _gradient(img, (80, 10, 20), (160, 20, 40))
     draw = ImageDraw.Draw(img)
 
-    # Decorative corner ornaments
-    def corner_ornament(x, y, flip_x=False, flip_y=False):
-        sx = -1 if flip_x else 1
-        sy = -1 if flip_y else 1
+    # Decorative corner ornaments — bounding box always x0<x1, y0<y1
+    # arc angles match each corner quadrant (PIL arc is clockwise)
+    def corner_ornament(cx, cy, a_start, a_end):
         for i, r in enumerate([40, 30, 22]):
-            alpha = 60 + i * 20
             c = (min(255, 180 + i * 20), min(255, 50 + i * 15), min(255, 50 + i * 15))
-            draw.arc([x - r * sx, y - r * sy, x + r * sx, y + r * sy], -30, 60, fill=c, width=2)
+            draw.arc([cx - r, cy - r, cx + r, cy + r], a_start, a_end, fill=c, width=2)
 
-    corner_ornament(30, 30)
-    corner_ornament(W - 30, 30, flip_x=True)
-    corner_ornament(30, H - 30, flip_y=True)
-    corner_ornament(W - 30, H - 30, flip_x=True, flip_y=True)
+    corner_ornament(30,      30,      180, 270)   # top-left
+    corner_ornament(W - 30,  30,      270, 360)   # top-right
+    corner_ornament(30,      H - 30,   90, 180)   # bottom-left
+    corner_ornament(W - 30,  H - 30,    0,  90)   # bottom-right
 
     # Theatrical mask (simple oval + eye cuts)
     mx, my = W // 2, H // 3
