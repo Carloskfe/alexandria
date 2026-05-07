@@ -1,6 +1,6 @@
 # Noetia — Project Stages, Sprints & Tasks
 
-> **Current status (2026-05-07):** Stages 0–4 complete. Stage 5 in progress — rate limiting, Sentry, next/image optimization, HTTP caching, and docker-compose hot-reload done. Profile page confirmed complete. Font set refreshed (Oswald, Libre Baskerville, Pacifico replace Lato/Lora/Raleway). Remaining: DB indexing audit, CDN, DRM audit, load testing, app store submissions.
+> **Current status (2026-05-07):** Stages 0–4 complete. Stage 5 in progress — rate limiting, Sentry, next/image optimization, HTTP caching, DB indexing (migration 032), and DRM audit done. Remaining: CDN, load testing, app store submissions.
 >
 > **P3 UI backlog (not yet in sprints):**
 > - ~~Fragment text editing before image creation (E1)~~ ✅ done
@@ -353,7 +353,7 @@
 - [x] Add Prometheus metrics to api service — 0.5d
 - [x] Grafana dashboards: API latency, error rate, queue depth — 1d
 - [ ] CDN setup for MinIO assets (CloudFront or Cloudflare) — 1d
-- [ ] Database query optimization and indexing audit — 1d
+- [x] Database query optimization and indexing audit — 1d _(migration 032: idx_books_published_free, idx_books_collection, idx_books_category, idx_books_uploaded_by, idx_subscriptions_plan)_
 - [x] API rate limiting and abuse protection — 0.5d _(ThrottlerModule: 120 req/min global, 20/min on auth endpoints; Stripe webhook exempt)_
 - [x] Content streaming caching strategy — 0.5d _(HTTP Cache-Control on /books, /books/:id/sync-map, /collections)_
 
@@ -371,7 +371,7 @@
 
 - [x] End-to-end test suite (Playwright): auth, reader, sharing flow — 2d _(unit tests already written per sprint; this covers integration + UI flows only)_
 - [ ] Load testing: simulate 500 concurrent readers — 1d
-- [ ] DRM audit: verify no raw file access leaks — 1d
+- [x] DRM audit: verify no raw file access leaks — 1d _(presigned URLs 15-min TTL ✓; GET /books/:id guarded ✓; fixed: sync-map had no guard — now requires JWT + SubscriptionGuard; MinIO buckets should be set to private in prod)_
 - [ ] Accessibility audit (WCAG 2.1 AA) — 1d
 - [ ] App Store submission (iOS) — 1d
 - [ ] Google Play submission (Android) — 0.5d

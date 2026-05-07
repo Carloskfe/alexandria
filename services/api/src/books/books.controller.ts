@@ -170,6 +170,7 @@ export class BooksController {
 
   @Get(':id/sync-map')
   @Header('Cache-Control', 'private, max-age=3600, stale-while-revalidate=86400')
+  @UseGuards(JwtAuthGuard, SubscriptionGuard)
   async getSyncMap(@Param('id') id: string) {
     const syncMap = await this.syncMapService.findByBook(id);
     if (!syncMap) throw new NotFoundException('Sync map not found');
