@@ -2,6 +2,29 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import { apiFetch } from '@/lib/api';
+
+type UploadCode = {
+  id: string;
+  code: string;
+  notes: string | null;
+  usedBy: string | null;
+  usedAt: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+};
+
+function formatDate(iso: string | null) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function CodeStatusBadge({ code }: { code: UploadCode }) {
+  const expired = code.expiresAt && new Date(code.expiresAt) < new Date();
+  if (code.usedBy) return <span className="bg-gray-100 text-gray-500 text-xs font-medium px-2 py-0.5 rounded-full">Usado</span>;
+  if (expired) return <span className="bg-red-100 text-red-600 text-xs font-medium px-2 py-0.5 rounded-full">Expirado</span>;
+  return <span className="bg-green-100 text-green-700 text-xs font-medium px-2 py-0.5 rounded-full">Disponible</span>;
+}
 
 const CATEGORIES = [
   { value: 'leadership', label: 'Liderazgo' },
@@ -36,8 +59,44 @@ export default function AdminPage() {
   const [loadingPending, setLoadingPending] = useState(true);
   const [actionError, setActionError] = useState('');
 
+  // Codes state
+  const [codes, setCodes] = useState<UploadCode[]>([]);
+  const [codesLoading, setCodesLoading] = useState(true);
+  const [codeCount, setCodeCount] = useState(1);
+  const [codeNotes, setCodeNotes] = useState('');
+  const [codeExpiry, setCodeExpiry] = useState('');
+  const [generatingCodes, setGeneratingCodes] = useState(false);
+  const [copied, setCopied] = useState<string | null>(null);
+
   const getToken = () =>
     typeof window !== 'undefined' ? sessionStorage.getItem('access_token') ?? '' : '';
+
+  const fetchCodes = useCallback(async () => {
+    try {
+      const data = await apiFetch('/admin/codes');
+      setCodes(data);
+    } catch { /* ignore */ } finally { setCodesLoading(false); }
+  }, []);
+
+  async function handleGenerateCodes(e: React.FormEvent) {
+    e.preventDefault();
+    setGeneratingCodes(true);
+    try {
+      const body: Record<string, any> = { count: codeCount };
+      if (codeNotes.trim()) body.notes = codeNotes.trim();
+      if (codeExpiry) body.expiresAt = new Date(codeExpiry).toISOString();
+      await apiFetch('/admin/codes', { method: 'POST', body: JSON.stringify(body) });
+      setCodeNotes(''); setCodeExpiry(''); setCodeCount(1);
+      fetchCodes();
+    } catch { /* ignore */ } finally { setGeneratingCodes(false); }
+  }
+
+  function copyCode(code: string) {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopied(code);
+      setTimeout(() => setCopied(null), 2000);
+    });
+  }
 
   const fetchPending = useCallback(async () => {
     setLoadingPending(true);
@@ -59,7 +118,8 @@ export default function AdminPage() {
       return;
     }
     fetchPending();
-  }, [router, fetchPending]);
+    fetchCodes();
+  }, [router, fetchPending, fetchCodes]);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -119,6 +179,80 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-12 px-4">
       <div className="max-w-2xl mx-auto space-y-10">
+
+        {/* ── Códigos de cortesía ───────────────────────────────────────── */}
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-1">Códigos de cortesía</h2>
+          <p className="text-gray-500 text-sm mb-4">
+            Genera códigos para que un autor suba un libro gratis, sin importar su cuota de plan.
+            Cada código es de un solo uso.
+          </p>
+
+          {/* Generate form */}
+          <form onSubmit={handleGenerateCodes} className="bg-white rounded-2xl p-5 shadow-sm mb-4">
+            <div className="grid grid-cols-3 gap-3 mb-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Cantidad</label>
+                <input
+                  type="number" min={1} max={100} value={codeCount}
+                  onChange={(e) => setCodeCount(Math.min(100, Math.max(1, Number(e.target.value))))}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Expira (opcional)</label>
+                <input
+                  type="date" value={codeExpiry} onChange={(e) => setCodeExpiry(e.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="flex items-end">
+                <button
+                  type="submit" disabled={generatingCodes}
+                  className="w-full bg-blue-600 text-white py-2 rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-40 transition"
+                >
+                  {generatingCodes ? 'Generando…' : 'Generar'}
+                </button>
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Nota interna</label>
+              <input
+                type="text" value={codeNotes} onChange={(e) => setCodeNotes(e.target.value)}
+                placeholder="Ej: Beta invite — Editorial Planeta"
+                className="w-full border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </form>
+
+          {/* Codes list */}
+          {codesLoading ? (
+            <p className="text-gray-400 text-sm">Cargando códigos…</p>
+          ) : codes.length === 0 ? (
+            <p className="text-gray-400 text-sm">No hay códigos generados todavía.</p>
+          ) : (
+            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <div className="divide-y divide-gray-50">
+                {codes.map((c) => (
+                  <div key={c.id} className="flex items-center gap-3 px-5 py-3">
+                    <span className="font-mono text-sm font-semibold text-gray-900 tracking-widest flex-1">{c.code}</span>
+                    <button onClick={() => copyCode(c.code)} className="text-gray-400 hover:text-blue-600 transition" title="Copiar">
+                      {copied === c.code
+                        ? <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4 text-green-500"><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                        : <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M15.666 3.888A2.25 2.25 0 0013.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 01-.75.75H9a.75.75 0 01-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 01-2.25 2.25H6.75A2.25 2.25 0 014.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 011.927-.184" /></svg>
+                      }
+                    </button>
+                    <span className="text-xs text-gray-400 w-28 truncate hidden sm:block">{c.notes ?? '—'}</span>
+                    <span className="text-xs text-gray-400 w-20 text-right hidden md:block">
+                      {c.usedAt ? formatDate(c.usedAt) : (c.expiresAt ? `exp. ${formatDate(c.expiresAt)}` : '—')}
+                    </span>
+                    <CodeStatusBadge code={c} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Pending submissions */}
         <div>

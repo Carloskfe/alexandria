@@ -36,6 +36,7 @@ import { SyncPhrase } from './sync-map.entity';
 import { SrtParserService } from './srt-parser.service';
 import { ReadingProgressService } from './reading-progress.service';
 import { FragmentsService } from '../fragments/fragments.service';
+import { UploadCodesService } from '../codes/upload-codes.service';
 
 const PRESIGN_TTL = 60 * 15; // 15 minutes
 
@@ -46,6 +47,7 @@ export class BooksController {
     private readonly storageService: StorageService,
     private readonly syncMapService: SyncMapService,
     private readonly srtParserService: SrtParserService,
+    private readonly uploadCodesService: UploadCodesService,
     private readonly readingProgressService: ReadingProgressService,
     private readonly fragmentsService: FragmentsService,
     private readonly searchService: SearchService,
@@ -107,7 +109,7 @@ export class BooksController {
   )
   async create(
     @Request() req: any,
-    @Body() dto: CreateBookDto,
+    @Body() dto: CreateBookDto & { uploadCode?: string },
     @UploadedFiles()
     files: { textFile?: Express.Multer.File[]; audioFile?: Express.Multer.File[]; coverFile?: Express.Multer.File[] },
   ) {
@@ -118,7 +120,13 @@ export class BooksController {
       userType === UserType.EDITORIAL;
     if (!canUpload) throw new ForbiddenException();
 
-    if (!isAdmin) await this.booksService.checkUploadQuota(req.user.id);
+    // Validate upload code BEFORE quota check — a valid code bypasses the quota
+    const uploadCode = dto.uploadCode?.trim();
+    if (uploadCode) {
+      await this.uploadCodesService.validate(uploadCode); // throws if invalid/expired/used
+    } else if (!isAdmin) {
+      await this.booksService.checkUploadQuota(req.user.id);
+    }
 
     let textFileKey: string | undefined;
     let audioFileKey: string | undefined;
@@ -151,6 +159,12 @@ export class BooksController {
     const book = await this.booksService.create(
       dto, textFileKey, audioFileKey, req.user.id, isAdmin, textFileSizeBytes, audioFileSizeBytes,
     );
+
+    // Consume the code atomically after the book is saved — prevents burning a code on a failed upload
+    if (uploadCode) {
+      await this.uploadCodesService.consume(uploadCode, req.user.id);
+    }
+
     if (book.isPublished) void this.searchService.indexBook(book);
     return book;
   }

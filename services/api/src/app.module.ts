@@ -14,6 +14,7 @@ import { SharingModule } from './sharing/sharing.module';
 import { SocialModule } from './social/social.module';
 import { UsersModule } from './users/users.module';
 import { LibraryModule } from './library/library.module';
+import { CodesModule } from './codes/codes.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { LibraryModule } from './library/library.module';
     SocialModule,
     UsersModule,
     LibraryModule,
+    CodesModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

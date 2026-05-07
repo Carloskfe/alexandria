@@ -270,13 +270,16 @@ export default function AuthorPage() {
             </p>
           </div>
 
-          {quotaFull ? (
-            <div className="p-6 text-center">
-              <p className="font-semibold text-red-700 mb-1">Has alcanzado el límite de tu plan</p>
-              <p className="text-sm text-red-500">Actualiza a un plan superior para publicar más libros.</p>
-            </div>
-          ) : (
-            <form ref={formRef} onSubmit={handleSubmit} className="p-6 space-y-5">
+          {/* Always show the form; quota banner appears inside when limit reached */}
+          <form ref={formRef} onSubmit={handleSubmit} className="p-6 space-y-5">
+              {quotaFull && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                  <p className="text-sm font-semibold text-amber-800 mb-0.5">Has alcanzado el límite de tu plan</p>
+                  <p className="text-xs text-amber-700">
+                    Actualiza tu plan o introduce un <strong>código de cortesía</strong> en el campo de abajo para publicar este libro.
+                  </p>
+                </div>
+              )}
 
               {/* Metadata */}
               <div className="grid grid-cols-1 gap-4">
@@ -373,6 +376,31 @@ export default function AuthorPage() {
                 )}
               </div>
 
+              {/* Optional courtesy code */}
+              <div className="border-t border-gray-100 pt-4">
+                <details className="group">
+                  <summary className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer select-none list-none hover:text-gray-700 transition">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4 transition-transform group-open:rotate-90">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                    </svg>
+                    ¿Tienes un código de cortesía?
+                  </summary>
+                  <div className="mt-3 ml-6">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Código de cortesía</label>
+                    <input
+                      name="uploadCode"
+                      type="text"
+                      placeholder="NOETIA-XXXX-XXXX"
+                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm font-mono uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onChange={(e) => { e.target.value = e.target.value.toUpperCase(); }}
+                    />
+                    <p className="text-xs text-gray-400 mt-1">
+                      Un código válido te permite subir este libro sin que cuente contra tu cuota de plan.
+                    </p>
+                  </div>
+                </details>
+              </div>
+
               {/* Upload progress */}
               {loading && uploadPct > 0 && (
                 <div>
@@ -401,7 +429,6 @@ export default function AuthorPage() {
                 {loading ? (uploadPct > 0 ? `Subiendo… ${uploadPct}%` : 'Procesando…') : 'Enviar para revisión'}
               </button>
             </form>
-          )}
         </div>
 
         {/* My books */}

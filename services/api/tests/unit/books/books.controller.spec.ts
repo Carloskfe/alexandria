@@ -5,6 +5,7 @@ import { BooksService } from '../../../src/books/books.service';
 import { StorageService } from '../../../src/storage/storage.service';
 import { SyncMapService } from '../../../src/books/sync-map.service';
 import { SrtParserService } from '../../../src/books/srt-parser.service';
+import { UploadCodesService } from '../../../src/codes/upload-codes.service';
 import { ReadingProgressService } from '../../../src/books/reading-progress.service';
 import { FragmentsService } from '../../../src/fragments/fragments.service';
 import { JwtAuthGuard } from '../../../src/auth/jwt-auth.guard';
@@ -27,6 +28,7 @@ const mockBooksService = {
 const mockStorageService = { presign: jest.fn(), upload: jest.fn() };
 const mockSyncMapService = { findByBook: jest.fn(), upsert: jest.fn() };
 const mockSrtParserService = { parse: jest.fn() };
+const mockUploadCodesService = { validate: jest.fn(), consume: jest.fn() };
 const mockProgressService = { findByUserAndBook: jest.fn(), upsert: jest.fn() };
 const mockFragmentsService = { findByUserAndBook: jest.fn() };
 const mockSearchService = { indexBook: jest.fn().mockResolvedValue(undefined), removeBook: jest.fn().mockResolvedValue(undefined) };
@@ -46,6 +48,7 @@ describe('BooksController', () => {
         { provide: StorageService, useValue: mockStorageService },
         { provide: SyncMapService, useValue: mockSyncMapService },
         { provide: SrtParserService, useValue: mockSrtParserService },
+        { provide: UploadCodesService, useValue: mockUploadCodesService },
         { provide: ReadingProgressService, useValue: mockProgressService },
         { provide: FragmentsService, useValue: mockFragmentsService },
         { provide: SearchService, useValue: mockSearchService },

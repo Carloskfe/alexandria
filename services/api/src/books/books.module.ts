@@ -14,9 +14,10 @@ import { Subscription } from '../subscriptions/subscription.entity';
 import { FragmentsModule } from '../fragments/fragments.module';
 import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 import { SearchModule } from '../search/search.module';
+import { CodesModule } from '../codes/codes.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Book, SyncMap, ReadingProgress, Subscription, User, UserBook]), FragmentsModule, SubscriptionsModule, SearchModule],
+  imports: [TypeOrmModule.forFeature([Book, SyncMap, ReadingProgress, Subscription, User, UserBook]), FragmentsModule, SubscriptionsModule, SearchModule, CodesModule],
   controllers: [BooksController],
   providers: [BooksService, SyncMapService, SrtParserService, ReadingProgressService],
   exports: [BooksService],
