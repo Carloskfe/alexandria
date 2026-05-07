@@ -42,6 +42,12 @@ const QUIJOTE_ORDER = [
   'Don Quijote de la Mancha — Vol. II',
 ];
 
+const INFANTIL_ORDER = [
+  'Fábulas y Verdades',
+  'La Edad de Oro',
+  'Cuentos de la Selva',
+];
+
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
@@ -113,6 +119,18 @@ async function bootstrap() {
     quijotePositions,
   );
   console.log(`  ✓ ${quijotePositions.length} books in order`);
+
+  // ── Literatura Infantil ────────────────────────────────────────────────────
+  console.log('Seeding collection: Literatura Infantil…');
+  const infantilPositions = await resolveBookIds(ds, INFANTIL_ORDER);
+  await service.upsertCollection(
+    'literatura-infantil',
+    'Literatura Infantil',
+    'Cuentos, fábulas y poemas para niños de los grandes autores latinoamericanos: Rafael Pombo, José Martí y Horacio Quiroga. Todo en dominio público.',
+    null,
+    infantilPositions,
+  );
+  console.log(`  ✓ ${infantilPositions.length} books in order`);
 
   await app.close();
 }

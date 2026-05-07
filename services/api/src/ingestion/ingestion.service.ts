@@ -68,6 +68,8 @@ export class IngestionService {
       isPublished: true,
       language: 'es',
       audioFileKey: entry.librivoxAudioUrl,
+      ...(entry.collection ? { collection: entry.collection } : {}),
+      ...(entry.coverUrl   ? { coverUrl:   entry.coverUrl }   : {}),
     });
     const saved = await this.bookRepo.save(book);
 

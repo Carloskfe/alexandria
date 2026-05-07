@@ -12,6 +12,8 @@ export interface CatalogueEntry {
   librivoxSearchTitle?: string;
   /** Hardcoded cover image URL — skips Open Library search when present */
   coverUrl?: string;
+  /** Collection this book belongs to (sets books.collection and filters from general catalog) */
+  collection?: string;
 }
 
 export const CATALOGUE: CatalogueEntry[] = [
@@ -328,5 +330,39 @@ export const CATALOGUE: CatalogueEntry[] = [
     wikisourceTitle: 'Biblia Reina-Valera 1909/Isaías',
     librivoxAudioUrl: 'https://librivox.org/isaias-by-reina-valera/',
     coverUrl: 'https://covers.openlibrary.org/b/id/12324628-L.jpg',
+  },
+
+  // ── Literatura Infantil ────────────────────────────────────────────────────
+
+  {
+    title: 'Fábulas y Verdades',
+    author: 'Rafael Pombo',
+    description:
+      'La obra más querida del poeta colombiano: fábulas en verso para niños que incluyen El Renacuajo Paseador, Simón el Bobito, La Pobre Viejecita y Mirringa Mirronga. Dominio público.',
+    source: 'wikisource',
+    wikisourceTitle: 'Fábulas y verdades',
+    librivoxAudioUrl: 'https://librivox.org/fabulas-y-verdades-by-rafael-pombo/',
+    collection: 'Literatura Infantil',
+  },
+  {
+    title: 'La Edad de Oro',
+    author: 'José Martí',
+    description:
+      'Revista para niños fundada por el apóstol cubano en 1889: cuentos, leyendas, historia y poesía para la juventud latinoamericana. Incluye "La Muñeca Negra", "Los Zapaticos de Rosa" y "Meñique". Dominio público.',
+    source: 'wikisource',
+    wikisourceTitle: 'La Edad de Oro',
+    librivoxAudioUrl: 'https://librivox.org/la-edad-de-oro-by-jose-marti/',
+    collection: 'Literatura Infantil',
+  },
+  {
+    title: 'Cuentos de la Selva',
+    author: 'Horacio Quiroga',
+    description:
+      'Ocho cuentos para niños ambientados en la selva misionera: La Abeja Haragana, Las Medias de los Flamencos, La Tortuga Gigante y más. Obra hermana de los Cuentos de Amor ya disponibles en Noetia. Dominio público.',
+    source: 'gutenberg',
+    gutenbergId: 20097,
+    librivoxAudioUrl: 'https://librivox.org/cuentos-de-la-selva-para-los-ninos-by-horacio-quiroga/',
+    librivoxSearchTitle: 'Cuentos de la Selva',
+    collection: 'Literatura Infantil',
   },
 ];
