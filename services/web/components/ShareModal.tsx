@@ -300,16 +300,24 @@ export default function ShareModal({
       <style>{`@import url('${GOOGLE_FONTS_URL}');`}</style>
 
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4" onClick={onClose}>
+      <div
+        className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4"
+        onClick={onClose}
+        onKeyDown={(e) => e.key === 'Escape' && onClose()}
+        role="presentation"
+      >
         <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Crear tarjeta para compartir"
           className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
             <h3 className="text-sm font-semibold text-gray-900">Crear tarjeta</h3>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-              <XIcon />
+            <button onClick={onClose} aria-label="Cerrar" className="text-gray-400 hover:text-gray-600">
+              <XIcon aria-hidden="true" />
             </button>
           </div>
 
