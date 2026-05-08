@@ -1,37 +1,48 @@
 import React, { useEffect, useState } from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { consentIsCurrent } from '../offline/consent-storage';
+import { isLoggedIn } from '../auth/token-storage';
+import { AuthProvider } from '../auth/AuthContext';
 import { ConsentScreen } from '../screens/ConsentScreen';
-import { PaywallScreen, useSubscriptionStatus, requiresPaywall } from '../screens/PaywallScreen';
-import { TabNavigator } from './TabNavigator';
+import { LoginScreen } from '../screens/auth/LoginScreen';
+import { MainNavigator } from './MainNavigator';
+
+type AppState = 'loading' | 'consent' | 'login' | 'app';
 
 export function RootNavigator() {
-  const [checking, setChecking] = useState(true);
-  const [consentGiven, setConsentGiven] = useState(false);
-  const { status, isLoading: subLoading } = useSubscriptionStatus();
+  const [state, setState] = useState<AppState>('loading');
 
   useEffect(() => {
-    consentIsCurrent().then((current) => {
-      setConsentGiven(current);
-      setChecking(false);
+    Promise.all([consentIsCurrent(), isLoggedIn()]).then(([consent, authed]) => {
+      if (!consent) { setState('consent'); return; }
+      if (!authed)  { setState('login');   return; }
+      setState('app');
     });
   }, []);
 
-  if (checking || subLoading) {
+  if (state === 'loading') {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <ActivityIndicator size="large" color="#0D1B2A" />
+        <ActivityIndicator size="large" color="#4F46E5" />
       </View>
     );
   }
 
-  if (!consentGiven) {
-    return <ConsentScreen onConsent={() => setConsentGiven(true)} />;
+  if (state === 'consent') {
+    return (
+      <ConsentScreen
+        onConsent={() => setState('login')}
+      />
+    );
   }
 
-  if (status !== null && requiresPaywall(status)) {
-    return <PaywallScreen />;
+  if (state === 'login') {
+    return <LoginScreen onLogin={() => setState('app')} />;
   }
 
-  return <TabNavigator />;
+  return (
+    <AuthProvider onLogout={() => setState('login')}>
+      <MainNavigator />
+    </AuthProvider>
+  );
 }

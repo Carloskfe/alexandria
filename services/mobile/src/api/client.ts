@@ -1,27 +1,55 @@
-const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-if (!BASE_URL) {
-  throw new Error('EXPO_PUBLIC_API_URL is not set');
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:4000';
+
+async function buildHeaders(withBody = false): Promise<Record<string, string>> {
+  const token = await AsyncStorage.getItem('noetia_access_token');
+  return {
+    ...(withBody ? { 'Content-Type': 'application/json' } : {}),
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+}
+
+async function handle<T>(res: Response): Promise<T> {
+  const data = await res.json().catch(() => ({})) as Record<string, unknown>;
+  if (!res.ok) {
+    throw Object.assign(new Error((data['message'] as string) ?? 'Request failed'), {
+      status: res.status,
+      data,
+    });
+  }
+  return data as T;
 }
 
 export const apiClient = {
-  get: (path: string) =>
-    fetch(`${BASE_URL}${path}`).then((res) => res.json()),
+  async get<T = unknown>(path: string): Promise<T> {
+    const res = await fetch(`${BASE_URL}${path}`, { headers: await buildHeaders() });
+    return handle<T>(res);
+  },
 
-  post: (path: string, body: unknown) =>
-    fetch(`${BASE_URL}${path}`, {
+  async post<T = unknown>(path: string, body?: unknown): Promise<T> {
+    const res = await fetch(`${BASE_URL}${path}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    }).then((res) => res.json()),
+      headers: await buildHeaders(true),
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+    return handle<T>(res);
+  },
 
-  patch: (path: string, body: unknown) =>
-    fetch(`${BASE_URL}${path}`, {
+  async patch<T = unknown>(path: string, body: unknown): Promise<T> {
+    const res = await fetch(`${BASE_URL}${path}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: await buildHeaders(true),
       body: JSON.stringify(body),
-    }).then((res) => res.json()),
+    });
+    return handle<T>(res);
+  },
 
-  delete: (path: string) =>
-    fetch(`${BASE_URL}${path}`, { method: 'DELETE' }).then((res) => res.json()),
+  async delete<T = unknown>(path: string): Promise<T> {
+    const res = await fetch(`${BASE_URL}${path}`, {
+      method: 'DELETE',
+      headers: await buildHeaders(),
+    });
+    return handle<T>(res);
+  },
 };
