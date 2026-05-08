@@ -61,3 +61,12 @@ coverage/
 
 # TypeScript
 *.tsbuildinfo
+
+# Large media files — transcription source files are committed but raw
+# audio (MP3, M4B, WAV, MP4) must never be checked in (100MB+ each).
+transcriptions/**/*.mp3
+transcriptions/**/*.m4b
+transcriptions/**/*.wav
+transcriptions/**/*.mp4
+transcriptions/**/*.ogg
+transcriptions/**/*.flac
