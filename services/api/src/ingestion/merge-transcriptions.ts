@@ -128,15 +128,14 @@ export function extractSequenceNumber(filename: string): number {
 
 function sortedVttFiles(dir: string): string[] {
   const files = readdirSync(dir)
-    .filter((f) => {
-      const ext = extname(f).toLowerCase();
-      return ext === '.vtt';
-    })
+    .filter((f) => extname(f).toLowerCase() === '.vtt')
     .map((f) => join(dir, f));
 
-  return files.sort((a, b) =>
-    extractSequenceNumber(a) - extractSequenceNumber(b),
-  );
+  return files.sort((a, b) => {
+    const diff = extractSequenceNumber(a) - extractSequenceNumber(b);
+    // Numeric tie (e.g. 04a vs 04b) → fall back to alphabetical
+    return diff !== 0 ? diff : basename(a).localeCompare(basename(b));
+  });
 }
 
 // ── Main merge ─────────────────────────────────────────────────────────────────
