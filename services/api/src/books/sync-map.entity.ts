@@ -17,7 +17,7 @@ export interface SyncPhrase {
   type?: 'text' | 'heading' | 'paragraph-break';
 }
 
-export type SyncSource = 'auto' | 'srt' | 'vtt' | 'manual';
+export type SyncSource = 'auto' | 'srt' | 'vtt' | 'manual' | 'whisper';
 
 @Entity('sync_maps')
 export class SyncMap {
