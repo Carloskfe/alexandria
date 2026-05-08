@@ -28,7 +28,7 @@ export interface AlignmentStats {
   lowConfidencePhrases: Array<{ index: number; text: string; confidence: number }>;
 }
 
-const MAX_DRIFT     = 80;   // words to search ahead of cursor
+const MAX_DRIFT     = 150;  // words to search ahead of cursor (covers LibriVox headers + normal drift)
 const LOW_THRESHOLD = 0.50; // flag phrases below this confidence
 
 // ── Text normalisation ─────────────────────────────────────────────────────────
@@ -46,6 +46,11 @@ function tokenize(text: string): string[] {
 }
 
 // ── Window scoring ─────────────────────────────────────────────────────────────
+//
+// Uses sequential subsequence matching: for each phrase token, look for it in
+// the window starting after the previous match. This tolerates single omitted
+// or inserted words without collapsing the rest of the matches.
+// The window is 1.5× the phrase length to absorb audio insertions.
 
 function scoreWindow(
   phraseTokens: string[],
@@ -53,20 +58,39 @@ function scoreWindow(
   offset: number,
 ): number {
   const n = phraseTokens.length;
+  if (n === 0) return 0;
   const available = words.length - offset;
   if (available <= 0) return 0;
 
-  let matches = 0;
-  const windowSize = Math.min(n, available);
-
+  // Extra room for words the reader adds that aren't in the text
+  const windowSize = Math.min(Math.ceil(n * 1.5) + 5, available);
+  const windowWords: string[] = [];
   for (let i = 0; i < windowSize; i++) {
-    if (normalizeWord(words[offset + i].word) === phraseTokens[i]) matches++;
+    windowWords.push(normalizeWord(words[offset + i].word));
+  }
+
+  let matches = 0;
+  let searchFrom = 0;
+  for (const token of phraseTokens) {
+    if (!token) continue;
+    const found = windowWords.indexOf(token, searchFrom);
+    if (found !== -1) {
+      matches++;
+      searchFrom = found + 1;
+    }
   }
 
   return matches / n;
 }
 
 // ── Main alignment ─────────────────────────────────────────────────────────────
+//
+// Proportion-based positioning: each phrase independently estimates its target
+// word index from cumulative word count relative to the total. This eliminates
+// cursor drift — a hard phrase near the start cannot push all subsequent phrases
+// to the wrong position.
+//
+// Within the expected window (±MAX_DRIFT), the best-scoring position wins.
 
 export function alignPhrases(
   phrases: SyncPhrase[],
@@ -75,44 +99,45 @@ export function alignPhrases(
   const result = phrases.map((p) => ({ ...p }));
   const lowConfidencePhrases: AlignmentStats['lowConfidencePhrases'] = [];
 
-  let wordCursor = 0;
-  let aligned = 0;
-  let totalConfidence = 0;
+  // Pre-tokenise all text phrases and sum total words for proportion calc
+  const textPhrasesWithTokens = phrases
+    .map((p, i) => ({ i, phrase: p, tokens: p.type === 'text' ? tokenize(p.text) : [] }))
+    .filter((x) => x.tokens.length > 0);
 
-  for (let i = 0; i < phrases.length; i++) {
-    const phrase = phrases[i];
+  const totalPhraseWords = textPhrasesWithTokens.reduce((s, x) => s + x.tokens.length, 0);
+  const totalWordSlots   = timedWords.length;
 
-    // Only align actual text phrases — skip headings and paragraph-breaks
-    if (phrase.type !== 'text') continue;
+  let wordsSoFar  = 0;
+  let aligned     = 0;
+  let totalConf   = 0;
 
-    const tokens = tokenize(phrase.text);
-    if (tokens.length === 0) continue;
+  for (const { i, phrase, tokens } of textPhrasesWithTokens) {
+    // Expected word index: proportion of phrase words seen so far
+    const fraction       = totalPhraseWords > 0 ? wordsSoFar / totalPhraseWords : 0;
+    const expectedIdx    = Math.round(fraction * totalWordSlots);
 
-    const searchEnd = Math.min(
-      wordCursor + MAX_DRIFT,
-      timedWords.length - tokens.length,
-    );
+    const searchStart = Math.max(0, expectedIdx - MAX_DRIFT);
+    const searchEnd   = Math.min(totalWordSlots - tokens.length, expectedIdx + MAX_DRIFT);
 
-    let best = { pos: wordCursor, score: 0 };
-
-    for (let w = wordCursor; w <= searchEnd; w++) {
+    let best = { pos: searchStart, score: 0 };
+    for (let w = searchStart; w <= searchEnd; w++) {
       const score = scoreWindow(tokens, timedWords, w);
       if (score > best.score) {
         best = { pos: w, score };
-        if (score === 1) break; // perfect match — stop searching
+        if (score === 1) break;
       }
     }
 
-    const endPos = Math.min(best.pos + tokens.length - 1, timedWords.length - 1);
+    const endPos = Math.min(best.pos + tokens.length - 1, totalWordSlots - 1);
     result[i] = {
       ...phrase,
       startTime: timedWords[best.pos]?.start ?? 0,
-      endTime:   timedWords[endPos]?.end   ?? 0,
+      endTime:   timedWords[endPos]?.end     ?? 0,
     };
 
-    wordCursor = best.pos + tokens.length;
+    wordsSoFar += tokens.length;
     aligned++;
-    totalConfidence += best.score;
+    totalConf += best.score;
 
     if (best.score < LOW_THRESHOLD) {
       lowConfidencePhrases.push({
@@ -131,7 +156,7 @@ export function alignPhrases(
       total:               textPhraseCount,
       aligned,
       lowConfidence:       lowConfidencePhrases.length,
-      avgConfidence:       aligned > 0 ? Math.round((totalConfidence / aligned) * 100) / 100 : 0,
+      avgConfidence:       aligned > 0 ? Math.round((totalConf / aligned) * 100) / 100 : 0,
       lowConfidencePhrases,
     },
   };

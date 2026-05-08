@@ -65,11 +65,18 @@ export function parseVtt(content: string): TimedWord[] {
       }
     }
 
-    // Fall back to segment-level: one entry covering the whole cue
+    // Segment-level cue (no inline word timestamps): split into individual
+    // words and distribute the timestamp range proportionally across them.
     if (!hadWordTimestamps) {
       const text = line.replace(/<[^>]+>/g, '').trim();
       if (text) {
-        words.push({ word: text, start: cueStart, end: cueEnd });
+        const tokens = text.split(/\s+/).filter(Boolean);
+        const duration = cueEnd - cueStart;
+        tokens.forEach((token, idx) => {
+          const wordStart = cueStart + (idx / tokens.length) * duration;
+          const wordEnd   = cueStart + ((idx + 1) / tokens.length) * duration;
+          words.push({ word: token, start: wordStart, end: wordEnd });
+        });
       }
     }
   }

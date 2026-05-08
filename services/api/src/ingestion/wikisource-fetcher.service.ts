@@ -130,7 +130,9 @@ export class WikisourceFetcherService {
       .replace(/&quot;/g, '"')
       .replace(/&#39;/g, "'")
       .replace(/&#160;/g, ' ')
+      .replace(/&#32;/g, ' ')
       .replace(/&nbsp;/g, ' ')
+      .replace(/&#\d+;/g, ' ')
       // Normalize spacing — preserve paragraph breaks, collapse inline spaces
       .replace(/[ \t]+/g, ' ')
       .replace(/\n[ \t]+/g, '\n')
