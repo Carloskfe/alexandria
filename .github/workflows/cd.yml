@@ -5,24 +5,33 @@ on:
     branches: [main]
 
 jobs:
-  build-and-deploy:
-    name: Build images & deploy to staging
+  deploy:
+    name: Deploy to production (Contabo)
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v5
 
-      - name: Build API image
-        run: docker build -t noetia-api:${{ github.sha }} ./services/api
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: 84.247.140.175
+          username: root
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -e
+            cd /opt/noetia
 
-      - name: Build Web image
-        run: docker build -t noetia-web:${{ github.sha }} ./services/web
+            echo "── Pulling latest code ──────────────────────────"
+            git pull origin main
 
-      - name: Build Worker image
-        run: docker build -t noetia-worker:${{ github.sha }} ./services/worker
+            echo "── Building and starting containers ─────────────"
+            docker compose -f docker-compose.server.yml up -d --build --remove-orphans
 
-      - name: Build Image-Gen image
-        run: docker build -t noetia-image-gen:${{ github.sha }} ./services/image-gen
+            echo "── Running migrations ───────────────────────────"
+            docker compose -f docker-compose.server.yml exec -T api npm run migration:run
 
-      - name: Deploy to staging
-        run: echo "deploy to staging — configure when staging server is provisioned"
+            echo "── Cleaning up unused images ────────────────────"
+            docker image prune -f
+
+            echo "── Deploy complete ──────────────────────────────"

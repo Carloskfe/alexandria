@@ -1,0 +1,305 @@
+# Production server deployment — standalone (does not inherit from docker-compose.yml)
+# Usage:
+#   docker compose -f docker-compose.server.yml up -d --build
+#   docker compose -f docker-compose.server.yml exec -T api npm run migration:run
+#
+# Requires:
+#   - Docker network "proxy" created by Traefik (infra/server/traefik/)
+#   - .env.production file in the same directory
+
+networks:
+  noetia_net:
+    driver: bridge
+  proxy:
+    external: true  # Created by infra/server/traefik/docker-compose.yml
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  meilisearch_data:
+
+services:
+  # ─── API (NestJS) ───────────────────────────────────────────────────────────
+  # Traefik routes: noetia.app/api/* → this service (strips /api prefix)
+  api:
+    build:
+      context: ./services/api
+      target: production
+    env_file: .env.production
+    environment:
+      NODE_ENV: production
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    networks:
+      - noetia_net
+      - proxy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          memory: 256M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.noetia-api.rule=Host(`noetia.app`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.noetia-api.entrypoints=websecure"
+      - "traefik.http.routers.noetia-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.noetia-api.loadbalancer.server.port=4000"
+      # Strip /api prefix before forwarding — NestJS routes start at /
+      - "traefik.http.middlewares.noetia-strip-api.stripprefix.prefixes=/api"
+      - "traefik.http.routers.noetia-api.middlewares=noetia-strip-api"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # ─── Web (Next.js) ──────────────────────────────────────────────────────────
+  # Traefik routes: noetia.app → this service
+  #                 www.noetia.app → permanent redirect to noetia.app
+  web:
+    build:
+      context: ./services/web
+      target: production
+    env_file: .env.production
+    environment:
+      NODE_ENV: production
+    depends_on:
+      - api
+    networks:
+      - noetia_net
+      - proxy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          memory: 256M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      # Main domain router
+      - "traefik.http.routers.noetia-web.rule=Host(`noetia.app`)"
+      - "traefik.http.routers.noetia-web.entrypoints=websecure"
+      - "traefik.http.routers.noetia-web.tls.certresolver=letsencrypt"
+      - "traefik.http.services.noetia-web.loadbalancer.server.port=3000"
+      # www → apex redirect
+      - "traefik.http.routers.noetia-www.rule=Host(`www.noetia.app`)"
+      - "traefik.http.routers.noetia-www.entrypoints=websecure"
+      - "traefik.http.routers.noetia-www.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.noetia-www.service=noetia-web"
+      - "traefik.http.middlewares.noetia-www-redirect.redirectregex.regex=^https://www\\.noetia\\.app/(.*)"
+      - "traefik.http.middlewares.noetia-www-redirect.redirectregex.replacement=https://noetia.app/$${1}"
+      - "traefik.http.middlewares.noetia-www-redirect.redirectregex.permanent=true"
+      - "traefik.http.routers.noetia-www.middlewares=noetia-www-redirect"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # ─── Image Generation (Python/Flask) ────────────────────────────────────────
+  image-gen:
+    build:
+      context: ./services/image-gen
+    env_file: .env.production
+    environment:
+      FLASK_ENV: production
+    depends_on:
+      storage:
+        condition: service_healthy
+    networks:
+      - noetia_net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # ─── Worker (BullMQ) ────────────────────────────────────────────────────────
+  worker:
+    build:
+      context: ./services/worker
+      target: production
+    env_file: .env.production
+    environment:
+      NODE_ENV: production
+    depends_on:
+      cache:
+        condition: service_healthy
+    networks:
+      - noetia_net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          memory: 128M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  # ─── PostgreSQL ─────────────────────────────────────────────────────────────
+  # No host port binding — internal only via noetia_net
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-noetia}
+      POSTGRES_USER: ${DB_USER:-noetia}
+      POSTGRES_PASSWORD: ${DB_PASS:?DB_PASS is required in .env.production}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./infra/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-noetia} -d ${DB_NAME:-noetia}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - noetia_net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: 512M
+        reservations:
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # ─── Redis ──────────────────────────────────────────────────────────────────
+  # No host port binding — internal only via noetia_net
+  cache:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+      - ./infra/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - noetia_net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          memory: 64M
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+
+  # ─── MinIO ──────────────────────────────────────────────────────────────────
+  # Bound to 127.0.0.1 — access via SSH tunnel only:
+  #   ssh -L 9001:localhost:9001 root@84.247.140.175
+  storage:
+    image: minio/minio:latest
+    ports:
+      - "127.0.0.1:9000:9000"
+      - "127.0.0.1:9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY is required}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?MINIO_SECRET_KEY is required}
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - noetia_net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 256M
+        reservations:
+          memory: 128M
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+
+  # ─── Meilisearch ────────────────────────────────────────────────────────────
+  # No host port binding — internal only via noetia_net
+  search:
+    image: getmeili/meilisearch:v1.7
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:?MEILI_MASTER_KEY is required}
+      MEILI_ENV: production
+    volumes:
+      - meilisearch_data:/meili_data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:7700/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    networks:
+      - noetia_net
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.5"
+          memory: 512M
+        reservations:
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
+
+  # ─── Grafana ────────────────────────────────────────────────────────────────
+  # Bound to 127.0.0.1 — access via SSH tunnel only:
+  #   ssh -L 3001:localhost:3001 root@84.247.140.175
+  monitor:
+    image: grafana/grafana:10.4.0
+    ports:
+      - "127.0.0.1:3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
+    networks:
+      - noetia_net
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "5m"
+        max-file: "3"
