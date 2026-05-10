@@ -222,12 +222,11 @@ services:
         max-file: "3"
 
   # ─── MinIO ──────────────────────────────────────────────────────────────────
-  # Bound to 127.0.0.1 — access via SSH tunnel only:
-  #   ssh -L 9001:localhost:9001 root@84.247.140.175
+  # API (port 9000) exposed via Traefik at storage.noetia.app
+  # Console (port 9001) SSH tunnel only: ssh -L 9001:localhost:9001 root@84.247.140.175
   storage:
     image: minio/minio:latest
     ports:
-      - "127.0.0.1:9000:9000"
       - "127.0.0.1:9001:9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ACCESS_KEY:?MINIO_ACCESS_KEY is required}
@@ -242,6 +241,7 @@ services:
       retries: 5
     networks:
       - noetia_net
+      - proxy
     restart: unless-stopped
     deploy:
       resources:
@@ -250,6 +250,13 @@ services:
           memory: 256M
         reservations:
           memory: 128M
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.noetia-storage.rule=Host(`storage.noetia.app`)"
+      - "traefik.http.routers.noetia-storage.entrypoints=websecure"
+      - "traefik.http.routers.noetia-storage.tls.certresolver=letsencrypt"
+      - "traefik.http.services.noetia-storage.loadbalancer.server.port=9000"
     logging:
       driver: json-file
       options:
