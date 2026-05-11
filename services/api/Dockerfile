@@ -20,6 +20,6 @@ FROM node:20-alpine AS production
 WORKDIR /app
 COPY --from=build /app/dist ./dist
 COPY package.json ./
-RUN npm install --omit=dev
+RUN npm install --omit=dev --legacy-peer-deps
 EXPOSE 4000
 CMD ["node", "dist/main"]
