@@ -441,6 +441,72 @@ All third-party services used in production. Credentials are in `.env.production
 
 ---
 
+## Adding a Whisper Sync Map for a Book
+
+Use this procedure whenever you have Whisper-generated VTT files for a book that currently has no phrase timestamps (`syncSource = 'auto'`).
+
+### Step 1 — Prepare individual chapter VTTs
+
+Run Whisper on each LibriVox chapter audio file with word-level timestamps:
+
+```bash
+whisper chapter_01.mp3 --language es --word_timestamps True --output_format vtt
+whisper chapter_02.mp3 --language es --word_timestamps True --output_format vtt
+# repeat for all chapters
+```
+
+Name the output files so they sort in chapter order (e.g. `01_prologue.vtt`, `02_chapter.vtt`). The merge tool orders by the first integer it finds in each filename.
+
+### Step 2 — Place VTTs in the transcriptions directory
+
+```
+transcriptions/
+└── Book Title/           ← directory named exactly as the book title
+    ├── 01_chapter.vtt
+    ├── 02_chapter.vtt
+    └── ...
+```
+
+### Step 3 — Merge into a single VTT
+
+Run from the repo root on your local machine (requires ts-node):
+
+```bash
+npx ts-node services/api/src/ingestion/merge-transcriptions.ts \
+  --dir "transcriptions/Book Title" \
+  --out "transcriptions/book-slug.merged.vtt"
+```
+
+This stitches all chapter VTTs into one file with adjusted timestamps and a 2-second gap between chapters.
+
+### Step 4 — Commit and push
+
+```bash
+git add transcriptions/
+git commit -m "chore: add Whisper VTT for Book Title"
+git push
+```
+
+### Step 5 — Copy to server and run sync
+
+```bash
+# On the server
+cd /opt/noetia && git pull
+
+# Copy VTT into the running api container
+docker cp transcriptions/book-slug.merged.vtt noetia-api-1:/app/transcriptions/book-slug.merged.vtt
+
+# Run the alignment
+docker compose --env-file .env.production -f docker-compose.server.yml exec -T -e DB_HOST=db api \
+  node dist/ingestion/seed-sync-whisper.js \
+  --book "Book Title" \
+  --transcript /app/transcriptions/book-slug.merged.vtt
+```
+
+The script prints an alignment summary (phrase count, avg confidence, low-confidence phrases to spot-check) and saves the sync map to the database with `syncSource = 'whisper'`.
+
+---
+
 ## Content Ingestion
 
 All ingestion scripts run inside the `api` container (TypeORM + NestJS DI):
