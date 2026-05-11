@@ -29,9 +29,10 @@ The ~40 public-domain books exist to give beta users a complete reading experien
 4. [Environment Variables](#environment-variables)
 5. [Docker Dev Volume Mounts](#docker-dev-volume-mounts)
 6. [Production Deployment](#production-deployment)
-7. [Content Ingestion](#content-ingestion)
-8. [Database Migrations](#database-migrations)
-9. [Testing](#testing)
+7. [Infrastructure & Vendors](#infrastructure--vendors)
+8. [Content Ingestion](#content-ingestion)
+9. [Database Migrations](#database-migrations)
+10. [Testing](#testing)
 
 ---
 
@@ -307,10 +308,11 @@ The `docker-compose.yml` mounts source directories as read-only volumes so chang
 
 | Property | Value |
 |----------|-------|
-| Provider | Contabo |
+| Provider | Contabo (contabo.com) — Cloud VPS 30 SSD |
 | IP | `84.247.140.175` |
 | OS | Ubuntu 24.04 LTS |
-| Specs | 8 vCPU · 24 GB RAM · 400 GB SSD |
+| Specs | 8 vCPU · 24 GB RAM · 400 GB SSD · 600 Mbit/s · unlimited traffic |
+| Snapshots | 3 available (use before major changes) |
 | Domains | `noetia.app`, `storage.noetia.app` |
 
 ### Architecture
@@ -376,6 +378,66 @@ Traefik must be started first before any project containers:
 ```bash
 cd /opt/traefik && touch acme.json && chmod 600 acme.json && docker compose up -d
 ```
+
+---
+
+## Infrastructure & Vendors
+
+All third-party services used in production. Credentials are in `.env.production` on the server — never committed.
+
+### DNS & Domain management
+| Service | Provider | Notes |
+|---------|----------|-------|
+| `noetia.app` | Cloudflare | DNS-only mode (gray cloud) — Traefik handles SSL |
+| `storage.noetia.app` | Cloudflare | MinIO API subdomain — DNS-only |
+| `www.noetia.app` | Cloudflare | Permanent redirect to apex via Traefik |
+
+### Transactional email
+| Property | Value |
+|----------|-------|
+| Provider | Resend (resend.com) |
+| Plan | Free tier (3,000 emails/month, 100/day) |
+| Sending domain | `noetia.app` (DKIM + SPF + DMARC verified in Cloudflare) |
+| From address | `noreply@noetia.app` |
+| SMTP relay | `smtp.resend.com:465` (TLS) |
+| Used for | Email confirmation, password reset |
+
+### Payments
+| Property | Value |
+|----------|-------|
+| Provider | Stripe (stripe.com) |
+| Status | Not yet configured for production — keys empty in `.env.production` |
+| Webhook endpoint | `https://noetia.app/api/webhooks/stripe` |
+
+### Error tracking
+| Property | Value |
+|----------|-------|
+| Provider | Sentry (sentry.io) |
+| Status | SDK installed, not yet activated — set `SENTRY_DSN` / `NEXT_PUBLIC_SENTRY_DSN` to enable |
+
+### Search
+| Property | Value |
+|----------|-------|
+| Provider | Meilisearch (self-hosted, v1.7) |
+| Location | Running in Docker on the Contabo VPS |
+| Access | Internal only (no external port) |
+
+### File storage
+| Property | Value |
+|----------|-------|
+| Provider | MinIO (self-hosted, S3-compatible) |
+| Location | Running in Docker on the Contabo VPS |
+| Public URL | `https://storage.noetia.app` |
+| Console | SSH tunnel only: `ssh -L 9001:localhost:9001 root@84.247.140.175` |
+| Buckets | `books/` (private) · `audio/` (private) · `images/` (public download) |
+
+### CI/CD
+| Property | Value |
+|----------|-------|
+| Provider | GitHub Actions |
+| Trigger | Push to `main` branch |
+| Auth | `DEPLOY_SSH_KEY` secret in GitHub repo settings |
+| Deploy key location | `/root/.ssh/deploy_key` on server |
 
 ---
 

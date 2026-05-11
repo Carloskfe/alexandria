@@ -20,6 +20,19 @@
 > - Integrate background preset images into ShareModal UI (D7)
 > - ~~Bottom nav — "Mi Biblioteca" and "Colección General" names + icons aligned~~ ✅ done
 > - Delete account — user right (GDPR); API: DELETE /users/me (cascade all data), Web: confirmation dialog in account settings, farewell email
+>
+> **Security & ops backlog (not yet in sprints):**
+> - [ ] SSH hardening — generate SSH key pair for personal access, add public key to server, disable root password login (`PermitRootLogin prohibit-password` in `/etc/ssh/sshd_config`)
+> - [ ] Automated PostgreSQL backups — daily pg_dump to a separate Contabo snapshot or off-site storage (Backblaze B2 / S3); retention: 7 daily + 4 weekly
+> - [ ] MinIO data backup — sync `minio_data` Docker volume to off-site storage; currently no backup exists
+> - [ ] Server monitoring & alerting — configure Grafana alerts for API error rate, disk usage >80%, container restarts; add uptime monitor (UptimeRobot free tier or BetterStack)
+> - [ ] Let's Encrypt renewal smoke test — Traefik auto-renews but verify renewal is working 30 days before expiry; add Grafana alert or cron check
+> - [ ] Stripe webhook security — add `STRIPE_WEBHOOK_SECRET` and enable signature verification before going live with payments
+> - [ ] MinIO bucket policy audit — confirm `books/` and `audio/` buckets are private in production; only `images/` should allow public download
+> - [ ] GitHub Actions deploy scope — currently uses root SSH key; create a dedicated `deploy` Linux user with limited sudo scope and update `DEPLOY_SSH_KEY`
+> - [ ] Secrets rotation policy — document how and when to rotate JWT_SECRET, MINIO credentials, SOCIAL_TOKEN_SECRET; rotation requires a container restart
+> - [ ] Privacy policy compliance — confirm email addresses collected via waitlist and registration are handled per GDPR/CCPA; add data retention policy
+> - [ ] Add `DB_HOST=db` to `.env.production` template — was missing at launch, caused seed script failures; document in CLAUDE.md required env vars checklist
 
 **Estimation key:** Each task is estimated in days (1 dev). Sprints are 2 weeks (10 working days).
 **Legend:** `[ ]` pending · `[x]` done · `[~]` in progress
