@@ -26,10 +26,10 @@ jobs:
             git pull origin main
 
             echo "── Building and starting containers ─────────────"
-            docker compose -f docker-compose.server.yml up -d --build --remove-orphans
+            docker compose --env-file .env.production -f docker-compose.server.yml up -d --build --remove-orphans
 
             echo "── Running migrations ───────────────────────────"
-            docker compose -f docker-compose.server.yml exec -T api npm run migration:run
+            docker compose --env-file .env.production -f docker-compose.server.yml exec -T api npm run migration:run
 
             echo "── Cleaning up unused images ────────────────────"
             docker image prune -f
