@@ -18,7 +18,7 @@ import { Subscription, SubscriptionStatus } from './subscription.entity';
 
 @Injectable()
 export class SubscriptionsService {
-  private readonly stripe: InstanceType<typeof Stripe>;
+  private readonly stripe: InstanceType<typeof Stripe> | null;
   private readonly logger = new Logger(SubscriptionsService.name);
   private readonly webUrl: string;
 
@@ -35,8 +35,14 @@ export class SubscriptionsService {
     @InjectRepository(UserBook)
     private readonly userBookRepo: Repository<UserBook>,
   ) {
-    this.stripe = new Stripe(this.config.getOrThrow('STRIPE_SECRET_KEY'));
+    const stripeKey = this.config.get<string>('STRIPE_SECRET_KEY');
+    this.stripe = stripeKey ? new Stripe(stripeKey) : null;
     this.webUrl = this.config.get('WEB_URL', 'http://localhost:3000');
+  }
+
+  private requireStripe(): InstanceType<typeof Stripe> {
+    if (!this.stripe) throw new BadRequestException({ error: 'payments_not_configured' });
+    return this.stripe;
   }
 
   async getOrCreateStripeCustomer(userId: string): Promise<string> {
@@ -45,7 +51,7 @@ export class SubscriptionsService {
 
     if (user.stripeCustomerId) return user.stripeCustomerId;
 
-    const customer = await this.stripe.customers.create({
+    const customer = await this.requireStripe().customers.create({
       email: user.email ?? undefined,
       metadata: { noetiaUserId: userId },
     });
@@ -60,7 +66,7 @@ export class SubscriptionsService {
 
     const customerId = await this.getOrCreateStripeCustomer(userId);
 
-    const session = await this.stripe.checkout.sessions.create({
+    const session = await this.requireStripe().checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],
       line_items: [{ price: plan.stripePriceId, quantity: 1 }],
@@ -79,7 +85,7 @@ export class SubscriptionsService {
       throw new NotFoundException({ error: 'no_billing_account' });
     }
 
-    const session = await this.stripe.billingPortal.sessions.create({
+    const session = await this.requireStripe().billingPortal.sessions.create({
       customer: user.stripeCustomerId,
       return_url: `${this.webUrl}/account/billing`,
     });
@@ -94,7 +100,7 @@ export class SubscriptionsService {
 
     const customerId = await this.getOrCreateStripeCustomer(userId);
 
-    const session = await this.stripe.checkout.sessions.create({
+    const session = await this.requireStripe().checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],
       line_items: [{
@@ -173,7 +179,7 @@ export class SubscriptionsService {
       throw new NotFoundException({ error: 'no_active_subscription' });
     }
 
-    const updated = await this.stripe.subscriptions.update(sub.stripeSubscriptionId, {
+    const updated = await this.requireStripe().subscriptions.update(sub.stripeSubscriptionId, {
       cancel_at_period_end: true,
     });
 
@@ -187,7 +193,7 @@ export class SubscriptionsService {
       throw new NotFoundException({ error: 'no_active_subscription' });
     }
 
-    await this.stripe.subscriptions.update(sub.stripeSubscriptionId, {
+    await this.requireStripe().subscriptions.update(sub.stripeSubscriptionId, {
       cancel_at_period_end: false,
     });
 
@@ -199,7 +205,7 @@ export class SubscriptionsService {
     const sub = await this.subRepo.findOneBy({ userId });
     if (!sub?.stripeSubscriptionId) return { status: 'none' };
 
-    const stripeSub = await this.stripe.subscriptions.retrieve(sub.stripeSubscriptionId) as any;
+    const stripeSub = await this.requireStripe().subscriptions.retrieve(sub.stripeSubscriptionId) as any;
     const status = this.mapStripeStatus(stripeSub.status, stripeSub.cancel_at_period_end);
 
     await this.subRepo.update(sub.id, {
