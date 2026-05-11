@@ -28,9 +28,10 @@ The ~40 public-domain books exist to give beta users a complete reading experien
 3. [Project Structure](#project-structure)
 4. [Environment Variables](#environment-variables)
 5. [Docker Dev Volume Mounts](#docker-dev-volume-mounts)
-6. [Content Ingestion](#content-ingestion)
-7. [Database Migrations](#database-migrations)
-8. [Testing](#testing)
+6. [Production Deployment](#production-deployment)
+7. [Content Ingestion](#content-ingestion)
+8. [Database Migrations](#database-migrations)
+9. [Testing](#testing)
 
 ---
 
@@ -82,7 +83,7 @@ Never batch multiple unrelated changes into a single commit. Small, focused comm
 | `storage`   | MinIO                 | Books, audio files, generated images (S3)  |
 | `image-gen` | Python + Pillow/Cairo | Quote card image generation microservice   |
 | `worker`    | BullMQ (Node.js)      | Async jobs: image rendering, share exports |
-| `proxy`     | Nginx                 | Reverse proxy, SSL termination             |
+| `proxy`     | Nginx (dev) / Traefik (prod) | Reverse proxy, SSL termination      |
 | `search`    | Meilisearch           | Book and fragment full-text search         |
 | `monitor`   | Grafana + Prometheus  | Metrics and alerting                       |
 
@@ -94,8 +95,9 @@ Never batch multiple unrelated changes into a single commit. Small, focused comm
 
 ```
 noetia/
-├── docker-compose.yml
-├── docker-compose.prod.yml
+├── docker-compose.yml           # Local dev
+├── docker-compose.prod.yml      # Production resource limits overlay
+├── docker-compose.server.yml    # Standalone server deploy (Traefik, no nginx)
 ├── .env.example
 ├── docs/
 │   ├── PRD.md
@@ -199,12 +201,17 @@ noetia/
     │   └── init.sql
     ├── redis/
     │   └── redis.conf
-    └── minio/
-        └── buckets.sh              # Creates buckets + folder structure:
-                                    #   books/covers/
-                                    #   images/share/
-                                    #   images/backgrounds/presets/
-                                    #   images/backgrounds/user/
+    ├── minio/
+    │   └── buckets.sh              # Creates buckets + folder structure:
+    │                               #   books/covers/
+    │                               #   images/share/
+    │                               #   images/backgrounds/presets/
+    │                               #   images/backgrounds/user/
+    └── server/
+        ├── init.sh                 # One-time Ubuntu 24.04 setup (run as root)
+        └── traefik/
+            ├── docker-compose.yml  # Traefik v3 container
+            └── traefik.yml         # Static config — Let's Encrypt, entrypoints
 ```
 
 Each service that contains a `src/` directory also has a sibling `tests/unit/` directory that mirrors it exactly (see [Testing](#testing)).
@@ -213,7 +220,10 @@ Each service that contains a `src/` directory also has a sibling `tests/unit/` d
 
 ## Environment Variables
 
-Copy `.env.example` to `.env` and fill in the required values. Key variables:
+**Local dev:** copy `.env.example` to `.env` and fill in values.
+**Production:** create `.env.production` on the server at `/opt/noetia/.env.production`. This file is never committed — keep it in a password manager.
+
+Key variables:
 
 ### API
 | Variable | Default | Notes |
@@ -266,6 +276,12 @@ Leave all Sentry vars empty in development — the SDK skips initialization when
 ### Stripe
 See [`docs/stripe-setup.md`](docs/stripe-setup.md) for full setup instructions.
 
+### Production — MinIO
+| Variable | Production value | Notes |
+|----------|-----------------|-------|
+| `MINIO_ENDPOINT` | `storage` | Docker service name (same in prod) |
+| `MINIO_PUBLIC_URL` | `https://storage.noetia.app` | Traefik exposes MinIO API at this subdomain |
+
 ---
 
 ## Docker Dev Volume Mounts
@@ -282,6 +298,84 @@ The `docker-compose.yml` mounts source directories as read-only volumes so chang
 | `web` | `services/web/next.config.js` | Next.js config (image domains, rewrites) |
 
 **Files that still require a rebuild:** `package.json`, `Dockerfile`, `tsconfig.json`, `tailwind.config.*`, any new dependency.
+
+---
+
+## Production Deployment
+
+### Server
+
+| Property | Value |
+|----------|-------|
+| Provider | Contabo |
+| IP | `84.247.140.175` |
+| OS | Ubuntu 24.04 LTS |
+| Specs | 8 vCPU · 24 GB RAM · 400 GB SSD |
+| Domains | `noetia.app`, `storage.noetia.app` |
+
+### Architecture
+
+```
+Internet (80/443)
+      │
+   Traefik v3          /opt/traefik/   — auto SSL via Let's Encrypt
+   ┌────┴──────────────────┐
+   │                       │
+noetia.app             storage.noetia.app
+noetia.app/api/*           │
+   │                    MinIO API
+   ├── web:3000             (presigned URLs for browser downloads)
+   └── api:4000
+
+Internal only (no host ports):
+  PostgreSQL · Redis · Meilisearch · Grafana (127.0.0.1:3001)
+```
+
+### Auto-deploy (GitHub Actions)
+
+Every push to `main` triggers `.github/workflows/cd.yml`:
+1. SSHes into server using `DEPLOY_SSH_KEY` secret
+2. `git pull origin main`
+3. `docker compose --env-file .env.production -f docker-compose.server.yml up -d --build`
+4. Runs pending migrations
+5. Prunes unused Docker images
+
+### Manual deploy commands
+
+```bash
+# SSH in
+ssh root@84.247.140.175
+
+# Deploy manually (same as what CI runs)
+cd /opt/noetia
+git pull origin main
+docker compose --env-file .env.production -f docker-compose.server.yml up -d --build
+docker compose --env-file .env.production -f docker-compose.server.yml exec -T api npm run migration:run
+
+# View logs
+docker compose -f docker-compose.server.yml logs -f api
+docker compose -f docker-compose.server.yml logs -f web
+
+# Check running containers
+docker ps
+
+# Access MinIO console (SSH tunnel — run on local machine)
+ssh -L 9001:localhost:9001 root@84.247.140.175
+# Then open http://localhost:9001 in browser
+
+# Access Grafana (SSH tunnel — run on local machine)
+ssh -L 3001:localhost:3001 root@84.247.140.175
+# Then open http://localhost:3001 in browser
+```
+
+### First-time server setup
+
+See `infra/server/init.sh` — run once as root on a fresh Ubuntu 24.04 server. Installs Docker, configures UFW firewall, creates `/opt/traefik`, `/opt/noetia`, `/opt/autoguildx`, and the `proxy` Docker network.
+
+Traefik must be started first before any project containers:
+```bash
+cd /opt/traefik && touch acme.json && chmod 600 acme.json && docker compose up -d
+```
 
 ---
 

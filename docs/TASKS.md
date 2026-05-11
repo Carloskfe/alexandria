@@ -5,7 +5,7 @@
 > 2. **Author/company experience** — content supply chain; upload, sync tooling, analytics
 > 3. **Free library** — beta acquisition only; not expanded after 6–12 months; UI hero will yield to author content
 >
-> **Current status (2026-05-07):** Stages 0–4 complete. Stage 5 in progress — rate limiting, Sentry, next/image optimization, HTTP caching, DB indexing (migration 032), DRM audit, load testing, and WCAG 2.1 AA accessibility audit done. Security maintenance: Next.js patched to 14.2.35 (CVE-2025-29927), bundle-analyzer dev-only guard, telemetry disabled. AWS hosting strategy decided: EC2 + S3 + CloudFront + RDS. Remaining: CDN (S3 + CloudFront implementation), app store submissions.
+> **Current status (2026-05-10):** Stages 0–4 complete. Stage 5 in progress — rate limiting, Sentry, next/image optimization, HTTP caching, DB indexing (migration 032), DRM audit, load testing, and WCAG 2.1 AA accessibility audit done. Security maintenance: Next.js patched to 14.2.35 (CVE-2025-29927), bundle-analyzer dev-only guard, telemetry disabled. **Hosting strategy revised:** Contabo VPS (8 vCPU, 24 GB RAM, 400 GB SSD) instead of AWS — Traefik + self-hosted MinIO at storage.noetia.app (CDN via Cloudflare DNS when ready). CD pipeline live: push to main → auto-deploy via GitHub Actions SSH. Remaining: app store submissions.
 >
 > **P3 UI backlog (not yet in sprints):**
 > - ~~Fragment text editing before image creation (E1)~~ ✅ done
@@ -70,7 +70,7 @@
 
 **CI/CD**
 - [x] Configure GitHub Actions: lint, test (with coverage gate ≥ 80%), build on PR — 1d
-- [ ] Configure GitHub Actions: deploy to staging on merge to main — 1d
+- [x] Configure GitHub Actions: deploy to staging on merge to main — 1d _(SSH deploy to Contabo VPS via DEPLOY_SSH_KEY secret; triggers on push to main)_
 
 **Design System**
 - [ ] Define color palette, typography, and spacing tokens — 1d
@@ -357,7 +357,7 @@
 **Backend**
 - [x] Add Prometheus metrics to api service — 0.5d
 - [x] Grafana dashboards: API latency, error rate, queue depth — 1d
-- [ ] CDN setup for MinIO assets (CloudFront or Cloudflare) — 1d
+- [x] CDN setup for MinIO assets (CloudFront or Cloudflare) — 1d _(self-hosted MinIO exposed via Traefik at storage.noetia.app; Cloudflare proxy can be enabled later as CDN layer)_
 - [x] Database query optimization and indexing audit — 1d _(migration 032: idx_books_published_free, idx_books_collection, idx_books_category, idx_books_uploaded_by, idx_subscriptions_plan)_
 - [x] API rate limiting and abuse protection — 0.5d _(ThrottlerModule: 120 req/min global, 20/min on auth endpoints; Stripe webhook exempt)_
 - [x] Content streaming caching strategy — 0.5d _(HTTP Cache-Control on /books, /books/:id/sync-map, /collections)_
