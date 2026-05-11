@@ -11,8 +11,8 @@
 > - [x] `seed-audio-stream.js` — M4B stream URLs set for all 38 free books ✅
 > - [x] Phrase-level sync — 7 books with Whisper VTT (word-level): Don Juan Tenorio, Doña Perfecta, El Sombrero de Tres Picos, Lazarillo, Leyendas, Marianela, Salmos ✅
 > - [x] `seed-alignment.js` — complete. 7 whisper books protected; 9 books chapter-aligned; 22 books failed (ffprobe: no chapter markers in M4B) ✅
-> - [ ] **Generate Whisper VTT transcriptions for 22 books without timestamps** — these books have phrases but no timestamps; must run Whisper on their LibriVox audio and add VTT files to `transcriptions/`, then re-run `seed-sync-whisper.js`. Books needing VTTs:
->   Niebla, El Gaucho Martín Fierro, Viaje al Centro de la Tierra, Romeo y Julieta, Crimen y Castigo,
+> - [ ] **Generate Whisper VTT transcriptions for remaining 21 books** — workflow: run Whisper on LibriVox audio per chapter, place VTTs in `transcriptions/<Book Title>/`, run `python3 scripts/merge-vtt.py --dir "transcriptions/<Book Title>" --out "transcriptions/<slug>.merged.vtt"`, commit, then on server: `docker exec noetia-api-1 mkdir -p /app/transcriptions && docker cp transcriptions/<slug>.merged.vtt noetia-api-1:/app/transcriptions/<slug>.merged.vtt` and run `seed-sync-whisper.js`. Books remaining:
+>   El Gaucho Martín Fierro, Viaje al Centro de la Tierra, Romeo y Julieta, Crimen y Castigo,
 >   Don Quijote Vol. I, Don Quijote Vol. II, Mateo, Lucas, Efesios, Filipenses, Apocalipsis,
 >   Proverbios, Isaías, Fábulas y Verdades, Cuentos de la Selva, Los Cuatro Jinetes del Apocalipsis,
 >   La Odisea, Génesis, Juan, Éxodo, Cuentos de Amor de Locura y de Muerte
