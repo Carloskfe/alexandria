@@ -350,7 +350,7 @@ ssh root@84.247.140.175
 cd /opt/noetia
 git pull origin main
 docker compose --env-file .env.production -f docker-compose.server.yml up -d --build
-docker compose --env-file .env.production -f docker-compose.server.yml exec -T api npm run migration:run
+docker compose --env-file .env.production -f docker-compose.server.yml exec -T api npm run migration:run:prod
 
 # View logs
 docker compose -f docker-compose.server.yml logs -f api

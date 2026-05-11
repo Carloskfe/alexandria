@@ -11,8 +11,10 @@
     "test": "jest",
     "test:cov": "jest --coverage",
     "migration:run": "ts-node --project tsconfig.json -r tsconfig-paths/register node_modules/typeorm/cli.js migration:run -d src/data-source.ts",
+    "migration:run:prod": "node node_modules/typeorm/cli.js migration:run -d dist/data-source.js",
     "migration:generate": "ts-node --project tsconfig.json -r tsconfig-paths/register node_modules/typeorm/cli.js migration:generate -d src/data-source.ts",
-    "migration:revert": "ts-node --project tsconfig.json -r tsconfig-paths/register node_modules/typeorm/cli.js migration:revert -d src/data-source.ts"
+    "migration:revert": "ts-node --project tsconfig.json -r tsconfig-paths/register node_modules/typeorm/cli.js migration:revert -d src/data-source.ts",
+    "migration:revert:prod": "node node_modules/typeorm/cli.js migration:revert -d dist/data-source.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.600.0",
