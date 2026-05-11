@@ -8,9 +8,12 @@
 > **Current status (2026-05-11):** Stages 0–4 complete. Stage 5 in progress. **Production is live at https://noetia.app** — Contabo VPS (Traefik v2.11, 9 containers running, all 36 migrations applied). Books, collections, and covers seeded. Email confirmation working via Resend. Auto-deploy on push to main via GitHub Actions.
 >
 > **Remaining before full beta readiness:**
-> - [ ] Run `seed-audio.js` and `seed-audio-stream.js` on production server — audio not yet seeded
+> - [x] `seed-audio-stream.js` — M4B stream URLs set for all 38 free books ✅
+> - [x] Phrase-level sync — 7 books with Whisper VTT (word-level): Don Juan Tenorio, Doña Perfecta, El Sombrero de Tres Picos, Lazarillo, Leyendas, Marianela, Salmos ✅
+> - [~] `seed-alignment.js` — chapter-based alignment running for remaining 31 `auto` books; whisper books protected from overwrite
+> - [ ] **Verify alignment results** — after `seed-alignment.js` finishes, check which books have `>0` timed phrases and which were skipped (no chapters in M4B); books that fail need manual follow-up
+> - [ ] **Expand Whisper VTT coverage** — 31 books still have chapter-based sync only; generate VTT transcriptions for the most-read titles to improve phrase precision; priority: Don Quijote Vol I & II, La Divina Comedia, La Odisea, Crimen y Castigo, Orgullo y Prejuicio
 > - [ ] Run `seed-search.js` — Meilisearch index empty, search non-functional
-> - [ ] **Phrase-level sync maps** — complete alignment for entire free library (colección gratuita); this is the core reading feature; use `seed-alignment.js` or `seed-sync-whisper.js` with existing VTT transcriptions
 > - [ ] Fix book cover images not displaying in production (backlog)
 > - [ ] App store submissions (iOS + Android)
 >
