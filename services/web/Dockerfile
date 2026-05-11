@@ -16,6 +16,8 @@ RUN npm install
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV INTERNAL_API_URL=http://api:4000
+ENV NEXT_PUBLIC_API_URL=https://noetia.app/api
+ENV NEXT_PUBLIC_OAUTH_URL=https://noetia.app/api
 RUN npm run build
 
 # ─── Production ─────────────────────────────────────────────────────────────
