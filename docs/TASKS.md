@@ -29,6 +29,12 @@
 > - Delete account — user right (GDPR); API: DELETE /users/me (cascade all data), Web: confirmation dialog in account settings, farewell email
 > - Book cover images not displaying in production — covers seeded (Open Library URLs + themed PNGs), not rendering in BookGrid; investigate next/image remotePatterns, mixed content (http vs https), and null coverUrl fallback handling
 >
+> **Onboarding & brand awareness backlog:**
+> - Welcome splash (first-time only) — full-screen modal on first app open: brand statement ("Bienvenido a Noetia — la plataforma para adquirir y compartir conocimiento e inspiración más poderosa del mundo"), brief value prop (read · listen · capture · share), single CTA to enter; dismissed via localStorage flag `hasSeenWelcome`; never shown again after dismissal
+> - Fragmentos library tutorial (first-time only) — bottom sheet or modal shown on first visit to /fragments: explain that fragments are saved highlights, how to edit them, and how to convert them into a quote card; dismissed via localStorage flag `hasSeenFragmentsTutorial`
+> - Audio mode tutorial (first-time only) — contextual tooltip or modal triggered the first time a user taps the audio/listen button in the reader: explain Modo Escucha Activa (phrase highlighting while audio plays, speed controls, tap-to-seek); dismissed via localStorage flag `hasSeenAudioTutorial`
+> - Optional guided tour (first-time only) — step-by-step walkthrough available the first time a user opens the reader: 4–5 steps covering (1) reading mode, (2) audio sync, (3) text selection → fragment, (4) fragment → quote card → share; each step highlights a UI element with a callout; skippable at any step; re-accessible from settings; dismissed via localStorage flag `hasSeenReaderTour`; existing `ReaderTutorial` component can serve as the base
+>
 > **Security & ops backlog (not yet in sprints):**
 > - [ ] SSH hardening — generate SSH key pair for personal access, add public key to server, disable root password login (`PermitRootLogin prohibit-password` in `/etc/ssh/sshd_config`)
 > - [ ] Automated PostgreSQL backups — daily pg_dump to a separate Contabo snapshot or off-site storage (Backblaze B2 / S3); retention: 7 daily + 4 weekly
