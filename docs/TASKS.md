@@ -5,7 +5,14 @@
 > 2. **Author/company experience** — content supply chain; upload, sync tooling, analytics
 > 3. **Free library** — beta acquisition only; not expanded after 6–12 months; UI hero will yield to author content
 >
-> **Current status (2026-05-10):** Stages 0–4 complete. Stage 5 in progress — rate limiting, Sentry, next/image optimization, HTTP caching, DB indexing (migration 032), DRM audit, load testing, and WCAG 2.1 AA accessibility audit done. Security maintenance: Next.js patched to 14.2.35 (CVE-2025-29927), bundle-analyzer dev-only guard, telemetry disabled. **Hosting strategy revised:** Contabo VPS (8 vCPU, 24 GB RAM, 400 GB SSD) instead of AWS — Traefik + self-hosted MinIO at storage.noetia.app (CDN via Cloudflare DNS when ready). CD pipeline live: push to main → auto-deploy via GitHub Actions SSH. Remaining: app store submissions.
+> **Current status (2026-05-11):** Stages 0–4 complete. Stage 5 in progress. **Production is live at https://noetia.app** — Contabo VPS (Traefik v2.11, 9 containers running, all 36 migrations applied). Books, collections, and covers seeded. Email confirmation working via Resend. Auto-deploy on push to main via GitHub Actions.
+>
+> **Remaining before full beta readiness:**
+> - [ ] Run `seed-audio.js` and `seed-audio-stream.js` on production server — audio not yet seeded
+> - [ ] Run `seed-search.js` — Meilisearch index empty, search non-functional
+> - [ ] **Phrase-level sync maps** — complete alignment for entire free library (colección gratuita); this is the core reading feature; use `seed-alignment.js` or `seed-sync-whisper.js` with existing VTT transcriptions
+> - [ ] Fix book cover images not displaying in production (backlog)
+> - [ ] App store submissions (iOS + Android)
 >
 > **P3 UI backlog (not yet in sprints):**
 > - ~~Fragment text editing before image creation (E1)~~ ✅ done
