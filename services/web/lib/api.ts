@@ -1,9 +1,8 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
-export async function apiFetch(path: string, init: RequestInit = {}) {
+async function fetchWithToken(path: string, init: RequestInit = {}) {
   const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
-
-  const res = await fetch(`${API_URL}${path}`, {
+  return fetch(`${API_URL}${path}`, {
     ...init,
     credentials: 'include',
     headers: {
@@ -12,6 +11,26 @@ export async function apiFetch(path: string, init: RequestInit = {}) {
       ...(init.headers ?? {}),
     },
   });
+}
+
+export async function apiFetch(path: string, init: RequestInit = {}): Promise<any> {
+  let res = await fetchWithToken(path, init);
+
+  // Auto-refresh expired access token once, then retry
+  if (res.status === 401 && !path.startsWith('/auth/')) {
+    const refreshRes = await fetch(`${API_URL}/auth/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+    });
+    if (refreshRes.ok) {
+      const refreshData = await refreshRes.json();
+      saveToken(refreshData.accessToken);
+      res = await fetchWithToken(path, init);
+    } else {
+      if (typeof window !== 'undefined') window.location.href = '/login';
+      throw Object.assign(new Error('Session expired'), { status: 401 });
+    }
+  }
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw Object.assign(new Error(data.message ?? 'Request failed'), { status: res.status, data });

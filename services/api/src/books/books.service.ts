@@ -18,9 +18,10 @@ export class BooksService {
       .orderBy('book.createdAt', 'DESC');
     if (category) qb.andWhere('book.category = :category', { category });
     if (isFree !== undefined) qb.andWhere('book.isFree = :isFree', { isFree });
-    // Exclude books that belong to a collection. Catches both NULL and empty
-    // string so the filter works before and after data normalization.
-    if (standalone) qb.andWhere('(book.collection IS NULL OR book.collection = :empty)', { empty: '' });
+    // Exclude books that have an entry in book_collections (i.e. belong to a collection).
+    // Using the join table rather than book.collection VARCHAR so the filter works
+    // even when the VARCHAR field was never populated (e.g. books ingested after migrations).
+    if (standalone) qb.andWhere('NOT EXISTS (SELECT 1 FROM book_collections bc WHERE bc."bookId" = book.id)');
     return qb.getMany();
   }
 

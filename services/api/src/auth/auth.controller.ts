@@ -30,7 +30,7 @@ function setRefreshCookie(res: Response, tokenId: string, userId: string) {
     sameSite: 'strict',
     secure: isProd,
     maxAge: 1000 * 60 * 60 * 24 * 7,
-    path: '/auth',
+    path: '/',
   });
 }
 
@@ -75,7 +75,7 @@ export class AuthController {
     const [userId, tokenId] = raw.split(':');
     const valid = await this.tokenService.validateRefreshToken(userId, tokenId);
     if (!valid) {
-      res.clearCookie('refresh_token', { path: '/auth' });
+      res.clearCookie('refresh_token', { path: '/' });
       throw new UnauthorizedException();
     }
     await this.tokenService.deleteRefreshToken(userId, tokenId);
@@ -96,7 +96,7 @@ export class AuthController {
       const [userId, tokenId] = raw.split(':');
       await this.tokenService.deleteRefreshToken(userId, tokenId);
     }
-    res.clearCookie('refresh_token', { path: '/auth' });
+    res.clearCookie('refresh_token', { path: '/' });
     return { message: 'Logged out' };
   }
 
