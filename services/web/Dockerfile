@@ -15,6 +15,7 @@ FROM base AS build
 RUN npm install
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV INTERNAL_API_URL=http://api:4000
 RUN npm run build
 
 # ─── Production ─────────────────────────────────────────────────────────────
