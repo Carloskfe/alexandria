@@ -52,6 +52,10 @@ export class AlignmentService {
       this.logger.warn(`"${book.title}" has no sync map — skipping`);
       return;
     }
+    if (syncMap.syncSource === 'whisper') {
+      this.logger.log(`"${book.title}" — whisper sync map, skipping chapter alignment`);
+      return;
+    }
 
     const chapters = await this.fetchChapters(book.audioStreamKey);
     if (!chapters.length) {
