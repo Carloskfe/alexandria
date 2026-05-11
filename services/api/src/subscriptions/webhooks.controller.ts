@@ -16,16 +16,17 @@ import { WebhooksService } from './webhooks.service';
 @SkipThrottle({ global: true })
 @Controller('webhooks')
 export class WebhooksController {
-  private readonly stripe: InstanceType<typeof Stripe>;
-  private readonly webhookSecret: string;
+  private readonly stripe: InstanceType<typeof Stripe> | null;
+  private readonly webhookSecret: string | undefined;
   private readonly logger = new Logger(WebhooksController.name);
 
   constructor(
     private readonly webhooksService: WebhooksService,
     private readonly config: ConfigService,
   ) {
-    this.stripe = new Stripe(this.config.getOrThrow('STRIPE_SECRET_KEY'));
-    this.webhookSecret = this.config.getOrThrow('STRIPE_WEBHOOK_SECRET');
+    const stripeKey = this.config.get<string>('STRIPE_SECRET_KEY');
+    this.stripe = stripeKey ? new Stripe(stripeKey) : null;
+    this.webhookSecret = this.config.get<string>('STRIPE_WEBHOOK_SECRET');
   }
 
   @Post('stripe')
@@ -33,6 +34,10 @@ export class WebhooksController {
     @Req() req: RawBodyRequest<Request>,
     @Headers('stripe-signature') sig: string,
   ) {
+    if (!this.stripe || !this.webhookSecret) {
+      throw new BadRequestException('Stripe is not configured');
+    }
+
     let event: any;
 
     try {
