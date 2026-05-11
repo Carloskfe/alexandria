@@ -19,6 +19,7 @@
 > - Gradient direction options (D4)
 > - Integrate background preset images into ShareModal UI (D7)
 > - ~~Bottom nav — "Mi Biblioteca" and "Colección General" names + icons aligned~~ ✅ done
+> - Delete account — user right (GDPR); API: DELETE /users/me (cascade all data), Web: confirmation dialog in account settings, farewell email
 
 **Estimation key:** Each task is estimated in days (1 dev). Sprints are 2 weeks (10 working days).
 **Legend:** `[ ]` pending · `[x]` done · `[~]` in progress
