@@ -20,6 +20,7 @@
 > - Integrate background preset images into ShareModal UI (D7)
 > - ~~Bottom nav — "Mi Biblioteca" and "Colección General" names + icons aligned~~ ✅ done
 > - Delete account — user right (GDPR); API: DELETE /users/me (cascade all data), Web: confirmation dialog in account settings, farewell email
+> - Book cover images not displaying in production — covers seeded (Open Library URLs + themed PNGs), not rendering in BookGrid; investigate next/image remotePatterns, mixed content (http vs https), and null coverUrl fallback handling
 >
 > **Security & ops backlog (not yet in sprints):**
 > - [ ] SSH hardening — generate SSH key pair for personal access, add public key to server, disable root password login (`PermitRootLogin prohibit-password` in `/etc/ssh/sshd_config`)
