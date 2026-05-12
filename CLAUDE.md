@@ -379,6 +379,43 @@ Traefik must be started first before any project containers:
 cd /opt/traefik && touch acme.json && chmod 600 acme.json && docker compose up -d
 ```
 
+### Critical server operations — hard-won lessons
+
+**NEVER paste multi-line content via SSH terminal.** The server terminal wraps long lines and the shell misinterprets line-breaks as command separators, corrupting files. This caused a 2-hour outage on 2026-05-12.
+
+**To write a file on the server, use one of:**
+```bash
+# Option 1 — nano (safest for multi-line content)
+nano /opt/traefik/traefik.yml
+# Ctrl+K to delete lines, paste content, Ctrl+O to save, Ctrl+X to exit
+
+# Option 2 — single-line Python (no newlines in command)
+python3 -c "open('/path/file','w').write('line1\nline2\n')"
+
+# Option 3 — base64 (immune to space/newline corruption)
+# Generate on local: python3 -c "import base64; print(base64.b64encode(open('file').read().encode()).decode())"
+# Apply on server:
+echo <BASE64> | base64 -d > /path/file
+```
+
+**Traefik config is at `/opt/traefik/traefik.yml`.** If it gets corrupted:
+1. Use nano to restore it
+2. Content must have exact 2-space YAML indentation
+3. `docker restart traefik` after any change
+4. If Traefik won't start: `docker logs traefik --tail 10` to see the YAML parse error, then `sed -i 's/^  //' /opt/traefik/traefik.yml` to strip accidental extra indentation
+
+**Traefik 502/404 diagnosis checklist:**
+- `docker ps` → are web and api containers `(healthy)`? If `(unhealthy)` → Traefik drops their routes
+- `docker exec traefik wget -qO- http://<container_ip>:3000` → can Traefik reach the container?
+- `docker inspect <container> --format "{{.State.Health.Status}}"` → check health
+- `docker inspect <container> --format '{{range .State.Health.Log}}Exit={{.ExitCode}} Output={{.Output}}{{"\n"}}{{end}}'` → see healthcheck failures
+- `docker network inspect proxy` → confirm container is on the proxy network
+
+**Known container gotchas:**
+- Next.js 14 standalone `server.js` reads `HOSTNAME` env var for bind address. Docker sets `HOSTNAME` to the container ID. Without `HOSTNAME: "0.0.0.0"` in compose, Next.js binds to only one network interface → Traefik 502.
+- Alpine `busybox wget` resolves `localhost` to `::1` (IPv6). Healthchecks must use `127.0.0.1` not `localhost`. Using `localhost` marks container unhealthy → Traefik drops the route → 404.
+- Fix for both is in `docker-compose.server.yml` (already applied). If containers are recreated, these fixes are preserved.
+
 ---
 
 ## Infrastructure & Vendors

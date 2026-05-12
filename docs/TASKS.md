@@ -5,18 +5,40 @@
 > 2. **Author/company experience** — content supply chain; upload, sync tooling, analytics
 > 3. **Free library** — beta acquisition only; not expanded after 6–12 months; UI hero will yield to author content
 >
-> **Current status (2026-05-11):** Stages 0–4 complete. Stage 5 in progress. **Production is live at https://noetia.app** — Contabo VPS (Traefik v2.11, 9 containers running, all 36 migrations applied). Books, collections, and covers seeded. Email confirmation working via Resend. Auto-deploy on push to main via GitHub Actions.
+> **Current status (2026-05-12):** Stages 0–4 complete. Stage 5 in progress. **Production is live at https://noetia.app** — Contabo VPS (Traefik v2.11, 9 containers running, all 36 migrations applied). Books, collections, and covers seeded. Email confirmation working via Resend. Auto-deploy on push to main via GitHub Actions (**CI broken — DEPLOY_SSH_KEY secret empty, fix required**).
 >
 > **Remaining before full beta readiness:**
 > - [x] `seed-audio-stream.js` — M4B stream URLs set for all 38 free books ✅
 > - [x] Phrase-level sync — 7 books with Whisper VTT (word-level): Don Juan Tenorio, Doña Perfecta, El Sombrero de Tres Picos, Lazarillo, Leyendas, Marianela, Salmos ✅
 > - [x] `seed-alignment.js` — complete. 7 whisper books protected; 9 books chapter-aligned; 22 books failed (ffprobe: no chapter markers in M4B) ✅
-> - [ ] **Generate Whisper VTT transcriptions for remaining 21 books** — workflow: run Whisper on LibriVox audio per chapter, place VTTs in `transcriptions/<Book Title>/`, run `python3 scripts/merge-vtt.py --dir "transcriptions/<Book Title>" --out "transcriptions/<slug>.merged.vtt"`, commit, then on server: `docker exec noetia-api-1 mkdir -p /app/transcriptions && docker cp transcriptions/<slug>.merged.vtt noetia-api-1:/app/transcriptions/<slug>.merged.vtt` and run `seed-sync-whisper.js`. Books remaining:
->   El Gaucho Martín Fierro, Viaje al Centro de la Tierra, Romeo y Julieta, Crimen y Castigo,
+> - [x] Niebla — Whisper VTT synced ✅
+> - [x] 8 new books — VTTs merged, cleaned, committed (2026-05-12): Romeo y Julieta, El Gaucho Martín Fierro, Cuentos de Amor de Locura y de Muerte, Los Cuatro Jinetes del Apocalipsis, La Isla del Tesoro, Viaje al Centro de la Tierra, Crimen y Castigo, La Odisea ✅
+> - [ ] **Run `seed-sync-whisper.js` on server for the 8 new books** — VTTs committed, server needs git pull then docker cp + alignment for each. Commands:
+>   ```bash
+>   cd /opt/noetia && git pull
+>   EXEC="docker compose --env-file .env.production -f docker-compose.server.yml exec -T -e DB_HOST=db api node dist/ingestion/seed-sync-whisper.js"
+>   docker cp transcriptions/romeo-y-julieta.merged.vtt noetia-api-1:/app/transcriptions/romeo-y-julieta.merged.vtt
+>   docker cp transcriptions/martin-fierro.merged.vtt noetia-api-1:/app/transcriptions/martin-fierro.merged.vtt
+>   docker cp transcriptions/cuentos-de-amor.merged.vtt noetia-api-1:/app/transcriptions/cuentos-de-amor.merged.vtt
+>   docker cp transcriptions/cuatro-jinetes.merged.vtt noetia-api-1:/app/transcriptions/cuatro-jinetes.merged.vtt
+>   docker cp transcriptions/la-isla-del-tesoro.merged.vtt noetia-api-1:/app/transcriptions/la-isla-del-tesoro.merged.vtt
+>   docker cp transcriptions/viaje-al-centro.merged.vtt noetia-api-1:/app/transcriptions/viaje-al-centro.merged.vtt
+>   docker cp transcriptions/crimen-y-castigo.merged.vtt noetia-api-1:/app/transcriptions/crimen-y-castigo.merged.vtt
+>   docker cp transcriptions/la-odisea.merged.vtt noetia-api-1:/app/transcriptions/la-odisea.merged.vtt
+>   $EXEC --book "Romeo y Julieta"                      --transcript /app/transcriptions/romeo-y-julieta.merged.vtt
+>   $EXEC --book "El Gaucho Martín Fierro"              --transcript /app/transcriptions/martin-fierro.merged.vtt
+>   $EXEC --book "Cuentos de Amor de Locura y de Muerte" --transcript /app/transcriptions/cuentos-de-amor.merged.vtt
+>   $EXEC --book "Los Cuatro Jinetes del Apocalipsis"   --transcript /app/transcriptions/cuatro-jinetes.merged.vtt
+>   $EXEC --book "La Isla del Tesoro"                   --transcript /app/transcriptions/la-isla-del-tesoro.merged.vtt
+>   $EXEC --book "Viaje al Centro de la Tierra"         --transcript /app/transcriptions/viaje-al-centro.merged.vtt
+>   $EXEC --book "Crimen y Castigo"                     --transcript /app/transcriptions/crimen-y-castigo.merged.vtt
+>   $EXEC --book "La Odisea"                            --transcript /app/transcriptions/la-odisea.merged.vtt
+>   ```
+> - [ ] **Whisper VTTs for 13 remaining books** — user transcribes on Windows, drops folder in `C:\Users\carlo\Downloads\<Book Title>\`, Claude reads via `/media/sf_Downloads_1/<Book Title>/`. Workflow: `python3 scripts/clean-vtt.py --dir "transcriptions/<Book>"` → `python3 scripts/merge-vtt.py ...` → commit → server sync. Books still needed:
 >   Don Quijote Vol. I, Don Quijote Vol. II, Mateo, Lucas, Efesios, Filipenses, Apocalipsis,
->   Proverbios, Isaías, Fábulas y Verdades, Cuentos de la Selva, Los Cuatro Jinetes del Apocalipsis,
->   La Odisea, Génesis, Juan, Éxodo, Cuentos de Amor de Locura y de Muerte
+>   Proverbios, Isaías, Fábulas y Verdades, Cuentos de la Selva, Génesis, Juan, Éxodo
 > - [ ] Run `seed-search.js` — Meilisearch index empty, search non-functional
+> - [ ] Fix DEPLOY_SSH_KEY GitHub Actions secret — all CD runs failing since secret is empty. Fix: on server `cat /root/.ssh/deploy_key` → paste into GitHub → Carloskfe/noetia → Settings → Secrets → DEPLOY_SSH_KEY
 > - [ ] Fix book cover images not displaying in production (backlog)
 > - [ ] App store submissions (iOS + Android)
 >
