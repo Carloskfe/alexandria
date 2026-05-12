@@ -45,6 +45,40 @@ describe('WikisourceFetcherService', () => {
       expect(result).toBe('Acto I. Escena primera.');
     });
 
+    it('strips headertemplate navigation div from chapter HTML', async () => {
+      const html =
+        '<div id="headertemplate" class="noprint ws-noexport">' +
+        '<div class="main-div">España 100 p.m.a. o menos artículo enciclopédico</div>' +
+        '</div>' +
+        '<p>Comenzaba este largo siglo que ya va de vencida.</p>';
+      mockFetch
+        .mockResolvedValueOnce(LINKS_RESPONSE('El sombrero de tres picos (1874)', []))
+        .mockResolvedValueOnce(HTML_RESPONSE(html));
+
+      const result = await service.fetch('El sombrero de tres picos (1874)');
+
+      expect(result).toContain('Comenzaba este largo siglo');
+      expect(result).not.toContain('100 p.m.a. o menos');
+      expect(result).not.toContain('artículo enciclopédico');
+    });
+
+    it('strips ws-data metadata div from chapter HTML', async () => {
+      const html =
+        '<div id="ws-data" class="ws-noexport" style="display:none">' +
+        '<span class="ws-title">La isla del tesoro</span>' +
+        '</div>' +
+        '<p>Imposible me ha sido rehusarme a las repetidas instancias.</p>';
+      mockFetch
+        .mockResolvedValueOnce(LINKS_RESPONSE('La isla del tesoro (Manuel Caballero)', []))
+        .mockResolvedValueOnce(HTML_RESPONSE(html));
+
+      const result = await service.fetch('La isla del tesoro (Manuel Caballero)');
+
+      expect(result).toContain('Imposible me ha sido rehusarme');
+      expect(result).not.toContain('ws-title');
+      expect(result).not.toContain('La isla del tesoro');
+    });
+
     it('strips HTML tags and decodes entities', async () => {
       mockFetch
         .mockResolvedValueOnce(LINKS_RESPONSE('TestPage', []))

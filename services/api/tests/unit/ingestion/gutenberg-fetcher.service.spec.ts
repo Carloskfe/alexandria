@@ -72,5 +72,56 @@ describe('GutenbergFetcherService', () => {
 
       await expect(service.fetch(320)).rejects.toThrow('network error');
     });
+
+    it('strips preamble when narrativeStartPattern is provided', async () => {
+      const raw =
+        '*** START OF THE PROJECT GUTENBERG EBOOK FOO ***\n' +
+        'PREAMBLE INTRODUCTION\nMore preamble text here.\n' +
+        'CANTO PRIMERO\n' +
+        'Háblame, Musa, de aquel varón.\n' +
+        '*** END OF THE PROJECT GUTENBERG EBOOK FOO ***';
+      mockFetch.mockResolvedValue({ ok: true, text: async () => raw });
+
+      const result = await service.fetch(58221, 'CANTO PRIMERO');
+
+      expect(result).toContain('CANTO PRIMERO');
+      expect(result).toContain('Háblame, Musa');
+      expect(result).not.toContain('PREAMBLE INTRODUCTION');
+    });
+
+    it('strips appendix when narrativeEndPattern is provided', async () => {
+      const raw =
+        '*** START OF THE PROJECT GUTENBERG EBOOK FOO ***\n' +
+        'CANTO XXIV\nFinal canto text.\n' +
+        '\nFIN\n' +
+        'ÍNDICE DE NOMBRES PROPIOS\nACASTO. En Ítaca.\n' +
+        '*** END OF THE PROJECT GUTENBERG EBOOK FOO ***';
+      mockFetch.mockResolvedValue({ ok: true, text: async () => raw });
+
+      const result = await service.fetch(58221, undefined, '\nFIN\n');
+
+      expect(result).toContain('FIN');
+      expect(result).not.toContain('ÍNDICE DE NOMBRES PROPIOS');
+      expect(result).not.toContain('ACASTO');
+    });
+
+    it('applies both start and end patterns together', async () => {
+      const raw =
+        '*** START OF THE PROJECT GUTENBERG EBOOK ODISEA ***\n' +
+        'AL LECTOR\nIntroducción muy larga...\n' +
+        'CANTO PRIMERO\nHáblame, Musa.\n' +
+        '\nFIN\n' +
+        'GLOSARIO\nAcasto...\n' +
+        '*** END OF THE PROJECT GUTENBERG EBOOK ODISEA ***';
+      mockFetch.mockResolvedValue({ ok: true, text: async () => raw });
+
+      const result = await service.fetch(58221, 'CANTO PRIMERO', '\nFIN\n');
+
+      expect(result).toContain('CANTO PRIMERO');
+      expect(result).toContain('Háblame, Musa.');
+      expect(result).toContain('FIN');
+      expect(result).not.toContain('AL LECTOR');
+      expect(result).not.toContain('GLOSARIO');
+    });
   });
 });

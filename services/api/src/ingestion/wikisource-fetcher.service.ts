@@ -111,8 +111,48 @@ export class WikisourceFetcherService {
     return this.stripHtml(data.parse.text);
   }
 
+  /**
+   * Removes a balanced <div> block that contains the given attribute string.
+   * Used to strip Wikisource navigation templates (headertemplate, ws-data, etc.)
+   * that are present in rendered HTML but are not part of the book text.
+   */
+  private removeDiv(html: string, attr: string): string {
+    let result = html;
+    // Repeat until no more matching blocks (handles duplicates)
+    for (let pass = 0; pass < 10; pass++) {
+      const attrIdx = result.indexOf(attr);
+      if (attrIdx < 0) break;
+      const divStart = result.lastIndexOf('<div', attrIdx);
+      if (divStart < 0) break;
+      let depth = 0;
+      let i = divStart;
+      let found = -1;
+      while (i < result.length) {
+        if (result[i] === '<') {
+          if (result.slice(i, i + 4).toLowerCase() === '<div') depth++;
+          else if (result.slice(i, i + 6).toLowerCase() === '</div>') {
+            depth--;
+            if (depth === 0) { found = i; break; }
+          }
+        }
+        i++;
+      }
+      if (found < 0) break;
+      result = result.slice(0, divStart) + result.slice(found + 6);
+    }
+    return result;
+  }
+
   private stripHtml(html: string): string {
-    return html
+    // Strip Wikisource navigation/metadata blocks before extracting text
+    let processed = html;
+    processed = this.removeDiv(processed, 'id="headertemplate"');
+    processed = this.removeDiv(processed, 'id="footertemplate"');
+    processed = this.removeDiv(processed, 'id="ws-data"');
+    processed = this.removeDiv(processed, 'class="ws-noexport"');
+    processed = this.removeDiv(processed, 'class="notes"');
+
+    return processed
       // Remove non-content blocks entirely
       .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
       .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')

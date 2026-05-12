@@ -52,12 +52,7 @@ export class IngestionService {
       return existing;
     }
 
-    const text =
-      entry.source === 'gutenberg'
-        ? await this.gutenbergFetcher.fetch(entry.gutenbergId!)
-        : entry.wikisourceTitles
-          ? await this.wikisourceFetcher.fetchMultiple(entry.wikisourceTitles)
-          : await this.wikisourceFetcher.fetch(entry.wikisourceTitle!);
+    const text = await this.fetchText(entry);
 
     const phrases = this.phraseSplitter.split(text);
 
@@ -85,6 +80,33 @@ export class IngestionService {
     await this.syncMapRepo.save(syncMap);
 
     return saved;
+  }
+
+  // ── Text re-ingestion (fix stored text without full re-ingest) ────────────
+
+  async reIngestText(bookTitle: string): Promise<void> {
+    const entry = CATALOGUE.find((e) => e.title === bookTitle);
+    if (!entry) throw new Error(`No catalogue entry for: "${bookTitle}"`);
+
+    const book = await this.bookRepo.findOneBy({ title: entry.title, author: entry.author });
+    if (!book) throw new Error(`Book not found in DB: "${bookTitle}"`);
+    if (!book.textFileKey) throw new Error(`Book has no textFileKey: "${bookTitle}"`);
+
+    const text = await this.fetchText(entry);
+    await this.minioUploader.upload(book.textFileKey, text);
+    this.logger.log(`Text re-ingested for: ${book.title} (${text.length} chars)`);
+  }
+
+  private async fetchText(entry: CatalogueEntry): Promise<string> {
+    return entry.source === 'gutenberg'
+      ? this.gutenbergFetcher.fetch(
+          entry.gutenbergId!,
+          entry.narrativeStartPattern,
+          entry.narrativeEndPattern,
+        )
+      : entry.wikisourceTitles
+        ? this.wikisourceFetcher.fetchMultiple(entry.wikisourceTitles)
+        : this.wikisourceFetcher.fetch(entry.wikisourceTitle!);
   }
 
   // ── Audio ingestion ────────────────────────────────────────────────────────

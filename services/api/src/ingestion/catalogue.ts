@@ -18,6 +18,17 @@ export interface CatalogueEntry {
   collection?: string;
   /** BCP-47 language code of the ingested text — defaults to 'es' if omitted */
   language?: string;
+  /**
+   * First line/phrase of the actual narrative. Everything before this pattern
+   * (preamble, scholarly introduction, publisher info) is stripped from the
+   * stored text so the aligner sees only content that is actually read aloud.
+   */
+  narrativeStartPattern?: string;
+  /**
+   * Marker that ends the narrative. Everything from this pattern onward
+   * (glossaries, indexes, appendices) is stripped from the stored text.
+   */
+  narrativeEndPattern?: string;
 }
 
 export const CATALOGUE: CatalogueEntry[] = [
@@ -162,6 +173,11 @@ export const CATALOGUE: CatalogueEntry[] = [
     gutenbergId: 58221,
     librivoxAudioUrl: 'https://librivox.org/la-odisea-by-homero/',
     librivoxSearchTitle: 'Odisea',
+    // Gutenberg 58221 has a long scholarly preamble (AL LECTOR + NOTAS) before Canto I
+    // and a 1700-entry glossary (ÍNDICE DE NOMBRES PROPIOS) after FIN.
+    // Both sections are absent from the LibriVox audio.
+    narrativeStartPattern: 'CANTO PRIMERO',
+    narrativeEndPattern: '\nFIN\n',
   },
   {
     title: 'La Divina Comedia',

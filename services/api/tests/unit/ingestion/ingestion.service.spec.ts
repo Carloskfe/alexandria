@@ -85,7 +85,7 @@ describe('IngestionService', () => {
 
       const result = await service.ingestOne(gutenbergEntry);
 
-      expect(mockGutenbergFetcher.fetch).toHaveBeenCalledWith(123);
+      expect(mockGutenbergFetcher.fetch).toHaveBeenCalledWith(123, undefined, undefined);
       expect(mockMinioUploader.upload).toHaveBeenCalledWith(
         'book-uuid.txt',
         'Chapter 1. The beginning.',
@@ -499,6 +499,66 @@ describe('IngestionService', () => {
       const [url] = (global.fetch as jest.Mock).mock.calls[0];
       expect(url).toContain('La%20Odisea');
       expect(url).toContain('Homero');
+    });
+  });
+
+  // ── reIngestText ──────────────────────────────────────────────────────────
+
+  describe('reIngestText', () => {
+    it('re-fetches text and overwrites MinIO file for a Gutenberg book', async () => {
+      // Use a real catalogue Gutenberg title so CATALOGUE.find() succeeds
+      const book = { id: 'niebla-1', textFileKey: 'niebla-1.txt' } as Book;
+      mockBookRepo.findOneBy.mockResolvedValue(book);
+      mockGutenbergFetcher.fetch.mockResolvedValue('New clean narrative text.');
+      mockMinioUploader.upload.mockResolvedValue(undefined);
+
+      await service.reIngestText('Niebla');
+
+      expect(mockGutenbergFetcher.fetch).toHaveBeenCalledWith(49836, undefined, undefined);
+      expect(mockMinioUploader.upload).toHaveBeenCalledWith('niebla-1.txt', 'New clean narrative text.');
+    });
+
+    it('re-fetches text and overwrites MinIO file for a Wikisource book', async () => {
+      // Use a real catalogue Wikisource title so CATALOGUE.find() succeeds
+      const book = { id: 'lazarillo-1', textFileKey: 'lazarillo-1.txt' } as Book;
+      mockBookRepo.findOneBy.mockResolvedValue(book);
+      mockWikisourceFetcher.fetch.mockResolvedValue('Nuevo texto limpio del capítulo.');
+      mockMinioUploader.upload.mockResolvedValue(undefined);
+
+      await service.reIngestText('Lazarillo de Tormes');
+
+      expect(mockWikisourceFetcher.fetch).toHaveBeenCalledWith('El Lazarillo de Tormes');
+      expect(mockMinioUploader.upload).toHaveBeenCalledWith('lazarillo-1.txt', 'Nuevo texto limpio del capítulo.');
+    });
+
+    it('throws when the book is not in the catalogue', async () => {
+      await expect(service.reIngestText('Nonexistent Book')).rejects.toThrow(
+        'No catalogue entry for: "Nonexistent Book"',
+      );
+    });
+
+    it('throws when the book is not found in the DB', async () => {
+      mockBookRepo.findOneBy.mockResolvedValue(null);
+
+      await expect(service.reIngestText('Niebla')).rejects.toThrow('Book not found in DB');
+    });
+
+    it('throws when the book has no textFileKey', async () => {
+      const book = { id: 'no-text', textFileKey: null } as Book;
+      mockBookRepo.findOneBy.mockResolvedValue(book);
+
+      await expect(service.reIngestText('Niebla')).rejects.toThrow('no textFileKey');
+    });
+
+    it('passes narrativeStartPattern and narrativeEndPattern from catalogue to Gutenberg fetcher', async () => {
+      const book = { id: 'odisea-1', textFileKey: 'odisea-1.txt' } as Book;
+      mockBookRepo.findOneBy.mockResolvedValue(book);
+      mockGutenbergFetcher.fetch.mockResolvedValue('CANTO PRIMERO\nHáblame, Musa.\n\nFIN\n');
+      mockMinioUploader.upload.mockResolvedValue(undefined);
+
+      await service.reIngestText('La Odisea');
+
+      expect(mockGutenbergFetcher.fetch).toHaveBeenCalledWith(58221, 'CANTO PRIMERO', '\nFIN\n');
     });
   });
 
