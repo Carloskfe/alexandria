@@ -1,0 +1,26 @@
+{
+  "title": "Cuentos de Amor de Locura y de Muerte",
+  "slug": "cuentos-de-amor",
+  "source": "gutenberg",
+  "audio_words": 34836,
+  "book_words": 34748,
+  "audio_book_ratio": 1.003,
+  "narrative_window": {
+    "start_word": 0,
+    "end_word": 34748
+  },
+  "coverage_pct": 100.0,
+  "sections_total": 70,
+  "sections_high": 70,
+  "sections_medium": 0,
+  "sections_low": 0,
+  "leading_low_sections": 0,
+  "trailing_low_sections": 0,
+  "preamble_words": 0,
+  "appendix_words": 0,
+  "narrative_overlap": 0.972,
+  "quality_grade": "EXCELLENT",
+  "recommendations": [
+    "Text and audio match well — no structural changes needed"
+  ]
+}

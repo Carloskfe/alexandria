@@ -48,9 +48,20 @@ export class WhisperSyncService {
     const { phrases: aligned, stats } = alignPhrases(phrases, timedWords);
 
     this.logger.log(
-      `Alignment complete — avg confidence: ${(stats.avgConfidence * 100).toFixed(1)}%, ` +
-      `low-confidence: ${stats.lowConfidence}/${stats.total}`,
+      `Alignment complete — aligned: ${stats.aligned}/${stats.total}, ` +
+      `exceptions: ${stats.exceptions}, avg confidence: ${(stats.avgConfidence * 100).toFixed(1)}%, ` +
+      `low-confidence: ${stats.lowConfidence}`,
     );
+
+    if (stats.exceptions > 0) {
+      this.logger.warn(`${stats.exceptions} phrase(s) marked as exceptions (not found in audio):`);
+      for (const p of stats.exceptionPhrases.slice(0, 10)) {
+        this.logger.warn(`  [${p.index}] "${p.text}"`);
+      }
+      if (stats.exceptionPhrases.length > 10) {
+        this.logger.warn(`  ... and ${stats.exceptionPhrases.length - 10} more`);
+      }
+    }
 
     if (stats.lowConfidencePhrases.length > 0) {
       this.logger.warn('Low-confidence phrases (spot-check recommended):');

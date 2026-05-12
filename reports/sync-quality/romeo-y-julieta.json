@@ -1,0 +1,26 @@
+{
+  "title": "Romeo y Julieta",
+  "slug": "romeo-y-julieta",
+  "source": "wikisource",
+  "audio_words": 13646,
+  "book_words": 6,
+  "audio_book_ratio": 2274.333,
+  "narrative_window": {
+    "start_word": 0,
+    "end_word": 6
+  },
+  "coverage_pct": 100.0,
+  "sections_total": 1,
+  "sections_high": 1,
+  "sections_medium": 0,
+  "sections_low": 0,
+  "leading_low_sections": 0,
+  "trailing_low_sections": 0,
+  "preamble_words": 0,
+  "appendix_words": 0,
+  "narrative_overlap": 0.333,
+  "quality_grade": "EXCELLENT",
+  "recommendations": [
+    "Text and audio match well — no structural changes needed"
+  ]
+}

@@ -15,6 +15,10 @@ export interface SyncPhrase {
   startTime: number;
   endTime: number;
   type?: 'text' | 'heading' | 'paragraph-break';
+  /** True when the phrase could not be matched in the audio (no corresponding
+   *  content found — e.g. appendix, glossary, footnotes not read aloud).
+   *  The reader skips these phrases during playback sync. */
+  exception?: boolean;
 }
 
 export type SyncSource = 'auto' | 'srt' | 'vtt' | 'manual' | 'whisper';

@@ -3,11 +3,18 @@
  *
  * Strategy: greedy forward scan with a configurable lookahead window.
  * For each text phrase we search ahead up to MAX_DRIFT words for the best
- * scoring window, then advance the cursor past the match. Headings and
- * paragraph-breaks are skipped (readers rarely recite chapter titles verbatim).
+ * scoring window, then advance the cursor past the match.
  *
- * Confidence is the fraction of phrase words found in the matched window.
- * Phrases below LOW_CONFIDENCE_THRESHOLD are logged so the user can spot-check.
+ * Skip-and-continue exception logic:
+ *   If the best match score for a phrase is below SKIP_THRESHOLD (meaning the
+ *   phrase content is not present in the audio — e.g. a scholarly glossary,
+ *   appendix footnotes, or translator's notes not read aloud), the phrase is
+ *   marked exception=true and its timestamps are left at 0. Crucially, the
+ *   word cursor is NOT advanced for skipped phrases, so the next phrase
+ *   searches from the same estimated audio position and can still find a match.
+ *
+ * Headings and paragraph-breaks are passed through unchanged (readers rarely
+ * recite chapter titles verbatim).
  */
 
 import { SyncPhrase } from '../books/sync-map.entity';
@@ -23,13 +30,16 @@ export interface AlignmentResult {
 export interface AlignmentStats {
   total: number;
   aligned: number;
+  exceptions: number;
   lowConfidence: number;
   avgConfidence: number;
   lowConfidencePhrases: Array<{ index: number; text: string; confidence: number }>;
+  exceptionPhrases:     Array<{ index: number; text: string }>;
 }
 
-const MAX_DRIFT     = 150;  // words to search ahead of cursor (covers LibriVox headers + normal drift)
-const LOW_THRESHOLD = 0.50; // flag phrases below this confidence
+const MAX_DRIFT      = 150;   // words to search ahead of cursor (covers LibriVox headers + normal drift)
+const SKIP_THRESHOLD = 0.20;  // below this → phrase not in audio → exception=true, cursor not advanced
+const LOW_THRESHOLD  = 0.50;  // flag phrases below this confidence for spot-check (but still aligned)
 
 // ── Text normalisation ─────────────────────────────────────────────────────────
 
@@ -90,7 +100,9 @@ function scoreWindow(
 // cursor drift — a hard phrase near the start cannot push all subsequent phrases
 // to the wrong position.
 //
-// Within the expected window (±MAX_DRIFT), the best-scoring position wins.
+// Skip-and-continue: if a phrase scores below SKIP_THRESHOLD it is marked as
+// an exception. wordsSoFar is NOT incremented for exceptions so that subsequent
+// phrases search from the same expected position and can still find their match.
 
 export function alignPhrases(
   phrases: SyncPhrase[],
@@ -98,8 +110,11 @@ export function alignPhrases(
 ): { phrases: SyncPhrase[]; stats: AlignmentStats } {
   const result = phrases.map((p) => ({ ...p }));
   const lowConfidencePhrases: AlignmentStats['lowConfidencePhrases'] = [];
+  const exceptionPhrases:     AlignmentStats['exceptionPhrases']     = [];
 
-  // Pre-tokenise all text phrases and sum total words for proportion calc
+  // Pre-tokenise all text phrases and sum total words for proportion calc.
+  // Only words that are actually expected to appear in the audio are counted —
+  // this keeps the proportion accurate even if later phrases are exceptions.
   const textPhrasesWithTokens = phrases
     .map((p, i) => ({ i, phrase: p, tokens: p.type === 'text' ? tokenize(p.text) : [] }))
     .filter((x) => x.tokens.length > 0);
@@ -107,14 +122,15 @@ export function alignPhrases(
   const totalPhraseWords = textPhrasesWithTokens.reduce((s, x) => s + x.tokens.length, 0);
   const totalWordSlots   = timedWords.length;
 
-  let wordsSoFar  = 0;
-  let aligned     = 0;
-  let totalConf   = 0;
+  let wordsSoFar = 0;   // only advances for phrases that were successfully aligned
+  let aligned    = 0;
+  let exceptions = 0;
+  let totalConf  = 0;
 
   for (const { i, phrase, tokens } of textPhrasesWithTokens) {
-    // Expected word index: proportion of phrase words seen so far
-    const fraction       = totalPhraseWords > 0 ? wordsSoFar / totalPhraseWords : 0;
-    const expectedIdx    = Math.round(fraction * totalWordSlots);
+    // Expected word index based on words aligned so far (not total words processed)
+    const fraction    = totalPhraseWords > 0 ? wordsSoFar / totalPhraseWords : 0;
+    const expectedIdx = Math.round(fraction * totalWordSlots);
 
     const searchStart = Math.max(0, expectedIdx - MAX_DRIFT);
     const searchEnd   = Math.min(totalWordSlots - tokens.length, expectedIdx + MAX_DRIFT);
@@ -128,11 +144,30 @@ export function alignPhrases(
       }
     }
 
+    // ── Exception: phrase not found in audio ──────────────────────────────────
+    if (best.score < SKIP_THRESHOLD) {
+      result[i] = {
+        ...phrase,
+        startTime: 0,
+        endTime:   0,
+        exception: true,
+      };
+      exceptions++;
+      exceptionPhrases.push({
+        index: phrase.index,
+        text:  phrase.text.slice(0, 80),
+      });
+      // wordsSoFar is NOT advanced — next phrase re-uses the same expected position
+      continue;
+    }
+
+    // ── Aligned ───────────────────────────────────────────────────────────────
     const endPos = Math.min(best.pos + tokens.length - 1, totalWordSlots - 1);
     result[i] = {
       ...phrase,
       startTime: timedWords[best.pos]?.start ?? 0,
       endTime:   timedWords[endPos]?.end     ?? 0,
+      exception: false,
     };
 
     wordsSoFar += tokens.length;
@@ -155,9 +190,11 @@ export function alignPhrases(
     stats: {
       total:               textPhraseCount,
       aligned,
+      exceptions,
       lowConfidence:       lowConfidencePhrases.length,
       avgConfidence:       aligned > 0 ? Math.round((totalConf / aligned) * 100) / 100 : 0,
       lowConfidencePhrases,
+      exceptionPhrases,
     },
   };
 }

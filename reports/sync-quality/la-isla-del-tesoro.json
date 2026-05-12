@@ -1,0 +1,26 @@
+{
+  "title": "La Isla del Tesoro",
+  "slug": "la-isla-del-tesoro",
+  "source": "wikisource",
+  "audio_words": 60112,
+  "book_words": 189,
+  "audio_book_ratio": 318.053,
+  "narrative_window": {
+    "start_word": 0,
+    "end_word": 189
+  },
+  "coverage_pct": 100.0,
+  "sections_total": 1,
+  "sections_high": 1,
+  "sections_medium": 0,
+  "sections_low": 0,
+  "leading_low_sections": 0,
+  "trailing_low_sections": 0,
+  "preamble_words": 0,
+  "appendix_words": 0,
+  "narrative_overlap": 0.852,
+  "quality_grade": "EXCELLENT",
+  "recommendations": [
+    "Text and audio match well — no structural changes needed"
+  ]
+}

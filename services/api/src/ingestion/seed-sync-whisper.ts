@@ -75,8 +75,18 @@ async function bootstrap() {
   console.log('\n── Alignment summary ──────────────────────────────');
   console.log(`Book:            ${result.title}`);
   console.log(`Phrases aligned: ${result.stats.aligned} / ${result.stats.total}`);
+  console.log(`Exceptions:      ${result.stats.exceptions} (not found in audio)`);
   console.log(`Avg confidence:  ${(result.stats.avgConfidence * 100).toFixed(1)}%`);
   console.log(`Low-confidence:  ${result.stats.lowConfidence} phrases`);
+  if (result.stats.exceptionPhrases.length > 0) {
+    console.log('\nException phrases (content not in audio — skipped):');
+    for (const p of result.stats.exceptionPhrases.slice(0, 20)) {
+      console.log(`  [${p.index}] "${p.text}"`);
+    }
+    if (result.stats.exceptionPhrases.length > 20) {
+      console.log(`  ... and ${result.stats.exceptionPhrases.length - 20} more`);
+    }
+  }
   if (result.stats.lowConfidencePhrases.length > 0) {
     console.log('\nLow-confidence phrases to spot-check:');
     for (const p of result.stats.lowConfidencePhrases) {

@@ -1,0 +1,26 @@
+{
+  "title": "La Odisea",
+  "slug": "la-odisea",
+  "source": "gutenberg",
+  "audio_words": 82232,
+  "book_words": 118106,
+  "audio_book_ratio": 0.696,
+  "narrative_window": {
+    "start_word": 0,
+    "end_word": 117912
+  },
+  "coverage_pct": 99.8,
+  "sections_total": 237,
+  "sections_high": 237,
+  "sections_medium": 0,
+  "sections_low": 0,
+  "leading_low_sections": 0,
+  "trailing_low_sections": 0,
+  "preamble_words": 0,
+  "appendix_words": 0,
+  "narrative_overlap": 0.912,
+  "quality_grade": "EXCELLENT",
+  "recommendations": [
+    "Text and audio match well — no structural changes needed"
+  ]
+}
