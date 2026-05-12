@@ -10,7 +10,7 @@
 #   --dry-run   Only copy VTTs and show what would run (no DB writes)
 #   --book SLUG Re-sync one book by slug (e.g. --book la-odisea)
 
-set -euo pipefail
+set -uo pipefail
 cd /opt/noetia
 
 DRY_RUN=0
@@ -107,13 +107,13 @@ run_book() {
   raw=$($EXEC --book "$title" --transcript "$REMOTE/${slug}.merged.vtt" 2>&1)
   echo "$raw" | grep -E "aligned:|Exceptions:|confidence:|Low-confidence:" | sed 's/^/  /'
 
-  # Parse summary fields
+  # Parse summary fields (awk — no PCRE needed)
   local aligned total exceptions conf low
-  aligned=$(echo "$raw" | grep "Phrases aligned:" | grep -oP '\d+(?= /)' | head -1)
-  total=$(echo "$raw"   | grep "Phrases aligned:" | grep -oP '(?</ )\d+' | head -1)
-  exceptions=$(echo "$raw" | grep "Exceptions:"     | grep -oP '^\s*\K\d+' | head -1)
-  conf=$(echo "$raw"   | grep "Avg confidence:"  | grep -oP '[\d.]+(?=%)' | head -1)
-  low=$(echo "$raw"    | grep "Low-confidence:"  | grep -oP '^\s*\K\d+' | head -1)
+  aligned=$(echo "$raw"    | awk '/Phrases aligned:/{print $3}' | head -1)
+  total=$(echo "$raw"      | awk '/Phrases aligned:/{print $5}' | head -1)
+  exceptions=$(echo "$raw" | awk '/Exceptions:/{print $2}'      | head -1)
+  conf=$(echo "$raw"       | awk '/Avg confidence:/{gsub(/%/,"",$3); print $3}' | head -1)
+  low=$(echo "$raw"        | awk '/Low-confidence:/{print $2}'  | head -1)
 
   aligned=${aligned:-0}; total=${total:-0}; exceptions=${exceptions:-0}
   conf=${conf:-0}; low=${low:-0}
