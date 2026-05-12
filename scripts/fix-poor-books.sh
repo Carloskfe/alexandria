@@ -20,12 +20,16 @@ REMOTE="/app/transcriptions"
 LOCAL="transcriptions"
 
 # Books that benefit from re-ingestion.
+# Gutenberg books: use narrativeStartPattern/narrativeEndPattern to strip preamble/appendix.
+# Wikisource books: strip navigation div blocks (headertemplate, ws-data, etc.)
 # Format: slug|DB title
 BOOKS=(
   "la-odisea|La Odisea"
   "el-sombrero-de-tres-picos|El Sombrero de Tres Picos"
   "la-isla-del-tesoro|La Isla del Tesoro"
   "martin-fierro|El Gaucho Martín Fierro"
+  "rimas-y-leyendas|Leyendas"
+  "dona-perfecta|Doña Perfecta"
 )
 
 echo ""
