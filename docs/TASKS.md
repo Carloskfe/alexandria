@@ -5,15 +5,23 @@
 > 2. **Author/company experience** — content supply chain; upload, sync tooling, analytics
 > 3. **Free library** — beta acquisition only; not expanded after 6–12 months; UI hero will yield to author content
 >
-> **Current status (2026-05-12):** Stages 0–4 complete. Stage 5 in progress. **Production is live at https://noetia.app** — Contabo VPS (Traefik v2.11, 9 containers running, all 36 migrations applied). Books, collections, and covers seeded. Email confirmation working via Resend. Auto-deploy on push to main via GitHub Actions (**CI broken — DEPLOY_SSH_KEY secret empty, fix required**).
+> **Current status (2026-05-12):** Stages 0–4 complete. Stage 5 in progress. **Production is live at https://noetia.app** — Contabo VPS (Traefik v2.11, 9 containers running, all 36 migrations applied). Books, collections, and covers seeded. Email confirmation working via Resend. Auto-deploy on push to main via GitHub Actions (CI fixed 2026-05-12).
 >
 > **Remaining before full beta readiness:**
 > - [x] `seed-audio-stream.js` — M4B stream URLs set for all 38 free books ✅
 > - [x] Phrase-level sync — 7 books with Whisper VTT (word-level): Don Juan Tenorio, Doña Perfecta, El Sombrero de Tres Picos, Lazarillo, Leyendas, Marianela, Salmos ✅
 > - [x] `seed-alignment.js` — complete. 7 whisper books protected; 9 books chapter-aligned; 22 books failed (ffprobe: no chapter markers in M4B) ✅
 > - [x] Niebla — Whisper VTT synced ✅
-> - [x] 8 new books — VTTs merged, cleaned, committed (2026-05-12): Romeo y Julieta, El Gaucho Martín Fierro, Cuentos de Amor de Locura y de Muerte, Los Cuatro Jinetes del Apocalipsis, La Isla del Tesoro, Viaje al Centro de la Tierra, Crimen y Castigo, La Odisea ✅
-> - [ ] **Run `seed-sync-whisper.js` on server for the 8 new books** — VTTs committed, server needs git pull then docker cp + alignment for each. Commands:
+> - [x] 8 new books — VTTs merged, cleaned, committed and **synced to DB** (2026-05-12): Romeo y Julieta, El Gaucho Martín Fierro, Cuentos de Amor de Locura y de Muerte, Los Cuatro Jinetes del Apocalipsis, La Isla del Tesoro, Viaje al Centro de la Tierra, Crimen y Castigo, La Odisea ✅
+> - [ ] **Fix La Odisea sync quality** — alignment returned 21% avg confidence (3997/4058 phrases low). Root cause: the Gutenberg text includes a full scholarly glossary (~1800 entries: ACASTO through ZETO), editor footnotes, and Greek text that the audio doesn't cover. Fix: clean the stored book text in MinIO to remove everything after the narrative ends (after Canto XXIV). Steps: `docker compose exec api node dist/ingestion/...` to re-ingest from Wikisource, OR manually download a clean text and re-upload via MinIO + re-run seed-sync-whisper. Similar issue likely exists for any other book with a Gutenberg scholarly edition.
+> - [ ] **Whisper VTTs for 13 remaining books** — user transcribes on Windows, drops folder in `C:\Users\carlo\Downloads\<Book Title>\`, Claude reads via `/media/sf_Downloads_1/<Book Title>/`. Workflow: `python3 scripts/clean-vtt.py --dir "transcriptions/<Book>"` → `python3 scripts/merge-vtt.py ...` → commit → server sync. Books still needed:
+>   Don Quijote Vol. I, Don Quijote Vol. II, Mateo, Lucas, Efesios, Filipenses, Apocalipsis,
+>   Proverbios, Isaías, Fábulas y Verdades, Cuentos de la Selva, Génesis, Juan, Éxodo
+> - [ ] Run `seed-search.js` — Meilisearch index empty, search non-functional
+> - [ ] Fix book cover images not displaying in production (backlog)
+> - [ ] App store submissions (iOS + Android)
+>
+> ~~**Run `seed-sync-whisper.js` on server for the 8 new books** — done 2026-05-12~~ ✅ (kept for reference)
 >   ```bash
 >   cd /opt/noetia && git pull
 >   EXEC="docker compose --env-file .env.production -f docker-compose.server.yml exec -T -e DB_HOST=db api node dist/ingestion/seed-sync-whisper.js"
