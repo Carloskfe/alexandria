@@ -72,7 +72,7 @@
 > - Optional guided tour (first-time only) — step-by-step walkthrough available the first time a user opens the reader: 4–5 steps covering (1) reading mode, (2) audio sync, (3) text selection → fragment, (4) fragment → quote card → share; each step highlights a UI element with a callout; skippable at any step; re-accessible from settings; dismissed via localStorage flag `hasSeenReaderTour`; existing `ReaderTutorial` component can serve as the base
 >
 > **Security & ops backlog (not yet in sprints):**
-> - [ ] SSH hardening — generate SSH key pair for personal access, add public key to server, disable root password login (`PermitRootLogin prohibit-password` in `/etc/ssh/sshd_config`)
+> - [x] SSH hardening — fail2ban installed, SSH moved to port 222, UFW updated (2026-05-13)
 > - [ ] Automated PostgreSQL backups — daily pg_dump to a separate Contabo snapshot or off-site storage (Backblaze B2 / S3); retention: 7 daily + 4 weekly
 > - [ ] MinIO data backup — sync `minio_data` Docker volume to off-site storage; currently no backup exists
 > - [ ] Server monitoring & alerting — configure Grafana alerts for API error rate, disk usage >80%, container restarts; add uptime monitor (UptimeRobot free tier or BetterStack)

@@ -345,8 +345,8 @@ Every push to `main` triggers `.github/workflows/cd.yml`:
 ### Manual deploy commands
 
 ```bash
-# SSH in
-ssh root@84.247.140.175
+# SSH in (port 222 — changed from default 22 for security)
+ssh -p 222 root@84.247.140.175
 
 # Deploy manually (same as what CI runs)
 cd /opt/noetia
@@ -362,11 +362,11 @@ docker compose -f docker-compose.server.yml logs -f web
 docker ps
 
 # Access MinIO console (SSH tunnel — run on local machine)
-ssh -L 9001:localhost:9001 root@84.247.140.175
+ssh -p 222 -L 9001:localhost:9001 root@84.247.140.175
 # Then open http://localhost:9001 in browser
 
 # Access Grafana (SSH tunnel — run on local machine)
-ssh -L 3001:localhost:3001 root@84.247.140.175
+ssh -p 222 -L 3001:localhost:3001 root@84.247.140.175
 # Then open http://localhost:3001 in browser
 ```
 
@@ -465,7 +465,7 @@ All third-party services used in production. Credentials are in `.env.production
 | Provider | MinIO (self-hosted, S3-compatible) |
 | Location | Running in Docker on the Contabo VPS |
 | Public URL | `https://storage.noetia.app` |
-| Console | SSH tunnel only: `ssh -L 9001:localhost:9001 root@84.247.140.175` |
+| Console | SSH tunnel only: `ssh -p 222 -L 9001:localhost:9001 root@84.247.140.175` |
 | Buckets | `books/` (private) · `audio/` (private) · `images/` (public download) |
 
 ### CI/CD
