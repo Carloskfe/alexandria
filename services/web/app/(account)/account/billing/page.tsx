@@ -111,6 +111,12 @@ export default function BillingSettingsPage() {
           </button>
         </div>
       </div>
+
+      <div className="mt-6 text-center">
+        <Link href="/causas" className="text-sm text-slate-400 hover:text-slate-600 transition">
+          🌿 Ver Causas Noetia — el 2,22% de tu pago apoya causas sociales
+        </Link>
+      </div>
     </main>
   );
 }
