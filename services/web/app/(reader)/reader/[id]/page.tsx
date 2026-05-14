@@ -332,12 +332,31 @@ export default function ReaderPage() {
 
   // ── Text selection handler ────────────────────────────────────────────────
 
-  const handleTextMouseUp = useCallback((e: React.MouseEvent) => {
-    if (e.button === 2) return;
-    const sel = window.getSelection();
-    if (!sel || sel.isCollapsed) return;
-    const text = sel.toString();
-    setSelection(applyTextSelection(text));
+  const handleTextPointerDown = useCallback(() => {
+    // Clear stale selection before a new gesture so the old popover
+    // doesn't block the user from making a fresh selection on mobile.
+    if (selection.showPopover) {
+      setSelection(EMPTY_SELECTION);
+      window.getSelection()?.removeAllRanges();
+    }
+  }, [selection.showPopover]);
+
+  const handleTextPointerUp = useCallback((e: React.PointerEvent) => {
+    if (e.pointerType === 'mouse' && e.button === 2) return;
+
+    const checkSelection = () => {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed) return;
+      const text = sel.toString();
+      setSelection(applyTextSelection(text));
+    };
+
+    // Touch browsers finalise the selection range ~50ms after pointerup.
+    if (e.pointerType === 'touch') {
+      setTimeout(checkSelection, 50);
+    } else {
+      checkSelection();
+    }
   }, []);
 
   const handlePhraseClick = useCallback((idx: number) => {
@@ -532,7 +551,8 @@ export default function ReaderPage() {
 
         <div
           className={['leading-relaxed', fontSizeClass, mode !== 'reading' ? 'select-none' : ''].join(' ')}
-          onMouseUp={mode !== 'reading' ? undefined : handleTextMouseUp}
+          onPointerDown={mode !== 'reading' ? undefined : handleTextPointerDown}
+          onPointerUp={mode !== 'reading' ? undefined : handleTextPointerUp}
         >
           {hasSync ? (
             <PhraseRenderer
