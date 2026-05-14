@@ -13,6 +13,36 @@ type Cause = {
   icon: string;
 };
 
+const STRATEGIC_LINES = [
+  {
+    slug: 'bienestar-animal',
+    icon: '🐾',
+    name: 'Bienestar Animal',
+    description: 'Apoyamos iniciativas de rescate, cuidado, rehabilitación y protección de animales en América Latina.',
+    stat: 'Más de 70 millones de perros y gatos viven en condición de abandono en América Latina.',
+    color: 'from-amber-900/30 to-amber-950/10 border-amber-500/20',
+    accent: 'text-amber-400',
+  },
+  {
+    slug: 'ninez-y-juventud',
+    icon: '📚',
+    name: 'Niñez y Juventud',
+    description: 'Impulsamos proyectos que amplían el acceso a la educación, la lectura y las oportunidades para niños y jóvenes.',
+    stat: '1 de cada 3 niños en América Latina no tiene acceso a libros fuera del aula escolar.',
+    color: 'from-blue-900/30 to-blue-950/10 border-blue-500/20',
+    accent: 'text-blue-400',
+  },
+  {
+    slug: 'medio-ambiente',
+    icon: '🌿',
+    name: 'Medio Ambiente',
+    description: 'Contribuimos a proteger los ecosistemas, la biodiversidad y los recursos naturales de nuestra región.',
+    stat: 'América Latina alberga el 40% de la biodiversidad del planeta, pero pierde más de 2,6 millones de hectáreas de bosque al año.',
+    color: 'from-emerald-900/30 to-emerald-950/10 border-emerald-500/20',
+    accent: 'text-emerald-400',
+  },
+];
+
 export default function CausasPage() {
   const [causes, setCauses] = useState<Cause[]>([]);
 
@@ -21,112 +51,130 @@ export default function CausasPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-white">
+    <main className="min-h-screen bg-[#0D1B2A] text-white">
+
+      {/* Nav */}
+      <nav className="max-w-5xl mx-auto px-6 py-5 flex items-center justify-between">
+        <Link href="/" className="text-xl font-bold tracking-widest">NOETIA</Link>
+        <Link href="/library" className="text-sm text-slate-400 hover:text-white transition">
+          ← Biblioteca
+        </Link>
+      </nav>
+
       {/* Hero */}
-      <section className="bg-[#0D1B2A] text-white px-6 py-16 text-center">
-        <p className="text-sm font-semibold tracking-widest text-slate-400 uppercase mb-3">Causas Noetia</p>
-        <h1 className="text-3xl sm:text-4xl font-bold mb-4 leading-snug">
-          Con cada página,<br />construimos algo más.
+      <section className="max-w-3xl mx-auto px-6 pt-12 pb-16 text-center">
+        <p className="text-xs font-semibold text-emerald-400 uppercase tracking-widest mb-4">
+          Causas Noetia
+        </p>
+        <h1 className="text-4xl sm:text-5xl font-bold leading-tight mb-6">
+          Leer aquí mueve<br />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400">
+            más que páginas.
+          </span>
         </h1>
-        <p className="text-slate-300 text-base max-w-xl mx-auto leading-relaxed">
-          El <strong className="text-white">2,22%</strong> de cada pago que realizas en Noetia se destina
-          directamente a causas sociales que transforman vidas en América Latina.
-          Juntos hacemos posible lo que ninguno podría solo.
+        <p className="text-slate-300 text-lg leading-relaxed max-w-xl mx-auto">
+          El <strong className="text-white">2,22%</strong> de cada pago que procesamos apoya
+          proyectos sociales en tres líneas estratégicas. Los programas evolucionan —
+          las líneas no. Tú decides a cuál causa se suma tu aporte.
         </p>
       </section>
 
-      {/* Percentage callout */}
-      <section className="bg-slate-50 border-b border-slate-100 px-6 py-8">
-        <div className="max-w-3xl mx-auto flex flex-col sm:flex-row items-center gap-6 text-center sm:text-left">
-          <div className="shrink-0">
-            <span className="text-5xl font-black text-[#0D1B2A]">2,22%</span>
-            <p className="text-sm text-slate-500 mt-1">de cada pago</p>
+      {/* Strategic lines */}
+      <section className="max-w-5xl mx-auto px-6 pb-16">
+        <div className="grid sm:grid-cols-3 gap-5">
+          {STRATEGIC_LINES.map((line) => (
+            <div
+              key={line.slug}
+              className={`rounded-2xl border bg-gradient-to-b ${line.color} p-6`}
+            >
+              <span className="text-4xl block mb-4">{line.icon}</span>
+              <h2 className={`text-base font-bold mb-2 ${line.accent}`}>{line.name}</h2>
+              <p className="text-slate-300 text-sm leading-relaxed mb-4">{line.description}</p>
+              <div className="bg-white/5 rounded-xl p-3">
+                <p className="text-xs text-slate-400 italic leading-relaxed">"{line.stat}"</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="border-t border-white/10 bg-white/5">
+        <div className="max-w-3xl mx-auto px-6 py-14">
+          <h2 className="text-xl font-bold text-white mb-8 text-center">¿Cómo funciona?</h2>
+          <div className="space-y-5">
+            {[
+              { step: '01', text: 'Cada suscripción o compra en Noetia activa automáticamente tu aporte.' },
+              { step: '02', text: 'El 2,22% de ese pago se asigna a proyectos sociales reales — del total de la transacción, no de las ganancias.' },
+              { step: '03', text: 'Tú decides: elige hasta dos líneas estratégicas que quieres apoyar, o distribuye tu aporte de forma aleatoria entre las tres.' },
+              { step: '04', text: 'Publicamos informes periódicos de impacto para que veas exactamente a dónde va cada peso de la comunidad.' },
+            ].map(({ step, text }) => (
+              <div key={step} className="flex gap-4 items-start">
+                <span className="text-xs font-bold text-emerald-400 tracking-widest w-8 shrink-0 mt-0.5">{step}</span>
+                <p className="text-slate-300 text-sm leading-relaxed">{text}</p>
+              </div>
+            ))}
           </div>
-          <div className="sm:border-l sm:border-slate-200 sm:pl-6">
-            <p className="text-slate-700 leading-relaxed">
-              No de las ganancias — del total de cada transacción.
-              Esto significa que cada suscripción y cada compra activa tu aporte de forma inmediata,
-              sin condiciones ni letra pequeña.
+        </div>
+      </section>
+
+      {/* Alliance invitation — main CTA for social organizations */}
+      <section className="border-t border-white/10">
+        <div className="max-w-4xl mx-auto px-6 py-16">
+          <div className="rounded-2xl bg-gradient-to-br from-emerald-900/40 to-teal-900/20 border border-emerald-500/30 p-8 sm:p-12 text-center">
+            <p className="text-xs font-semibold text-emerald-400 uppercase tracking-widest mb-4">
+              Para organizaciones sociales
+            </p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4 leading-snug">
+              ¿Tu proyecto genera cambio real<br className="hidden sm:block" /> en América Latina?
+            </h2>
+            <p className="text-slate-300 text-base leading-relaxed max-w-xl mx-auto mb-8">
+              Buscamos aliados estratégicos en bienestar animal, niñez y juventud, y medio ambiente.
+              Si tu organización trabaja con propósito, con transparencia y con impacto demostrable,
+              queremos conocerte y potenciar juntos el alcance de tu trabajo.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
+              {[
+                { icon: '✅', text: 'Trabajo en una de las tres líneas estratégicas' },
+                { icon: '✅', text: 'Operación en América Latina' },
+                { icon: '✅', text: 'Impacto documentado y transparente' },
+              ].map(({ icon, text }) => (
+                <div key={text} className="flex items-center gap-2 text-sm text-slate-300">
+                  <span>{icon}</span>
+                  <span>{text}</span>
+                </div>
+              ))}
+            </div>
+
+            <a
+              href="mailto:causas@noetia.app?subject=Propuesta%20de%20alianza%20estrat%C3%A9gica%20%E2%80%94%20Causas%20Noetia"
+              className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white font-semibold px-8 py-4 rounded-xl transition text-base"
+            >
+              Escribenos a causas@noetia.app
+            </a>
+            <p className="text-xs text-slate-500 mt-5 max-w-md mx-auto">
+              Evaluamos cada propuesta con base en transparencia, impacto documentado y alineación
+              con nuestra comunidad de lectores. Los programas aliados se comunican públicamente
+              a través de nuestros informes de impacto.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Causes */}
-      <section className="max-w-3xl mx-auto px-6 py-14">
-        <h2 className="text-xl font-bold text-gray-900 mb-2 text-center">Las causas que apoyamos</h2>
-        <p className="text-sm text-gray-500 text-center mb-10">
-          Actualmente trabajamos con tres categorías de impacto. Puedes elegir hasta dos favoritas.
-        </p>
-
-        {causes.length === 0 ? (
-          <div className="flex justify-center py-12">
-            <div className="w-6 h-6 border-2 border-slate-300 border-t-[#0D1B2A] rounded-full animate-spin" />
-          </div>
-        ) : (
-          <div className="grid gap-6 sm:grid-cols-3">
-            {causes.map((cause) => (
-              <div key={cause.id} className="rounded-2xl border border-slate-100 bg-white shadow-sm p-6">
-                <div className="text-4xl mb-4">{cause.icon}</div>
-                <h3 className="font-bold text-gray-900 mb-2">{cause.name}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed mb-4">{cause.description}</p>
-                <div className="bg-slate-50 rounded-xl p-3">
-                  <p className="text-xs text-slate-600 italic leading-relaxed">"{cause.statFact}"</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* How it works */}
-      <section className="bg-slate-50 border-t border-slate-100 px-6 py-14">
-        <div className="max-w-2xl mx-auto text-center">
-          <h2 className="text-xl font-bold text-gray-900 mb-8">¿Cómo funciona?</h2>
-          <div className="space-y-6 text-left">
-            {[
-              { step: '1', text: 'Realizas un pago en Noetia — suscripción o compra de título.' },
-              { step: '2', text: 'El 2,22% de ese pago se asigna automáticamente a causas sociales.' },
-              { step: '3', text: 'Tú decides cómo distribuirlo: eliges hasta 2 causas favoritas o lo distribuyes al azar entre las tres.' },
-              { step: '4', text: 'Publicamos un informe de impacto transparente para que veas exactamente a dónde va cada peso.' },
-            ].map(({ step, text }) => (
-              <div key={step} className="flex gap-4">
-                <div className="w-8 h-8 rounded-full bg-[#0D1B2A] text-white text-sm font-bold flex items-center justify-center shrink-0 mt-0.5">
-                  {step}
-                </div>
-                <p className="text-gray-700 leading-relaxed">{text}</p>
-              </div>
-            ))}
-          </div>
+      {/* Footer strip */}
+      <footer className="border-t border-white/10 py-8">
+        <div className="max-w-4xl mx-auto px-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-slate-500">
+          <span className="font-bold tracking-widest text-slate-400">NOETIA</span>
+          <nav className="flex gap-6">
+            <Link href="/library" className="hover:text-slate-300 transition">Biblioteca</Link>
+            <Link href="/pricing" className="hover:text-slate-300 transition">Planes</Link>
+            <a href="mailto:hola@noetia.app" className="hover:text-slate-300 transition">Contacto</a>
+          </nav>
+          <span>© {new Date().getFullYear()} Noetia</span>
         </div>
-      </section>
+      </footer>
 
-      {/* CTA + contact */}
-      <section className="max-w-2xl mx-auto px-6 py-14 text-center">
-        <h2 className="text-xl font-bold text-gray-900 mb-3">¿Lideras una causa social?</h2>
-        <p className="text-gray-500 text-sm leading-relaxed mb-6 max-w-lg mx-auto">
-          Si representas una organización sin fines de lucro o emprendimiento social que trabaja en
-          bienestar animal, niñez, juventud o conservación ambiental en América Latina,
-          queremos conocerte.
-        </p>
-        <a
-          href="mailto:causas@noetia.app"
-          className="inline-block bg-[#0D1B2A] text-white font-semibold px-8 py-3 rounded-xl hover:bg-slate-800 transition"
-        >
-          Escríbenos a causas@noetia.app
-        </a>
-        <p className="text-xs text-slate-400 mt-8">
-          Noetia evalúa y selecciona socios aliados basándose en transparencia, impacto demostrable
-          y alineación con nuestra comunidad de lectores.
-        </p>
-      </section>
-
-      {/* Back link */}
-      <div className="border-t border-slate-100 px-6 py-6 text-center">
-        <Link href="/library" className="text-sm text-slate-400 hover:text-slate-600 transition">
-          ← Volver a la biblioteca
-        </Link>
-      </div>
     </main>
   );
 }

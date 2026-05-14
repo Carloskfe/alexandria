@@ -620,6 +620,8 @@ docker compose exec api npm run migration:run
 | 033 | `AddSyncSource` | syncSource VARCHAR on sync_maps ('auto'\|'srt'\|'vtt'\|'manual') |
 | 034 | `CreateUploadCodes` | upload_codes table — admin-issued single-use courtesy upload codes |
 | 035 | `CreateWaitlist` | waitlist_entries table — email, name, isAuthor, invitedAt |
+| 036 | `CreateCausesAndPreferences` | causes table (3 seeded) + user_cause_preferences (up to 2 causes per user) |
+| 037 | `RenameCausaToMedioAmbiente` | Renames "Conservación Ambiental" → "Medio Ambiente" in causes table |
 
 ---
 

@@ -116,6 +116,47 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Causas Noetia banner */}
+      <section className="border-t border-white/10" aria-label="Causas Noetia">
+        <div className="max-w-4xl mx-auto px-6 py-14">
+          <div className="rounded-2xl bg-white/5 border border-white/10 px-8 py-10 sm:px-12">
+            <p className="text-xs font-semibold text-emerald-400 uppercase tracking-widest mb-4">
+              Causas Noetia
+            </p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-white leading-snug mb-4">
+              Leer aquí mueve más que páginas.
+            </h2>
+            <p className="text-slate-300 text-base leading-relaxed mb-8 max-w-xl">
+              El 2,22% de cada pago que procesamos apoya proyectos sociales en tres líneas
+              estratégicas que no cambian. Tú eliges a cuál causa se suma tu aporte.
+            </p>
+
+            <div className="flex flex-col sm:flex-row gap-4 mb-8">
+              {[
+                { icon: '🐾', label: 'Bienestar Animal', desc: 'Rescate, cuidado y protección de animales en América Latina' },
+                { icon: '📚', label: 'Niñez y Juventud', desc: 'Acceso a la educación y la lectura para los que más lo necesitan' },
+                { icon: '🌿', label: 'Medio Ambiente', desc: 'Protección de ecosistemas y biodiversidad de la región' },
+              ].map(({ icon, label, desc }) => (
+                <div key={label} className="flex-1 flex gap-3 items-start bg-white/5 rounded-xl p-4">
+                  <span className="text-2xl mt-0.5 shrink-0">{icon}</span>
+                  <div>
+                    <p className="text-sm font-semibold text-white">{label}</p>
+                    <p className="text-xs text-slate-400 leading-snug mt-0.5">{desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <Link
+              href="/causas"
+              className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white font-semibold px-6 py-3 rounded-xl transition text-sm"
+            >
+              Conocer Causas Noetia →
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* For authors */}
       <section className="max-w-4xl mx-auto px-6 py-16" aria-label="Para autores">
         <div className="bg-white/5 border border-white/10 rounded-2xl p-8 sm:p-10 flex flex-col sm:flex-row items-start sm:items-center gap-6">
