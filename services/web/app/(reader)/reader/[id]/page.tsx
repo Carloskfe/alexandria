@@ -18,6 +18,8 @@ import FragmentSheet from '@/components/FragmentSheet';
 import ChapterSheet from '@/components/ChapterSheet';
 import ReaderTopBar from '@/components/ReaderTopBar';
 import ReaderTutorial, { hasSeenReaderTutorial } from '@/components/ReaderTutorial';
+import AudioTutorial from '@/components/AudioTutorial';
+import { hasSeenAudioTutorial } from '@/lib/tutorial-flags';
 
 const FONT_SIZE_CLASSES: Record<FontSize, string> = {
   sm: 'text-base',
@@ -81,6 +83,7 @@ export default function ReaderPage() {
 
   // First-open tutorial
   const [showTutorial, setShowTutorial] = useState(false);
+  const [showAudioTutorial, setShowAudioTutorial] = useState(false);
 
   // Play confirmation — shown when user hits play with saved progress
   const [showPlayConfirm, setShowPlayConfirm] = useState(false);
@@ -250,7 +253,11 @@ export default function ReaderPage() {
     if (!audio.paused) audio.pause();
     setPlayConfirmTargetMode('escucha-activa');
     setMode('escucha-activa');
-    setShowPlayConfirm(true);
+    if (!hasSeenAudioTutorial()) {
+      setShowAudioTutorial(true);
+    } else {
+      setShowPlayConfirm(true);
+    }
   }, [mode]);
 
   const handlePlayFromProgress = useCallback(() => {
@@ -449,6 +456,14 @@ export default function ReaderPage() {
   return (
     <div className={['flex flex-col md:flex-row min-h-screen', darkMode ? 'bg-gray-950 text-gray-100' : 'bg-white text-gray-800'].join(' ')}>
       {showTutorial && <ReaderTutorial onDismiss={() => setShowTutorial(false)} />}
+      {showAudioTutorial && (
+        <AudioTutorial
+          onDismiss={() => {
+            setShowAudioTutorial(false);
+            setShowPlayConfirm(true);
+          }}
+        />
+      )}
 
       {/* ── Top bar ─────────────────────────────────────────────────────── */}
       <ReaderTopBar
