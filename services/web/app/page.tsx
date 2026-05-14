@@ -124,17 +124,18 @@ export default function LandingPage() {
               Causas Noetia
             </p>
             <h2 className="text-2xl sm:text-3xl font-bold text-white leading-snug mb-4">
-              Leer aquí mueve más que páginas.
+              Leer, Escuchar y Compartir ayuda a que el mundo sea un lugar mejor.
             </h2>
             <p className="text-slate-300 text-base leading-relaxed mb-8 max-w-xl">
-              El 2,22% de cada pago que procesamos apoya proyectos sociales en tres líneas
-              estratégicas que no cambian. Tú eliges a cuál causa se suma tu aporte.
+              Apoyamos proyectos sociales en tres líneas estratégicas que nos hacen soñar con un
+              mejor mañana. Cada pago tuyo genera una donación para una o varias de nuestras
+              causas aliadas, y tú puedes elegir a cuál apoyar.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
               {[
                 { icon: '🐾', label: 'Bienestar Animal', desc: 'Rescate, cuidado y protección de animales en América Latina' },
-                { icon: '📚', label: 'Niñez y Juventud', desc: 'Acceso a la educación y la lectura para los que más lo necesitan' },
+                { icon: '📚', label: 'Niñez y Juventud', desc: 'Protección, alimentación, educación y oportunidades para los más vulnerables' },
                 { icon: '🌿', label: 'Medio Ambiente', desc: 'Protección de ecosistemas y biodiversidad de la región' },
               ].map(({ icon, label, desc }) => (
                 <div key={label} className="flex-1 flex gap-3 items-start bg-white/5 rounded-xl p-4">
@@ -151,7 +152,7 @@ export default function LandingPage() {
               href="/causas"
               className="inline-flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white font-semibold px-6 py-3 rounded-xl transition text-sm"
             >
-              Conocer Causas Noetia →
+              Conoce más de Causas Noetia →
             </Link>
           </div>
         </div>
