@@ -4,7 +4,7 @@ import Link from 'next/link';
 export const metadata: Metadata = {
   title: 'Noetia — Lee. Escucha. Comparte.',
   description:
-    'Sincroniza texto y audio frase por frase. Captura fragmentos de lo que lees y compártelos como tarjetas visuales en LinkedIn, Instagram y más.',
+    'Sincroniza texto y audio de tus libros favoritos. Captura las ideas que más te cautivan y conviértelas en contenido visual para tus redes sociales — en segundos.',
   openGraph: {
     title: 'Noetia — Lee. Escucha. Comparte.',
     description: 'La plataforma de lectura sincronizada con audio para lectores que crean contenido.',
@@ -71,13 +71,13 @@ export default function LandingPage() {
         <h1 className="text-4xl sm:text-5xl font-bold leading-tight mb-6">
           Lee. Escucha.<br />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">
-            Comparte lo que importa.
+            Comparte lo que más te gusta.
           </span>
         </h1>
 
         <p className="text-slate-300 text-lg leading-relaxed mb-10 max-w-xl mx-auto">
-          Noetia sincroniza texto y audio frase por frase. Captura las ideas que más te mueven y
-          conviértelas en contenido visual para tus redes — en segundos.
+          Noetia sincroniza texto y audio de tus libros favoritos. Tú capturas las ideas que más
+          te cautivan y Noetia las convierte en contenido visual para tus redes sociales — en segundos.
         </p>
 
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
