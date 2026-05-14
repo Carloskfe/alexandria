@@ -54,6 +54,16 @@ export function getUserType(): string | null {
   return typeof window !== 'undefined' ? localStorage.getItem('user_type') : null;
 }
 
+export function saveEmailConfirmed(confirmed: boolean) {
+  localStorage.setItem('email_confirmed', confirmed ? '1' : '0');
+}
+
+export function getEmailConfirmed(): boolean {
+  if (typeof window === 'undefined') return true;
+  const v = localStorage.getItem('email_confirmed');
+  return v === null || v === '1';
+}
+
 export function postAuthRedirect(userType: string | null): string {
   return userType ? '/library' : '/onboarding';
 }

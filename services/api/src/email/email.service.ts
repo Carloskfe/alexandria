@@ -24,7 +24,7 @@ export class EmailService {
   }
 
   async sendEmailConfirmation(to: string, name: string, token: string): Promise<void> {
-    const link = `${this.webUrl}/auth/confirm-email?token=${token}`;
+    const link = `${this.webUrl}/confirm-email?token=${token}`;
     await this.send({
       to,
       subject: 'Confirma tu cuenta en Noetia',

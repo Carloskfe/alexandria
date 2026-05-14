@@ -35,7 +35,7 @@ function setRefreshCookie(res: Response, tokenId: string, userId: string) {
 }
 
 function safeUser(user: any) {
-  return { id: user.id, email: user.email, name: user.name, userType: user.userType ?? null };
+  return { id: user.id, email: user.email, name: user.name, userType: user.userType ?? null, emailConfirmed: user.emailConfirmed ?? true };
 }
 
 @Controller('auth')

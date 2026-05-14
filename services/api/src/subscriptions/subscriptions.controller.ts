@@ -8,6 +8,7 @@ import {
   Request,
   UseGuards,
 } from '@nestjs/common';
+import { EmailConfirmedGuard } from '../auth/email-confirmed.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CreateCheckoutDto } from './dto/checkout.dto';
 import { PlansService } from './plans.service';
@@ -33,28 +34,28 @@ export class SubscriptionsController {
 
   @Post('checkout')
   @HttpCode(200)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EmailConfirmedGuard)
   createCheckout(@Request() req: any, @Body() dto: CreateCheckoutDto) {
     return this.subscriptionsService.createCheckoutSession(req.user.id, dto.planId);
   }
 
   @Post('portal')
   @HttpCode(200)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EmailConfirmedGuard)
   createPortal(@Request() req: any) {
     return this.subscriptionsService.createPortalSession(req.user.id);
   }
 
   @Post('cancel')
   @HttpCode(200)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EmailConfirmedGuard)
   cancel(@Request() req: any) {
     return this.subscriptionsService.cancelSubscription(req.user.id);
   }
 
   @Post('resume')
   @HttpCode(200)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EmailConfirmedGuard)
   resume(@Request() req: any) {
     return this.subscriptionsService.resumeSubscription(req.user.id);
   }
@@ -68,14 +69,14 @@ export class SubscriptionsController {
 
   @Post('books/:bookId/purchase')
   @HttpCode(200)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EmailConfirmedGuard)
   purchaseBook(@Request() req: any, @Param('bookId') bookId: string) {
     return this.subscriptionsService.createPurchaseSession(req.user.id, bookId);
   }
 
   @Post('books/:bookId/redeem')
   @HttpCode(200)
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, EmailConfirmedGuard)
   redeemBook(@Request() req: any, @Param('bookId') bookId: string) {
     return this.subscriptionsService.redeemCredit(req.user.id, bookId);
   }

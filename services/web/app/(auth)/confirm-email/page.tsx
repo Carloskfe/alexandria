@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { apiFetch, saveToken, saveUserType, postAuthRedirect } from '@/lib/api';
+import { apiFetch, saveToken, saveUserType, saveEmailConfirmed, postAuthRedirect } from '@/lib/api';
 
 type State = 'verifying' | 'success' | 'error';
 
@@ -24,6 +24,7 @@ export default function ConfirmEmailPage() {
       .then((data: any) => {
         saveToken(data.accessToken);
         if (data.user?.userType) saveUserType(data.user.userType);
+        saveEmailConfirmed(true);
         setState('success');
         setTimeout(() => router.push(postAuthRedirect(data.user?.userType ?? null)), 1500);
       })
