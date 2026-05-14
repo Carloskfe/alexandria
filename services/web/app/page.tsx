@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import WaitlistForm from '@/components/WaitlistForm';
 
 export const metadata: Metadata = {
   title: 'Noetia — Lee. Escucha. Comparte.',
@@ -69,11 +68,6 @@ export default function LandingPage() {
 
       {/* Hero */}
       <section className="max-w-3xl mx-auto px-6 pt-16 pb-20 text-center">
-        <div className="inline-flex items-center gap-2 bg-white/10 text-white/80 text-xs font-medium px-3 py-1.5 rounded-full mb-8">
-          <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" aria-hidden="true" />
-          Beta próximamente — únete a la lista de espera
-        </div>
-
         <h1 className="text-4xl sm:text-5xl font-bold leading-tight mb-6">
           Lee. Escucha.<br />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">
@@ -86,7 +80,20 @@ export default function LandingPage() {
           conviértelas en contenido visual para tus redes — en segundos.
         </p>
 
-        <WaitlistForm />
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+          <Link
+            href="/register"
+            className="w-full sm:w-auto bg-white text-[#0D1B2A] font-semibold px-8 py-3.5 rounded-xl hover:bg-slate-100 transition text-base"
+          >
+            Crear cuenta gratis
+          </Link>
+          <Link
+            href="/library"
+            className="w-full sm:w-auto border border-white/20 text-white font-medium px-8 py-3.5 rounded-xl hover:bg-white/10 transition text-base"
+          >
+            Explorar la biblioteca →
+          </Link>
+        </div>
       </section>
 
       {/* Features */}
@@ -137,6 +144,7 @@ export default function LandingPage() {
           <span className="font-bold tracking-widest text-slate-400">NOETIA</span>
           <nav aria-label="Footer" className="flex gap-6">
             <Link href="/login" className="hover:text-slate-300 transition">Iniciar sesión</Link>
+            <Link href="/causas" className="hover:text-slate-300 transition">Causas Noetia</Link>
             <Link href="/upload-guide" className="hover:text-slate-300 transition">Para autores</Link>
             <a href="mailto:hola@noetia.app" className="hover:text-slate-300 transition">Contacto</a>
           </nav>

@@ -222,7 +222,7 @@ export default function AdminPage() {
         <div>
           <h2 className="text-lg font-semibold text-gray-900 mb-1">Lista de espera</h2>
           <p className="text-gray-500 text-sm mb-4">
-            Usuarios registrados en la landing page esperando acceso beta.
+            Usuarios registrados antes del lanzamiento. Puedes enviarles una invitación de acceso.
           </p>
 
           {/* Stats */}
