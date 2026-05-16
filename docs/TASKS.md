@@ -5,7 +5,7 @@
 > 2. **Author/company experience** — content supply chain; upload, sync tooling, analytics
 > 3. **Free library** — beta acquisition only; not expanded after 6–12 months; UI hero will yield to author content
 >
-> **Current status (2026-05-16):** Stages 0–5 functionally complete. **Production live at https://noetia.app** — Contabo VPS (Traefik v3, 9 containers healthy, 41 migrations applied). SSH on port 222, fail2ban active. CI/CD working via GitHub Actions. Token system live (Individual $8.99 / Duo $13.99 / Family $18.99). Causas Noetia live. Delete account live.
+> **Current status (2026-05-16):** Stages 0–5 functionally complete. **Production live at https://noetia.app** — Contabo VPS (Traefik v2.11, 9 containers healthy, 41 migrations applied). SSH on port 222, fail2ban active. CI/CD working via GitHub Actions. Token system live (Individual $8.99 / Duo $13.99 / Family $18.99). Causas Noetia live. Delete account live.
 >
 > **Remaining before full beta readiness:**
 > - [x] All Whisper VTTs for first 16 books synced ✅

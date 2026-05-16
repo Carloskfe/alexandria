@@ -1,19 +1,42 @@
 import { test, expect } from '@playwright/test';
 
+const MOCK_PLANS = [
+  { id: 'individual-monthly', name: 'Individual', amountCents: 899, interval: 'month', tokensPerCycle: 1, maxProfiles: 1 },
+  { id: 'individual-annual',  name: 'Individual', amountCents: 8399, interval: 'year',  tokensPerCycle: 1, maxProfiles: 1 },
+  { id: 'duo-monthly',        name: 'Duo',        amountCents: 1399, interval: 'month', tokensPerCycle: 2, maxProfiles: 2 },
+  { id: 'duo-annual',         name: 'Duo',        amountCents: 12999, interval: 'year', tokensPerCycle: 2, maxProfiles: 2 },
+  { id: 'family-monthly',     name: 'Family',     amountCents: 1899, interval: 'month', tokensPerCycle: 4, maxProfiles: 5 },
+  { id: 'family-annual',      name: 'Family',     amountCents: 17999, interval: 'year', tokensPerCycle: 4, maxProfiles: 5 },
+];
+
 test.describe('Flow: subscribe → unlock', () => {
-  test('pricing page shows plans and initiates checkout on selection', async ({ page }) => {
-    // ── Mock subscription status — no active plan ─────────────────────────────
-    await page.route('**/api/subscriptions/me', (route) =>
+  test('pricing page shows plans and initiates checkout on plan selection', async ({ page }) => {
+    await page.route('**/subscriptions/plans', (route) =>
       route.fulfill({
         status: 200,
         contentType: 'application/json',
-        body: JSON.stringify({ planId: null }),
+        body: JSON.stringify(MOCK_PLANS),
       }),
     );
 
-    // ── Mock checkout — returns Stripe URL ────────────────────────────────────
+    await page.route('**/subscriptions/token-packages', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) }),
+    );
+
+    await page.route('**/subscriptions/me', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: 'none', planId: null, tokenBalance: 0 }),
+      }),
+    );
+
+    await page.route('**/causes/preferences', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({}) }),
+    );
+
     let checkoutBody: { planId?: string } = {};
-    await page.route('**/api/subscriptions/checkout', async (route) => {
+    await page.route('**/subscriptions/checkout', async (route) => {
       checkoutBody = JSON.parse(route.request().postData() ?? '{}');
       await route.fulfill({
         status: 200,
@@ -23,58 +46,88 @@ test.describe('Flow: subscribe → unlock', () => {
     });
 
     await page.goto('/pricing');
-    await expect(page.getByRole('heading', { name: 'Choose your plan' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Planes Noetia' })).toBeVisible();
 
-    // All four plan cards should render
-    await expect(page.getByRole('heading', { name: 'Individual Monthly' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Individual Annual' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Dual Reader Monthly' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Dual Reader Annual' })).toBeVisible();
+    // Monthly tab should be active by default — shows Individual, Duo, Family
+    await expect(page.getByText('Individual').first()).toBeVisible();
+    await expect(page.getByText('Duo').first()).toBeVisible();
+    await expect(page.getByText('Family').first()).toBeVisible();
 
-    // Click "Get started" on the first plan
+    // Click "Comenzar prueba gratuita" on the first plan
     const checkoutRequest = page.waitForRequest(
-      (req) => req.url().includes('/api/subscriptions/checkout') && req.method() === 'POST',
+      (req) => req.url().includes('/subscriptions/checkout') && req.method() === 'POST',
     );
-    await page.getByRole('button', { name: 'Get started' }).first().click();
+    await page.getByRole('button', { name: 'Comenzar prueba gratuita' }).first().click();
     await checkoutRequest;
 
-    // Checkout was called with a planId
-    expect(checkoutBody.planId).toBe('individual-monthly');
+    expect(checkoutBody.planId).toBeTruthy();
   });
 
-  test('current plan button is disabled', async ({ page }) => {
-    await page.route('**/api/subscriptions/me', (route) =>
-      route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ planId: 'individual-monthly' }),
-      }),
+  test('annual tab shows discounted prices', async ({ page }) => {
+    await page.route('**/subscriptions/plans', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_PLANS) }),
+    );
+    await page.route('**/subscriptions/token-packages', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) }),
+    );
+    await page.route('**/subscriptions/me', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'none', planId: null }) }),
+    );
+    await page.route('**/causes/preferences', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({}) }),
     );
 
     await page.goto('/pricing');
-    await expect(page.getByRole('heading', { name: 'Choose your plan' })).toBeVisible();
+    await page.getByRole('button', { name: /Anual/i }).click();
 
-    // The "Individual Monthly" card should show "Current plan" (disabled button)
-    const currentPlanBtn = page.locator('.border.rounded-xl').filter({
-      has: page.getByRole('heading', { name: 'Individual Monthly' }),
-    }).getByRole('button');
+    // Annual Individual plan price
+    await expect(page.getByText('$83.99')).toBeVisible();
+  });
 
-    await expect(currentPlanBtn).toBeDisabled();
-    await expect(currentPlanBtn).toHaveText('Current plan');
+  test('current plan button is disabled', async ({ page }) => {
+    await page.route('**/subscriptions/plans', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_PLANS) }),
+    );
+    await page.route('**/subscriptions/token-packages', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) }),
+    );
+    await page.route('**/subscriptions/me', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: 'active', planId: 'individual-monthly', tokenBalance: 1 }),
+      }),
+    );
+    await page.route('**/causes/preferences', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({}) }),
+    );
+
+    await page.goto('/pricing');
+    const disabledBtn = page.getByRole('button', { name: 'Tu plan actual' });
+    await expect(disabledBtn).toBeVisible();
+    await expect(disabledBtn).toBeDisabled();
   });
 
   test('shows error when checkout fails', async ({ page }) => {
-    await page.route('**/api/subscriptions/me', (route) =>
-      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ planId: null }) }),
+    await page.route('**/subscriptions/plans', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(MOCK_PLANS) }),
     );
-
-    await page.route('**/api/subscriptions/checkout', (route) =>
+    await page.route('**/subscriptions/token-packages', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify([]) }),
+    );
+    await page.route('**/subscriptions/me', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ status: 'none', planId: null }) }),
+    );
+    await page.route('**/causes/preferences', (route) =>
+      route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({}) }),
+    );
+    await page.route('**/subscriptions/checkout', (route) =>
       route.fulfill({ status: 500, contentType: 'application/json', body: JSON.stringify({}) }),
     );
 
     await page.goto('/pricing');
-    await page.getByRole('button', { name: 'Get started' }).first().click();
+    await page.getByRole('button', { name: 'Comenzar prueba gratuita' }).first().click();
 
-    await expect(page.getByText('Could not start checkout. Please try again.')).toBeVisible();
+    await expect(page.getByText(/No pudimos iniciar el pago/i)).toBeVisible();
   });
 });

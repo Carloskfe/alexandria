@@ -8,7 +8,7 @@ export default defineConfig({
   reporter: 'list',
 
   use: {
-    baseURL: 'http://localhost:3000',
+    baseURL: process.env.BASE_URL ?? 'https://noetia.app',
     headless: true,
     trace: 'on-first-retry',
   },
@@ -20,10 +20,7 @@ export default defineConfig({
     },
   ],
 
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  // Run against production by default. To run locally:
+  //   BASE_URL=http://localhost:3000 npx playwright test
+  // with a local dev server already running.
 });
