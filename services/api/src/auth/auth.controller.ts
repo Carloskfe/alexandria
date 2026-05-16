@@ -177,4 +177,37 @@ export class AuthController {
     const next = user.userType ? '/library' : '/onboarding';
     res.redirect(`${WEB_URL}/auth/callback?token=${accessToken}&next=${next}`);
   }
+
+  // ─── Mobile OAuth — token verification endpoints ──────────────────────────
+  // Mobile clients (Expo) obtain tokens client-side, then exchange here for a JWT.
+
+  @Post('google/mobile')
+  @HttpCode(200)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  async googleMobile(@Body() body: { idToken: string }) {
+    if (!body.idToken) throw new UnauthorizedException('idToken required');
+    const user = await this.authService.verifyGoogleIdToken(body.idToken);
+    const { accessToken, user: safeU } = await this.authService.issueTokens(user);
+    return { accessToken, user: safeUser(safeU) };
+  }
+
+  @Post('facebook/mobile')
+  @HttpCode(200)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  async facebookMobile(@Body() body: { accessToken: string }) {
+    if (!body.accessToken) throw new UnauthorizedException('accessToken required');
+    const user = await this.authService.verifyFacebookToken(body.accessToken);
+    const { accessToken: jwt, user: safeU } = await this.authService.issueTokens(user);
+    return { accessToken: jwt, user: safeUser(safeU) };
+  }
+
+  @Post('apple/mobile')
+  @HttpCode(200)
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  async appleMobile(@Body() body: { identityToken: string; fullName?: string }) {
+    if (!body.identityToken) throw new UnauthorizedException('identityToken required');
+    const user = await this.authService.verifyAppleIdentityToken(body.identityToken, body.fullName);
+    const { accessToken, user: safeU } = await this.authService.issueTokens(user);
+    return { accessToken, user: safeUser(safeU) };
+  }
 }

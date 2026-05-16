@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { apiClient } from '../../api/client';
 import { saveToken, saveUserType } from '../../auth/token-storage';
+import { SocialAuthButtons } from '../../auth/SocialAuthButtons';
 
 interface Props {
   onLogin: () => void;
@@ -89,6 +90,11 @@ export function LoginScreen({ onLogin }: Props) {
               ? <ActivityIndicator color="#fff" />
               : <Text style={styles.btnText}>Iniciar sesión</Text>}
           </TouchableOpacity>
+
+          <SocialAuthButtons
+            onSuccess={onLogin}
+            onError={(msg) => setError(msg)}
+          />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

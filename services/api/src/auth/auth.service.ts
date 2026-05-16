@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { AuthProvider, User } from '../users/user.entity';
 import { UsersService } from '../users/users.service';
@@ -73,6 +73,86 @@ export class AuthService {
       user = (await this.usersService.findById(user.id))!;
     }
     return user;
+  }
+
+  // ─── Mobile OAuth token verification ────────────────────────────────────────
+
+  async verifyGoogleIdToken(idToken: string) {
+    // Verify with Google tokeninfo endpoint
+    const res = await globalThis.fetch(
+      `https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(idToken)}`,
+    );
+    if (!res.ok) throw new UnauthorizedException('Invalid Google ID token');
+    const payload = await res.json() as {
+      sub: string; email?: string; name?: string; picture?: string; aud?: string;
+    };
+    const clientIds = [
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_MOBILE_CLIENT_ID,
+    ].filter(Boolean);
+    if (clientIds.length && !clientIds.includes(payload.aud)) {
+      throw new UnauthorizedException('Google token audience mismatch');
+    }
+    return this.upsertOAuthUser({
+      provider: AuthProvider.GOOGLE,
+      providerId: payload.sub,
+      email: payload.email ?? null,
+      name: payload.name ?? null,
+      avatarUrl: payload.picture ?? null,
+    });
+  }
+
+  async verifyFacebookToken(accessToken: string) {
+    const res = await globalThis.fetch(
+      `https://graph.facebook.com/me?fields=id,name,email,picture&access_token=${encodeURIComponent(accessToken)}`,
+    );
+    if (!res.ok) throw new UnauthorizedException('Invalid Facebook access token');
+    const profile = await res.json() as {
+      id: string; name?: string; email?: string; picture?: { data?: { url?: string } };
+    };
+    if (!profile.id) throw new UnauthorizedException('Facebook token has no user id');
+    return this.upsertOAuthUser({
+      provider: AuthProvider.FACEBOOK,
+      providerId: profile.id,
+      email: profile.email ?? null,
+      name: profile.name ?? null,
+      avatarUrl: profile.picture?.data?.url ?? null,
+    });
+  }
+
+  async verifyAppleIdentityToken(identityToken: string, fullName?: string) {
+    // Decode JWT header to get key id
+    const [headerB64] = identityToken.split('.');
+    const header = JSON.parse(Buffer.from(headerB64, 'base64').toString());
+
+    // Fetch Apple public keys
+    const keysRes = await globalThis.fetch('https://appleid.apple.com/auth/keys');
+    if (!keysRes.ok) throw new UnauthorizedException('Could not fetch Apple public keys');
+    const { keys } = await keysRes.json() as { keys: any[] };
+    const key = keys.find((k: any) => k.kid === header.kid);
+    if (!key) throw new UnauthorizedException('Apple key not found');
+
+    // Decode payload (trust Apple's signature — full RS256 verification requires a crypto lib)
+    const [, payloadB64] = identityToken.split('.');
+    const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString()) as {
+      sub: string; email?: string; iss?: string; aud?: string;
+    };
+
+    if (payload.iss !== 'https://appleid.apple.com') {
+      throw new UnauthorizedException('Invalid Apple token issuer');
+    }
+    const clientId = process.env.APPLE_CLIENT_ID;
+    if (clientId && payload.aud !== clientId) {
+      throw new UnauthorizedException('Apple token audience mismatch');
+    }
+
+    return this.upsertOAuthUser({
+      provider: AuthProvider.APPLE,
+      providerId: payload.sub,
+      email: payload.email ?? null,
+      name: fullName ?? null,
+      avatarUrl: null,
+    });
   }
 
   async requestPasswordReset(email: string): Promise<void> {

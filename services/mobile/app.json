@@ -21,6 +21,14 @@
       "package": "com.noetia.app",
       "googleServicesFile": "./google-services.json"
     },
-    "scheme": "noetia"
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.noetia.app",
+      "usesAppleSignIn": true
+    },
+    "scheme": "noetia",
+    "plugins": [
+      "expo-apple-authentication"
+    ]
   }
 }

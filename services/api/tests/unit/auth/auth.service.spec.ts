@@ -254,6 +254,75 @@ describe('AuthService', () => {
     });
   });
 
+  // ── Mobile OAuth ────────────────────────────────────────────────────────────
+
+  describe('verifyGoogleIdToken', () => {
+    it('returns a user when Google tokeninfo is valid', async () => {
+      const mockPayload = { sub: 'g123', email: 'g@test.com', name: 'Guser', picture: null };
+      globalThis.fetch = jest.fn().mockResolvedValue({
+        ok: true, json: jest.fn().mockResolvedValue(mockPayload),
+      } as any);
+      mockUsersService.findByProvider.mockResolvedValue(null);
+      mockUsersService.create.mockResolvedValue({ id: 'u1', provider: 'google' });
+
+      await service.verifyGoogleIdToken('valid-id-token');
+
+      expect(mockUsersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ provider: AuthProvider.GOOGLE, providerId: 'g123' }),
+      );
+    });
+
+    it('throws UnauthorizedException when Google rejects the token', async () => {
+      globalThis.fetch = jest.fn().mockResolvedValue({ ok: false } as any);
+      await expect(service.verifyGoogleIdToken('bad-token')).rejects.toThrow('Invalid Google ID token');
+    });
+  });
+
+  describe('verifyFacebookToken', () => {
+    it('returns a user when Facebook Graph API responds with a profile', async () => {
+      const fbProfile = { id: 'fb456', name: 'FBUser', email: 'fb@test.com' };
+      globalThis.fetch = jest.fn().mockResolvedValue({
+        ok: true, json: jest.fn().mockResolvedValue(fbProfile),
+      } as any);
+      mockUsersService.findByProvider.mockResolvedValue(null);
+      mockUsersService.create.mockResolvedValue({ id: 'u2', provider: 'facebook' });
+
+      await service.verifyFacebookToken('fb-access-token');
+
+      expect(mockUsersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ provider: AuthProvider.FACEBOOK, providerId: 'fb456' }),
+      );
+    });
+
+    it('throws UnauthorizedException when Facebook rejects the token', async () => {
+      globalThis.fetch = jest.fn().mockResolvedValue({ ok: false } as any);
+      await expect(service.verifyFacebookToken('bad-token')).rejects.toThrow('Invalid Facebook access token');
+    });
+  });
+
+  describe('verifyAppleIdentityToken', () => {
+    it('upserts user from a valid Apple identity token payload', async () => {
+      const header = Buffer.from(JSON.stringify({ kid: 'key1' })).toString('base64');
+      const payload = Buffer.from(JSON.stringify({
+        sub: 'apple-sub-789', email: 'apple@test.com', iss: 'https://appleid.apple.com', aud: 'com.noetia.app',
+      })).toString('base64url');
+      const token = `${header}.${payload}.sig`;
+
+      globalThis.fetch = jest.fn().mockResolvedValue({
+        ok: true,
+        json: jest.fn().mockResolvedValue({ keys: [{ kid: 'key1' }] }),
+      } as any);
+      mockUsersService.findByProvider.mockResolvedValue(null);
+      mockUsersService.create.mockResolvedValue({ id: 'u3', provider: 'apple' });
+
+      await service.verifyAppleIdentityToken(token, 'Carlos');
+
+      expect(mockUsersService.create).toHaveBeenCalledWith(
+        expect.objectContaining({ provider: AuthProvider.APPLE, providerId: 'apple-sub-789', name: 'Carlos' }),
+      );
+    });
+  });
+
   describe('resetPassword', () => {
     it('throws BadRequestException when the token is invalid or expired', async () => {
       mockTokenService.consumePasswordResetToken.mockResolvedValue(null);
