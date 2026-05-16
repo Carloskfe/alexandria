@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { apiFetch, clearToken } from '@/lib/api';
 import { useRouter } from 'next/navigation';
+import DeleteAccountModal from '@/components/DeleteAccountModal';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -99,6 +100,7 @@ export default function ProfilePage() {
 
   const [resendingConfirm, setResendingConfirm] = useState(false);
   const [confirmSent, setConfirmSent] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // ── Load ───────────────────────────────────────────────────────────────
 
@@ -384,6 +386,22 @@ export default function ProfilePage() {
           Cerrar sesión
         </button>
       </div>
+
+      {/* ── Danger zone ──────────────────────────────────────────────────── */}
+      <div className="border border-red-100 rounded-2xl p-4">
+        <p className="text-xs font-semibold text-red-600 uppercase tracking-widest mb-1">Zona de peligro</p>
+        <p className="text-sm text-gray-500 leading-relaxed mb-3">
+          Eliminar tu cuenta borrará permanentemente tu perfil, biblioteca, fragmentos y todos tus datos de Noetia.
+        </p>
+        <button
+          onClick={() => setShowDeleteModal(true)}
+          className="text-sm font-medium text-red-600 hover:text-red-800 underline underline-offset-2 transition"
+        >
+          Eliminar mi cuenta
+        </button>
+      </div>
+
+      {showDeleteModal && <DeleteAccountModal onClose={() => setShowDeleteModal(false)} />}
 
     </div>
   );

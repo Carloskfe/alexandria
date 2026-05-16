@@ -41,6 +41,14 @@ export class EmailService {
     });
   }
 
+  async sendFarewell(to: string, name: string): Promise<void> {
+    await this.send({
+      to,
+      subject: 'Tu cuenta de Noetia ha sido eliminada',
+      html: this.farewellTemplate(name),
+    });
+  }
+
   async sendWaitlistConfirmation(to: string, name: string): Promise<void> {
     await this.send({
       to,
@@ -217,6 +225,40 @@ export class EmailService {
     </td></tr>
   </table>
 </body></html>`;
+  }
+
+  private farewellTemplate(name: string): string {
+    return `
+<!DOCTYPE html>
+<html lang="es">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f4f6f9;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f6f9;padding:40px 0;">
+    <tr><td align="center">
+      <table width="560" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);">
+        <tr><td style="background:#0D1B2A;padding:32px 40px;text-align:center;">
+          <h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:700;letter-spacing:2px;">NOETIA</h1>
+        </td></tr>
+        <tr><td style="padding:40px;">
+          <p style="margin:0 0 16px;color:#1E293B;font-size:18px;font-weight:600;">Hasta pronto, ${this.escape(name)}.</p>
+          <p style="margin:0 0 24px;color:#475569;font-size:15px;line-height:1.6;">
+            Tu cuenta ha sido eliminada correctamente. Todos tus datos — fragmentos, biblioteca y preferencias — han sido borrados de nuestros sistemas.
+          </p>
+          <p style="margin:0 0 24px;color:#475569;font-size:15px;line-height:1.6;">
+            Si cambiaste de opinión o eliminaste tu cuenta por error, puedes volver a registrarte en cualquier momento en <a href="${this.webUrl}/register" style="color:#0D1B2A;font-weight:600;">noetia.app</a>.
+          </p>
+          <p style="margin:0;color:#94A3B8;font-size:13px;">
+            Gracias por haber sido parte de la comunidad Noetia. Esperamos verte de nuevo.
+          </p>
+        </td></tr>
+        <tr><td style="background:#F8FAFC;padding:20px 40px;text-align:center;border-top:1px solid #E2E8F0;">
+          <p style="margin:0;color:#94A3B8;font-size:12px;">© ${new Date().getFullYear()} Noetia. Todos los derechos reservados.</p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
   }
 
   private escape(s: string): string {

@@ -1,5 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
+import { EmailService } from '../../../src/email/email.service';
 import { UsersService } from '../../../src/users/users.service';
 import { User, AuthProvider } from '../../../src/users/user.entity';
 
@@ -8,7 +10,11 @@ const mockRepo = {
   create: jest.fn(),
   save: jest.fn(),
   update: jest.fn(),
+  delete: jest.fn(),
 };
+
+const mockDataSource = { manager: { query: jest.fn() } };
+const mockEmailService = { sendFarewell: jest.fn().mockResolvedValue(undefined) };
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -18,11 +24,14 @@ describe('UsersService', () => {
       providers: [
         UsersService,
         { provide: getRepositoryToken(User), useValue: mockRepo },
+        { provide: DataSource, useValue: mockDataSource },
+        { provide: EmailService, useValue: mockEmailService },
       ],
     }).compile();
 
     service = module.get<UsersService>(UsersService);
     jest.clearAllMocks();
+    mockEmailService.sendFarewell.mockResolvedValue(undefined);
   });
 
   describe('findById', () => {
@@ -95,6 +104,52 @@ describe('UsersService', () => {
       expect(mockRepo.update).toHaveBeenCalledWith('1', { name: 'Bob' });
       expect(mockRepo.findOneBy).toHaveBeenCalledWith({ id: '1' });
       expect(result).toEqual(updated);
+    });
+  });
+
+  describe('deleteAccount', () => {
+    const user = { id: 'u1', email: 'a@b.com', name: 'Ana' };
+
+    it('deletes all related data then the user record', async () => {
+      mockRepo.findOneBy.mockResolvedValue(user);
+      mockDataSource.manager.query.mockResolvedValue(undefined);
+      mockRepo.delete.mockResolvedValue(undefined);
+
+      await service.deleteAccount('u1');
+
+      expect(mockDataSource.manager.query).toHaveBeenCalledWith(
+        expect.stringContaining('DELETE FROM "user_books"'), ['u1'],
+      );
+      expect(mockDataSource.manager.query).toHaveBeenCalledWith(
+        expect.stringContaining('DELETE FROM "subscriptions"'), ['u1'],
+      );
+      expect(mockRepo.delete).toHaveBeenCalledWith('u1');
+    });
+
+    it('sends farewell email after deletion', async () => {
+      mockRepo.findOneBy.mockResolvedValue(user);
+      mockDataSource.manager.query.mockResolvedValue(undefined);
+      mockRepo.delete.mockResolvedValue(undefined);
+
+      await service.deleteAccount('u1');
+
+      expect(mockEmailService.sendFarewell).toHaveBeenCalledWith('a@b.com', 'Ana');
+    });
+
+    it('does nothing when user does not exist', async () => {
+      mockRepo.findOneBy.mockResolvedValue(null);
+      await service.deleteAccount('ghost');
+      expect(mockRepo.delete).not.toHaveBeenCalled();
+    });
+
+    it('completes deletion even if farewell email fails', async () => {
+      mockRepo.findOneBy.mockResolvedValue(user);
+      mockDataSource.manager.query.mockResolvedValue(undefined);
+      mockRepo.delete.mockResolvedValue(undefined);
+      mockEmailService.sendFarewell.mockRejectedValue(new Error('SMTP down'));
+
+      await expect(service.deleteAccount('u1')).resolves.toBeUndefined();
+      expect(mockRepo.delete).toHaveBeenCalledWith('u1');
     });
   });
 });

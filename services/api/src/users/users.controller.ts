@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Patch, Request, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './users.service';
@@ -24,5 +24,12 @@ export class UsersController {
     if (!user) return null;
     const { passwordHash: _, ...safe } = user;
     return safe;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete('me')
+  @HttpCode(204)
+  deleteMe(@Request() req: any) {
+    return this.usersService.deleteAccount(req.user.id);
   }
 }
