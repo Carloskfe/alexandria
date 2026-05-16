@@ -5,50 +5,26 @@
 > 2. **Author/company experience** — content supply chain; upload, sync tooling, analytics
 > 3. **Free library** — beta acquisition only; not expanded after 6–12 months; UI hero will yield to author content
 >
-> **Current status (2026-05-12):** Stages 0–4 complete. Stage 5 in progress. **Production is live at https://noetia.app** — Contabo VPS (Traefik v2.11, 9 containers running, all 36 migrations applied). Books, collections, and covers seeded. Email confirmation working via Resend. Auto-deploy on push to main via GitHub Actions (CI fixed 2026-05-12).
+> **Current status (2026-05-16):** Stages 0–5 functionally complete. **Production live at https://noetia.app** — Contabo VPS (Traefik v3, 9 containers healthy, 41 migrations applied). SSH on port 222, fail2ban active. CI/CD working via GitHub Actions. Token system live (Individual $8.99 / Duo $13.99 / Family $18.99). Causas Noetia live. Delete account live.
 >
 > **Remaining before full beta readiness:**
-> - [x] `seed-audio-stream.js` — M4B stream URLs set for all 38 free books ✅
-> - [x] Phrase-level sync — 7 books with Whisper VTT (word-level): Don Juan Tenorio, Doña Perfecta, El Sombrero de Tres Picos, Lazarillo, Leyendas, Marianela, Salmos ✅
-> - [x] `seed-alignment.js` — complete. 7 whisper books protected; 9 books chapter-aligned; 22 books failed (ffprobe: no chapter markers in M4B) ✅
-> - [x] Niebla — Whisper VTT synced ✅
-> - [x] 8 new books — VTTs merged, cleaned, committed and **synced to DB** (2026-05-12): Romeo y Julieta, El Gaucho Martín Fierro, Cuentos de Amor de Locura y de Muerte, Los Cuatro Jinetes del Apocalipsis, La Isla del Tesoro, Viaje al Centro de la Tierra, Crimen y Castigo, La Odisea ✅
-> - [ ] **Fix La Odisea sync quality** — alignment returned 21% avg confidence (3997/4058 phrases low). Root cause: the Gutenberg text includes a full scholarly glossary (~1800 entries: ACASTO through ZETO), editor footnotes, and Greek text that the audio doesn't cover. Fix: clean the stored book text in MinIO to remove everything after the narrative ends (after Canto XXIV). Steps: `docker compose exec api node dist/ingestion/...` to re-ingest from Wikisource, OR manually download a clean text and re-upload via MinIO + re-run seed-sync-whisper. Similar issue likely exists for any other book with a Gutenberg scholarly edition.
-> - [ ] **Whisper VTTs for 13 remaining books** — user transcribes on Windows, drops folder in `C:\Users\carlo\Downloads\<Book Title>\`, Claude reads via `/media/sf_Downloads_1/<Book Title>/`. Workflow: `python3 scripts/clean-vtt.py --dir "transcriptions/<Book>"` → `python3 scripts/merge-vtt.py ...` → commit → server sync. Books still needed:
->   Don Quijote Vol. I, Don Quijote Vol. II, Mateo, Lucas, Efesios, Filipenses, Apocalipsis,
->   Proverbios, Isaías, Fábulas y Verdades, Cuentos de la Selva, Génesis, Juan, Éxodo
-> - [ ] Run `seed-search.js` — Meilisearch index empty, search non-functional
-> - [ ] Fix book cover images not displaying in production (backlog)
-> - [ ] App store submissions (iOS + Android)
->
-> ~~**Run `seed-sync-whisper.js` on server for the 8 new books** — done 2026-05-12~~ ✅ (kept for reference)
->   ```bash
->   cd /opt/noetia && git pull
->   EXEC="docker compose --env-file .env.production -f docker-compose.server.yml exec -T -e DB_HOST=db api node dist/ingestion/seed-sync-whisper.js"
->   docker cp transcriptions/romeo-y-julieta.merged.vtt noetia-api-1:/app/transcriptions/romeo-y-julieta.merged.vtt
->   docker cp transcriptions/martin-fierro.merged.vtt noetia-api-1:/app/transcriptions/martin-fierro.merged.vtt
->   docker cp transcriptions/cuentos-de-amor.merged.vtt noetia-api-1:/app/transcriptions/cuentos-de-amor.merged.vtt
->   docker cp transcriptions/cuatro-jinetes.merged.vtt noetia-api-1:/app/transcriptions/cuatro-jinetes.merged.vtt
->   docker cp transcriptions/la-isla-del-tesoro.merged.vtt noetia-api-1:/app/transcriptions/la-isla-del-tesoro.merged.vtt
->   docker cp transcriptions/viaje-al-centro.merged.vtt noetia-api-1:/app/transcriptions/viaje-al-centro.merged.vtt
->   docker cp transcriptions/crimen-y-castigo.merged.vtt noetia-api-1:/app/transcriptions/crimen-y-castigo.merged.vtt
->   docker cp transcriptions/la-odisea.merged.vtt noetia-api-1:/app/transcriptions/la-odisea.merged.vtt
->   $EXEC --book "Romeo y Julieta"                      --transcript /app/transcriptions/romeo-y-julieta.merged.vtt
->   $EXEC --book "El Gaucho Martín Fierro"              --transcript /app/transcriptions/martin-fierro.merged.vtt
->   $EXEC --book "Cuentos de Amor de Locura y de Muerte" --transcript /app/transcriptions/cuentos-de-amor.merged.vtt
->   $EXEC --book "Los Cuatro Jinetes del Apocalipsis"   --transcript /app/transcriptions/cuatro-jinetes.merged.vtt
->   $EXEC --book "La Isla del Tesoro"                   --transcript /app/transcriptions/la-isla-del-tesoro.merged.vtt
->   $EXEC --book "Viaje al Centro de la Tierra"         --transcript /app/transcriptions/viaje-al-centro.merged.vtt
->   $EXEC --book "Crimen y Castigo"                     --transcript /app/transcriptions/crimen-y-castigo.merged.vtt
->   $EXEC --book "La Odisea"                            --transcript /app/transcriptions/la-odisea.merged.vtt
->   ```
-> - [ ] **Whisper VTTs for 13 remaining books** — user transcribes on Windows, drops folder in `C:\Users\carlo\Downloads\<Book Title>\`, Claude reads via `/media/sf_Downloads_1/<Book Title>/`. Workflow: `python3 scripts/clean-vtt.py --dir "transcriptions/<Book>"` → `python3 scripts/merge-vtt.py ...` → commit → server sync. Books still needed:
->   Don Quijote Vol. I, Don Quijote Vol. II, Mateo, Lucas, Efesios, Filipenses, Apocalipsis,
->   Proverbios, Isaías, Fábulas y Verdades, Cuentos de la Selva, Génesis, Juan, Éxodo
-> - [ ] Run `seed-search.js` — Meilisearch index empty, search non-functional
-> - [ ] Fix DEPLOY_SSH_KEY GitHub Actions secret — all CD runs failing since secret is empty. Fix: on server `cat /root/.ssh/deploy_key` → paste into GitHub → Carloskfe/noetia → Settings → Secrets → DEPLOY_SSH_KEY
-> - [ ] Fix book cover images not displaying in production (backlog)
-> - [ ] App store submissions (iOS + Android)
+> - [x] All Whisper VTTs for first 16 books synced ✅
+> - [x] Email confirmation 404 fixed + payment gate for unverified users ✅
+> - [x] Mobile text selection stuck bug fixed ✅
+> - [x] SSH hardening — port 222, fail2ban ✅
+> - [x] Token system — Individual/Duo/Family plans, 90-day ledger, courtesy tokens, admin UI ✅
+> - [x] Causas Noetia — /causas page, landing banner, CauseSelector at checkout, migration ✅
+> - [x] Delete account — cascade + farewell email + confirmation modal ✅
+> - [x] First-time tutorials — WelcomeSplash, FragmentsTutorial, AudioTutorial ✅
+> - [x] Landing page — beta branding removed, direct CTAs ✅
+> - [x] Book covers — `sharp` installed, storage.noetia.app added to remotePatterns ✅
+> - [ ] **Stripe activation** — system built but keys empty in .env.production. Steps: (1) create 10 Stripe products (Individual/Duo/Family monthly+annual + 4 token packages), (2) set STRIPE_SECRET_KEY, NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY, STRIPE_WEBHOOK_SECRET in .env.production
+> - [ ] **Run `seed-search.js`** — Meilisearch index empty, search non-functional. Run: `docker compose --env-file .env.production -f docker-compose.server.yml exec -T -e DB_HOST=db api node dist/ingestion/seed-search.js`
+> - [ ] **Fix La Odisea sync quality** — Wikisource fetch failed during re-ingestion; text-audio mismatch unresolved. Needs clean text source
+> - [ ] **Whisper VTTs for 13 remaining books** — user transcribes on Windows, drops folder in `C:\Users\carlo\Downloads\<Book Title>\`, Claude reads via `/media/sf_Downloads_1/<Book Title>/`. Books still needed: Don Quijote Vol. I, Don Quijote Vol. II, Mateo, Lucas, Efesios, Filipenses, Apocalipsis, Proverbios, Isaías, Fábulas y Verdades, Cuentos de la Selva, Génesis, Juan, Éxodo
+> - [ ] **Duo/Family user invite flow** — backend shared pool ready, needs UI for inviting the 2nd/5th user
+> - [ ] **Token purchase "Comprar" buttons** — pricing page UI exists, needs to call `POST /subscriptions/tokens/purchase` with Stripe price ID
+> - [ ] App store submissions (iOS + Android) — Android APK can be distributed directly from website; iOS needs Apple Developer account ($99/yr, covers all apps)
 >
 > **P3 UI backlog (not yet in sprints):**
 > - ~~Fragment text editing before image creation (E1)~~ ✅ done
@@ -58,18 +34,18 @@
 > - ~~Content streaming caching — HTTP Cache-Control on sync-map, books list, collections~~ ✅ done
 > - ~~Profile page — name, avatar, subscription status, social accounts, Editar perfil~~ ✅ done
 > - ~~ShareModal fonts — refreshed to 7 visually distinct options~~ ✅ done
+> - ~~Delete account — DELETE /users/me cascade + farewell email + confirmation modal~~ ✅ done (2026-05-16)
 > - Hex color picker for background in ShareModal (D3)
 > - Gradient direction options (D4)
 > - Integrate background preset images into ShareModal UI (D7)
 > - ~~Bottom nav — "Mi Biblioteca" and "Colección General" names + icons aligned~~ ✅ done
-> - Delete account — user right (GDPR); API: DELETE /users/me (cascade all data), Web: confirmation dialog in account settings, farewell email
-> - Book cover images not displaying in production — covers seeded (Open Library URLs + themed PNGs), not rendering in BookGrid; investigate next/image remotePatterns, mixed content (http vs https), and null coverUrl fallback handling
+> - Narrator payment schemes (royalty / advance / hybrid) — `narratorPaymentScheme` field on books, narrator marketplace UI
 >
-> **Onboarding & brand awareness backlog:**
-> - Welcome splash (first-time only) — full-screen modal on first app open: brand statement ("Bienvenido a Noetia — la plataforma para adquirir y compartir conocimiento e inspiración más poderosa del mundo"), brief value prop (read · listen · capture · share), single CTA to enter; dismissed via localStorage flag `hasSeenWelcome`; never shown again after dismissal
-> - Fragmentos library tutorial (first-time only) — bottom sheet or modal shown on first visit to /fragments: explain that fragments are saved highlights, how to edit them, and how to convert them into a quote card; dismissed via localStorage flag `hasSeenFragmentsTutorial`
-> - Audio mode tutorial (first-time only) — contextual tooltip or modal triggered the first time a user taps the audio/listen button in the reader: explain Modo Escucha Activa (phrase highlighting while audio plays, speed controls, tap-to-seek); dismissed via localStorage flag `hasSeenAudioTutorial`
-> - Optional guided tour (first-time only) — step-by-step walkthrough available the first time a user opens the reader: 4–5 steps covering (1) reading mode, (2) audio sync, (3) text selection → fragment, (4) fragment → quote card → share; each step highlights a UI element with a callout; skippable at any step; re-accessible from settings; dismissed via localStorage flag `hasSeenReaderTour`; existing `ReaderTutorial` component can serve as the base
+> **Onboarding & brand awareness:**
+> - ~~Welcome splash~~ ✅ done — `WelcomeSplash` component, `noetia_welcome_seen` flag
+> - ~~Fragmentos library tutorial~~ ✅ done — `FragmentsTutorial` bottom sheet, `noetia_fragments_tutorial_seen` flag
+> - ~~Audio mode tutorial~~ ✅ done — `AudioTutorial` modal on first FAB tap, `noetia_audio_tutorial_seen` flag
+> - ~~Reader tutorial (4-step: select → save → access → share)~~ ✅ done
 >
 > **Security & ops backlog (not yet in sprints):**
 > - [x] SSH hardening — fail2ban installed, SSH moved to port 222, UFW updated (2026-05-13)

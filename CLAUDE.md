@@ -622,6 +622,9 @@ docker compose exec api npm run migration:run
 | 035 | `CreateWaitlist` | waitlist_entries table — email, name, isAuthor, invitedAt |
 | 036 | `CreateCausesAndPreferences` | causes table (3 seeded) + user_cause_preferences (up to 2 causes per user) |
 | 037 | `RenameCausaToMedioAmbiente` | Renames "Conservación Ambiental" → "Medio Ambiente" in causes table |
+| 038 | `RenameCreditsToTokens` | creditsRemaining → tokenBalance on subscriptions; creditsPerCycle → tokensPerCycle on plans |
+| 039 | `RestructurePlansAndTokenPackages` | Plans: Individual $8.99, Duo $13.99, Family $18.99 (monthly+annual); token_packages table seeded (1/3/5/10 tokens) |
+| 040 | `CreateTokenLedgerAndCourtesy` | token_ledger (90-day paid, 30-day promo/courtesy, FIFO redemption); courtesy_token_quotas; books.narratorId; subscriptions.linkedUserIds + nextTokenIssuanceAt |
 
 ---
 
