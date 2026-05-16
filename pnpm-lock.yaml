@@ -250,9 +250,6 @@ importers:
       '@babel/core':
         specifier: ^7.24.5
         version: 7.29.0
-      '@react-native/gradle-plugin':
-        specifier: 0.74.87
-        version: 0.74.87
       '@types/jest':
         specifier: ^29.5.12
         version: 29.5.12
@@ -2299,10 +2296,6 @@ packages:
 
   '@react-native/gradle-plugin@0.74.83':
     resolution: {integrity: sha512-Pw2BWVyOHoBuJVKxGVYF6/GSZRf6+v1Ygc+ULGz5t20N8qzRWPa2fRZWqoxsN7TkNLPsECYY8gooOl7okOcPAQ==}
-    engines: {node: '>=18'}
-
-  '@react-native/gradle-plugin@0.74.87':
-    resolution: {integrity: sha512-T+VX0N1qP+U9V4oAtn7FTX7pfsoVkd1ocyw9swYXgJqU2fK7hC9famW7b3s3ZiufPGPr1VPJe2TVGtSopBjL6A==}
     engines: {node: '>=18'}
 
   '@react-native/js-polyfills@0.74.83':
@@ -11364,8 +11357,6 @@ snapshots:
       - utf-8-validate
 
   '@react-native/gradle-plugin@0.74.83': {}
-
-  '@react-native/gradle-plugin@0.74.87': {}
 
   '@react-native/js-polyfills@0.74.83': {}
 

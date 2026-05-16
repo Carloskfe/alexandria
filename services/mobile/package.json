@@ -6,8 +6,8 @@
   "main": "src/index.tsx",
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "ios": "expo run:ios",
     "typecheck": "tsc --noEmit",
     "test": "jest",
     "test:cov": "jest --coverage"
@@ -29,7 +29,6 @@
     "react-native-screens": "3.31.1"
   },
   "devDependencies": {
-    "@react-native/gradle-plugin": "0.74.87",
     "@babel/core": "^7.24.5",
     "@types/jest": "^29.5.12",
     "@types/react": "~18.2.79",
