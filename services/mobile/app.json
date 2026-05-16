@@ -24,6 +24,7 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.noetia.app",
+      "googleServicesFile": "./google-services.json",
       "versionCode": 1
     },
     "scheme": "noetia",
