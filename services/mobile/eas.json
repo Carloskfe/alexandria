@@ -14,7 +14,8 @@
     "preview": {
       "distribution": "internal",
       "android": {
-        "buildType": "apk"
+        "buildType": "apk",
+        "googleServicesFile": "$GOOGLE_SERVICES_JSON"
       },
       "ios": {
         "simulator": false
@@ -23,7 +24,8 @@
     "production": {
       "distribution": "store",
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "app-bundle",
+        "googleServicesFile": "$GOOGLE_SERVICES_JSON"
       },
       "ios": {
         "simulator": false

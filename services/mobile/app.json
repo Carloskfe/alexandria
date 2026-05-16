@@ -24,7 +24,6 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.noetia.app",
-      "googleServicesFile": "./google-services.json",
       "versionCode": 1
     },
     "scheme": "noetia",
@@ -33,8 +32,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "noetia-app"
+        "projectId": "99e71dcb-bfa3-4c8d-bb74-2d20edbb1826"
       }
-    }
+    },
+    "owner": "carloskfe"
   }
 }
