@@ -414,12 +414,12 @@
 
 ### Sprint 5.2 — Beta QA & Launch Prep (Weeks 27–28)
 
-- [x] End-to-end test suite (Playwright): auth, reader, sharing flow — 2d _(unit tests already written per sprint; this covers integration + UI flows only)_
+- [x] End-to-end test suite (Playwright): auth, reader, sharing flow — 2d _(9/9 pass against production; 1 skipped: programmatic text selection headless limitation; runs via `npx playwright test` from services/web/)_
 - [x] Load testing: simulate 500 concurrent readers — 1d _(k6 script at scripts/load-test/; 97% checks pass at 500 VUs; latency high on dev machine — production gap: CDN + DB pool tuning; @SkipThrottle({ global: true }) applied to reader endpoints; see scripts/load-test/RESULTS.md)_
 - [x] DRM audit: verify no raw file access leaks — 1d _(presigned URLs 15-min TTL ✓; GET /books/:id guarded ✓; fixed: sync-map had no guard — now requires JWT + SubscriptionGuard; MinIO buckets should be set to private in prod)_
 - [x] Accessibility audit (WCAG 2.1 AA) — 1d _(17 issues fixed: aria-label on 3 modal close buttons + 2 search inputs; role="dialog" aria-modal + Escape key on ChapterSheet, FragmentSheet, ShareModal; role="button" + keyboard on interactive phrase spans; focus rings on cookie toggles; aria-live on status messages)_
-- [ ] App Store submission (iOS) — 1d
-- [ ] Google Play submission (Android) — 0.5d
+- [ ] App Store submission (iOS) — 1d _(requires Apple Developer Program $99/yr; one account covers all apps; use TestFlight for beta before full submission)_
+- [ ] Google Play submission (Android) — 0.5d _(requires Google Play Console $25 one-time; APK can also be distributed directly from website without store review)_
 - [x] Privacy policy and terms of service pages — 0.5d
 - [x] Onboarding flow for new users — 1d
 - [x] Beta invite system and waitlist page — 0.5d _(landing page at /, waitlist API with confirmation + invite emails, admin view with invite button)_
