@@ -33,6 +33,8 @@ Thumbs.db
 
 # Expo / React Native
 .expo/
+services/mobile/google-services.json
+services/mobile/GoogleService-Info.plist
 *.jks
 *.p8
 *.p12
