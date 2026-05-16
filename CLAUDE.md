@@ -211,7 +211,7 @@ noetia/
     └── server/
         ├── init.sh                 # One-time Ubuntu 24.04 setup (run as root)
         └── traefik/
-            ├── docker-compose.yml  # Traefik v3 container
+            ├── docker-compose.yml  # Traefik v2.11 container
             └── traefik.yml         # Static config — Let's Encrypt, entrypoints
 ```
 
@@ -320,7 +320,7 @@ The `docker-compose.yml` mounts source directories as read-only volumes so chang
 ```
 Internet (80/443)
       │
-   Traefik v3          /opt/traefik/   — auto SSL via Let's Encrypt
+   Traefik v2.11       /opt/traefik/   — auto SSL via Let's Encrypt
    ┌────┴──────────────────┐
    │                       │
 noetia.app             storage.noetia.app
