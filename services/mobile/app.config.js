@@ -31,7 +31,11 @@ module.exports = {
       versionCode: 1,
     },
     scheme: 'noetia',
-    plugins: ['expo-apple-authentication'],
+    plugins: [
+      // expo-apple-authentication is iOS only — included in all profiles
+      // but the native module is a no-op on Android
+      'expo-apple-authentication',
+    ],
     extra: {
       eas: { projectId: '99e71dcb-bfa3-4c8d-bb74-2d20edbb1826' },
     },
