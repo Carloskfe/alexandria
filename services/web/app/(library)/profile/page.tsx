@@ -29,7 +29,7 @@ interface SubscriptionStatus {
   planId: string | null;
   currentPeriodEnd: string | null;
   trialEnd: string | null;
-  creditsRemaining: number;
+  tokenBalance: number;
 }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -318,9 +318,9 @@ export default function ProfilePage() {
         <Row label="Estado">
           <span className={`text-xs px-2.5 py-0.5 rounded-full font-semibold ${subBadge.color}`}>{subBadge.label}</span>
         </Row>
-        {sub && sub.creditsRemaining > 0 && (
-          <Row label="Créditos">
-            <span className="text-sm font-semibold text-blue-700">{sub.creditsRemaining} disponible{sub.creditsRemaining !== 1 ? 's' : ''}</span>
+        {sub && sub.tokenBalance > 0 && (
+          <Row label="Tokens">
+            <span className="text-sm font-semibold text-blue-700">{sub.tokenBalance} disponible{sub.tokenBalance !== 1 ? 's' : ''}</span>
           </Row>
         )}
         {subStatus === 'trialing' && trialDate && (

@@ -26,6 +26,11 @@ export class SubscriptionsController {
     return this.plansService.findAll();
   }
 
+  @Get('token-packages')
+  getTokenPackages() {
+    return this.plansService.findActiveTokenPackages();
+  }
+
   @Get('me')
   @UseGuards(JwtAuthGuard)
   getStatus(@Request() req: any) {
@@ -37,6 +42,13 @@ export class SubscriptionsController {
   @UseGuards(JwtAuthGuard, EmailConfirmedGuard)
   createCheckout(@Request() req: any, @Body() dto: CreateCheckoutDto) {
     return this.subscriptionsService.createCheckoutSession(req.user.id, dto.planId);
+  }
+
+  @Post('tokens/purchase')
+  @HttpCode(200)
+  @UseGuards(JwtAuthGuard, EmailConfirmedGuard)
+  purchaseTokenPackage(@Request() req: any, @Body() dto: { packageId: string }) {
+    return this.subscriptionsService.createTokenPackageSession(req.user.id, dto.packageId);
   }
 
   @Post('portal')
@@ -78,6 +90,6 @@ export class SubscriptionsController {
   @HttpCode(200)
   @UseGuards(JwtAuthGuard, EmailConfirmedGuard)
   redeemBook(@Request() req: any, @Param('bookId') bookId: string) {
-    return this.subscriptionsService.redeemCredit(req.user.id, bookId);
+    return this.subscriptionsService.redeemToken(req.user.id, bookId);
   }
 }

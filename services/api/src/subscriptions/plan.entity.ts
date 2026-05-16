@@ -21,7 +21,7 @@ export class Plan {
   maxProfiles: number;
 
   @Column({ type: 'int', default: 1 })
-  creditsPerCycle: number;
+  tokensPerCycle: number;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;

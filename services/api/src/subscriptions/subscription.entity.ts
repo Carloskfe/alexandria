@@ -56,7 +56,13 @@ export class Subscription {
   stripeEventId: string | null;
 
   @Column({ type: 'int', default: 0 })
-  creditsRemaining: number;
+  tokenBalance: number;
+
+  @Column({ type: 'uuid', array: true, default: '{}' })
+  linkedUserIds: string[];
+
+  @Column({ type: 'timestamptz', nullable: true })
+  nextTokenIssuanceAt: Date | null;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;

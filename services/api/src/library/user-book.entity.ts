@@ -26,7 +26,7 @@ export class UserBook {
   book: Book;
 
   @Column({ type: 'varchar', default: 'free' })
-  purchaseType: 'free' | 'credit' | 'purchase';
+  purchaseType: 'free' | 'token' | 'courtesy' | 'purchase';
 
   @CreateDateColumn()
   addedAt: Date;

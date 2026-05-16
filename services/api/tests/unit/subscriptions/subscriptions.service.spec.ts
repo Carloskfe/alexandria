@@ -9,6 +9,7 @@ import { UsersService } from '../../../src/users/users.service';
 import { PlansService } from '../../../src/subscriptions/plans.service';
 import { Subscription } from '../../../src/subscriptions/subscription.entity';
 import { SubscriptionsService } from '../../../src/subscriptions/subscriptions.service';
+import { TokenLedger } from '../../../src/subscriptions/token-ledger.entity';
 
 const mockStripe = {
   customers: { create: jest.fn() },
@@ -44,6 +45,15 @@ const mockUserBookRepo = {
   insert: jest.fn(),
 };
 
+const mockTokenRepo = {
+  create: jest.fn(),
+  save: jest.fn(),
+  findOne: jest.fn(),
+  count: jest.fn(),
+  update: jest.fn(),
+  find: jest.fn(),
+};
+
 const mockUsersService = {
   findById: jest.fn(),
 };
@@ -58,7 +68,10 @@ const mockConfig = {
     if (key === 'STRIPE_SECRET_KEY') return 'sk_test_mock';
     throw new Error(`Missing config: ${key}`);
   }),
-  get: jest.fn((key: string, fallback?: string) => fallback ?? ''),
+  get: jest.fn((key: string, fallback?: string) => {
+    if (key === 'STRIPE_SECRET_KEY') return 'sk_test_mock';
+    return fallback ?? '';
+  }),
 };
 
 describe('SubscriptionsService', () => {
@@ -76,6 +89,7 @@ describe('SubscriptionsService', () => {
         { provide: getRepositoryToken(User), useValue: mockUserRepo },
         { provide: getRepositoryToken(Book), useValue: mockBookRepo },
         { provide: getRepositoryToken(UserBook), useValue: mockUserBookRepo },
+        { provide: getRepositoryToken(TokenLedger), useValue: mockTokenRepo },
       ],
     }).compile();
 
@@ -264,43 +278,39 @@ describe('SubscriptionsService', () => {
     });
   });
 
-  describe('redeemCredit', () => {
-    it('decrements creditsRemaining and inserts user_book', async () => {
+  describe('redeemToken', () => {
+    it('redeems oldest active token (FIFO) and records book unlock', async () => {
       mockBookRepo.findOneBy.mockResolvedValue({ id: 'bk1', isPublished: true });
-      mockSubRepo.findOneBy.mockResolvedValue({ id: 'sub1', status: 'active', creditsRemaining: 1 });
+      mockTokenRepo.update.mockResolvedValue(undefined);
+      mockTokenRepo.findOne.mockResolvedValue({ id: 'tok1', status: 'active' });
       mockUserBookRepo.existsBy.mockResolvedValue(false);
-      mockSubRepo.decrement.mockResolvedValue(undefined);
       mockUserBookRepo.insert.mockResolvedValue(undefined);
 
-      await service.redeemCredit('u1', 'bk1');
-      expect(mockSubRepo.decrement).toHaveBeenCalledWith({ id: 'sub1' }, 'creditsRemaining', 1);
+      await service.redeemToken('u1', 'bk1');
+      expect(mockTokenRepo.update).toHaveBeenCalledWith('tok1', expect.objectContaining({ status: 'redeemed', bookId: 'bk1' }));
       expect(mockUserBookRepo.insert).toHaveBeenCalledWith(
-        expect.objectContaining({ userId: 'u1', bookId: 'bk1', purchaseType: 'credit' }),
+        expect.objectContaining({ userId: 'u1', bookId: 'bk1', purchaseType: 'token' }),
       );
     });
 
     it('throws NotFoundException for unknown book', async () => {
       mockBookRepo.findOneBy.mockResolvedValue(null);
-      await expect(service.redeemCredit('u1', 'ghost')).rejects.toThrow(NotFoundException);
+      await expect(service.redeemToken('u1', 'ghost')).rejects.toThrow(NotFoundException);
     });
 
-    it('throws ForbiddenException when user has no active subscription', async () => {
+    it('throws ForbiddenException when no active tokens remain', async () => {
       mockBookRepo.findOneBy.mockResolvedValue({ id: 'bk1', isPublished: true });
-      mockSubRepo.findOneBy.mockResolvedValue(null);
-      await expect(service.redeemCredit('u1', 'bk1')).rejects.toThrow(ForbiddenException);
-    });
-
-    it('throws ForbiddenException when no credits remaining', async () => {
-      mockBookRepo.findOneBy.mockResolvedValue({ id: 'bk1', isPublished: true });
-      mockSubRepo.findOneBy.mockResolvedValue({ id: 'sub1', status: 'active', creditsRemaining: 0 });
-      await expect(service.redeemCredit('u1', 'bk1')).rejects.toThrow(ForbiddenException);
+      mockTokenRepo.update.mockResolvedValue(undefined);
+      mockTokenRepo.findOne.mockResolvedValue(null);
+      await expect(service.redeemToken('u1', 'bk1')).rejects.toThrow(ForbiddenException);
     });
 
     it('throws BadRequestException when book is already owned', async () => {
       mockBookRepo.findOneBy.mockResolvedValue({ id: 'bk1', isPublished: true });
-      mockSubRepo.findOneBy.mockResolvedValue({ id: 'sub1', status: 'active', creditsRemaining: 2 });
+      mockTokenRepo.update.mockResolvedValue(undefined);
+      mockTokenRepo.findOne.mockResolvedValue({ id: 'tok1', status: 'active' });
       mockUserBookRepo.existsBy.mockResolvedValue(true);
-      await expect(service.redeemCredit('u1', 'bk1')).rejects.toThrow(BadRequestException);
+      await expect(service.redeemToken('u1', 'bk1')).rejects.toThrow(BadRequestException);
     });
   });
 
@@ -324,29 +334,40 @@ describe('SubscriptionsService', () => {
     });
   });
 
-  describe('resetCreditsForSubscription', () => {
-    it('sets creditsRemaining to plan creditsPerCycle', async () => {
+  describe('issueTokensForNewSubscription', () => {
+    it('issues tokens equal to plan tokensPerCycle on renewal', async () => {
       mockSubRepo.findOne.mockResolvedValue({
         id: 'sub1',
+        userId: 'u1',
         stripeSubscriptionId: 'sub_stripe_1',
-        plan: { creditsPerCycle: 2 },
+        plan: { tokensPerCycle: 2, interval: 'month' },
       });
-      mockSubRepo.update.mockResolvedValue(undefined);
+      mockTokenRepo.create.mockImplementation((d: any) => d);
+      mockTokenRepo.save.mockResolvedValue([]);
 
-      await service.resetCreditsForSubscription('sub_stripe_1');
-      expect(mockSubRepo.update).toHaveBeenCalledWith('sub1', { creditsRemaining: 2 });
+      await service.issueTokensForNewSubscription('sub_stripe_1');
+      expect(mockTokenRepo.create).toHaveBeenCalledTimes(2);
     });
 
     it('does nothing when no subscription found', async () => {
       mockSubRepo.findOne.mockResolvedValue(null);
-      await service.resetCreditsForSubscription('sub_unknown');
-      expect(mockSubRepo.update).not.toHaveBeenCalled();
+      await service.issueTokensForNewSubscription('sub_unknown');
+      expect(mockTokenRepo.save).not.toHaveBeenCalled();
     });
 
-    it('does nothing when subscription has no plan', async () => {
-      mockSubRepo.findOne.mockResolvedValue({ id: 'sub1', plan: null });
-      await service.resetCreditsForSubscription('sub_stripe_1');
-      expect(mockSubRepo.update).not.toHaveBeenCalled();
+    it('sets nextTokenIssuanceAt +30 days for annual plans', async () => {
+      mockSubRepo.findOne.mockResolvedValue({
+        id: 'sub1',
+        userId: 'u1',
+        stripeSubscriptionId: 'sub_stripe_1',
+        plan: { tokensPerCycle: 1, interval: 'year' },
+      });
+      mockSubRepo.update.mockResolvedValue(undefined);
+      mockTokenRepo.create.mockImplementation((d: any) => d);
+      mockTokenRepo.save.mockResolvedValue([]);
+
+      await service.issueTokensForNewSubscription('sub_stripe_1');
+      expect(mockSubRepo.update).toHaveBeenCalledWith('sub1', expect.objectContaining({ nextTokenIssuanceAt: expect.any(Date) }));
     });
   });
 
@@ -464,6 +485,66 @@ describe('SubscriptionsService', () => {
 
       await service.syncSubscription('u1');
       expect(mockSubRepo.update).toHaveBeenCalledWith('sub1', expect.objectContaining({ status: 'canceling' }));
+    });
+  });
+
+  // ── Token ledger ────────────────────────────────────────────────────────────
+
+  describe('issueTokens', () => {
+    it('creates paid tokens with 90-day expiry', async () => {
+      mockTokenRepo.create.mockImplementation((d: any) => d);
+      mockTokenRepo.save.mockResolvedValue([]);
+      await service.issueTokens('u1', 2, 'paid');
+      expect(mockTokenRepo.create).toHaveBeenCalledTimes(2);
+      const entry = mockTokenRepo.create.mock.calls[0][0];
+      expect(entry.type).toBe('paid');
+      const days = Math.round((entry.expiresAt.getTime() - entry.issuedAt.getTime()) / 86_400_000);
+      expect(days).toBe(90);
+    });
+
+    it('creates promotional tokens with 30-day expiry', async () => {
+      mockTokenRepo.create.mockImplementation((d: any) => d);
+      mockTokenRepo.save.mockResolvedValue([]);
+      await service.issueTokens('u1', 1, 'promotional');
+      const entry = mockTokenRepo.create.mock.calls[0][0];
+      const days = Math.round((entry.expiresAt.getTime() - entry.issuedAt.getTime()) / 86_400_000);
+      expect(days).toBe(30);
+    });
+
+    it('creates courtesy tokens with 30-day expiry and activatedAt set immediately', async () => {
+      mockTokenRepo.create.mockImplementation((d: any) => d);
+      mockTokenRepo.save.mockResolvedValue([]);
+      await service.issueTokens('u1', 1, 'courtesy');
+      const entry = mockTokenRepo.create.mock.calls[0][0];
+      expect(entry.activatedAt).not.toBeNull();
+      expect(entry.type).toBe('courtesy');
+    });
+  });
+
+  describe('redeemToken', () => {
+    it('redeems oldest active token (FIFO) and records book unlock', async () => {
+      mockBookRepo.findOneBy.mockResolvedValue({ id: 'b1', isPublished: true });
+      mockTokenRepo.update.mockResolvedValue({});
+      mockTokenRepo.findOne.mockResolvedValue({ id: 'tok1', status: 'active' });
+      mockUserBookRepo.existsBy.mockResolvedValue(false);
+      mockUserBookRepo.insert.mockResolvedValue({});
+
+      await service.redeemToken('u1', 'b1');
+
+      expect(mockTokenRepo.update).toHaveBeenCalledWith('tok1', expect.objectContaining({ status: 'redeemed', bookId: 'b1' }));
+      expect(mockUserBookRepo.insert).toHaveBeenCalledWith(expect.objectContaining({ purchaseType: 'token' }));
+    });
+
+    it('throws ForbiddenException when no active tokens remain', async () => {
+      mockBookRepo.findOneBy.mockResolvedValue({ id: 'b1', isPublished: true });
+      mockTokenRepo.update.mockResolvedValue({});
+      mockTokenRepo.findOne.mockResolvedValue(null);
+      await expect(service.redeemToken('u1', 'b1')).rejects.toThrow(ForbiddenException);
+    });
+
+    it('throws NotFoundException when book does not exist', async () => {
+      mockBookRepo.findOneBy.mockResolvedValue(null);
+      await expect(service.redeemToken('u1', 'b1')).rejects.toThrow(NotFoundException);
     });
   });
 });

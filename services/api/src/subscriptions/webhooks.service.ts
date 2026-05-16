@@ -83,7 +83,7 @@ export class WebhooksService {
       currentPeriodEnd,
       null,
     );
-    await this.subscriptionsService.resetCreditsForSubscription(subId);
+    await this.subscriptionsService.issueTokensForNewSubscription(subId);
   }
 
   private async handleInvoicePaymentFailed(event: any): Promise<void> {
