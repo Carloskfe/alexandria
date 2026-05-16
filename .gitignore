@@ -33,6 +33,7 @@ Thumbs.db
 
 # Expo / React Native
 .expo/
+services/mobile/google-services.json
 services/mobile/GoogleService-Info.plist
 services/mobile/google-play-key.json
 *.jks
