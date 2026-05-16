@@ -28,6 +28,7 @@
     "react-native-screens": "3.31.1"
   },
   "devDependencies": {
+    "@react-native/gradle-plugin": "0.74.87",
     "@babel/core": "^7.24.5",
     "@types/jest": "^29.5.12",
     "@types/react": "~18.2.79",
