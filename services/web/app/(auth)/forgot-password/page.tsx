@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { apiFetch } from '@/lib/api';
 
 const schema = z.object({
-  email: z.string().email('Invalid email'),
+  email: z.string().email('Ingresa un correo válido'),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -32,12 +32,12 @@ export default function ForgotPasswordPage() {
   if (sent) {
     return (
       <>
-        <h1 className="text-2xl font-bold mb-4 text-center">Check your email</h1>
+        <h1 className="text-2xl font-bold mb-4 text-center">Revisa tu correo</h1>
         <p className="text-gray-600 text-sm text-center mb-6">
-          If an account exists for that email you will receive a password reset link shortly.
+          Si existe una cuenta con ese correo recibirás un enlace para restablecer tu contraseña en breve.
         </p>
         <Link href="/login" className="block text-center text-blue-600 hover:underline text-sm">
-          Back to sign in
+          Volver a iniciar sesión
         </Link>
       </>
     );
@@ -45,18 +45,19 @@ export default function ForgotPasswordPage() {
 
   return (
     <>
-      <h1 className="text-2xl font-bold mb-2 text-center">Forgot password?</h1>
+      <h1 className="text-2xl font-bold mb-2 text-center">¿Olvidaste tu contraseña?</h1>
       <p className="text-gray-500 text-sm text-center mb-6">
-        Enter your email and we&apos;ll send you a reset link.
+        Ingresa tu correo y te enviaremos un enlace para restablecerla.
       </p>
 
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Email</label>
+          <label className="block text-sm font-medium mb-1">Correo electrónico</label>
           <input
             type="email"
             {...register('email')}
-            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="tu@correo.com"
+            className="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
           {errors.email && <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>}
         </div>
@@ -64,15 +65,15 @@ export default function ForgotPasswordPage() {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
+          className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition"
         >
-          {isSubmitting ? 'Sending…' : 'Send reset link'}
+          {isSubmitting ? 'Enviando…' : 'Enviar enlace'}
         </button>
       </form>
 
       <p className="text-center text-sm mt-6 text-gray-500">
-        <Link href="/login" className="text-blue-600 hover:underline">
-          Back to sign in
+        <Link href="/login" className="text-indigo-600 hover:underline">
+          Volver a iniciar sesión
         </Link>
       </p>
     </>

@@ -1,9 +1,10 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { apiFetch, saveToken, saveUserType, saveEmailConfirmed, postAuthRedirect } from '@/lib/api';
 import SocialAuthButtons from '@/components/SocialAuthButtons';
@@ -15,8 +16,10 @@ const schema = z.object({
 
 type FormValues = z.infer<typeof schema>;
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const params = useSearchParams();
+  const resetSuccess = params.get('reset') === '1';
   const {
     register,
     handleSubmit,
@@ -43,6 +46,12 @@ export default function LoginPage() {
     <>
       <h1 className="text-2xl font-bold mb-6 text-center">Inicia sesión en Noetia</h1>
 
+      {resetSuccess && (
+        <div className="mb-4 rounded-lg bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-800 text-center">
+          Contraseña actualizada. Ya puedes iniciar sesión.
+        </div>
+      )}
+
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
         <div>
           <label className="block text-sm font-medium mb-1">Email</label>
@@ -66,7 +75,7 @@ export default function LoginPage() {
 
         <div className="text-right">
           <Link href="/forgot-password" className="text-sm text-blue-600 hover:underline">
-            Forgot password?
+            ¿Olvidaste tu contraseña?
           </Link>
         </div>
 
@@ -79,18 +88,26 @@ export default function LoginPage() {
           disabled={isSubmitting}
           className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition"
         >
-          {isSubmitting ? 'Signing in…' : 'Sign in'}
+          {isSubmitting ? 'Entrando…' : 'Iniciar sesión'}
         </button>
       </form>
 
       <SocialAuthButtons />
 
       <p className="text-center text-sm mt-6 text-gray-500">
-        Don&apos;t have an account?{' '}
+        ¿No tienes cuenta?{' '}
         <Link href="/register" className="text-blue-600 hover:underline">
-          Register
+          Regístrate
         </Link>
       </p>
     </>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
   );
 }
