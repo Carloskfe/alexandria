@@ -7,7 +7,8 @@ const mockSubscriptionsService = {
   cancelFromWebhook: jest.fn(),
   findPlanByStripePriceId: jest.fn(),
   addPurchasedBook: jest.fn(),
-  resetCreditsForSubscription: jest.fn(),
+  issueTokensForNewSubscription: jest.fn(),
+  issueTokensForPurchasedPackage: jest.fn(),
 };
 
 const makeEvent = (type: string, data: object, id = 'evt_test_1') => ({
@@ -72,13 +73,24 @@ describe('WebhooksService', () => {
       expect(mockSubscriptionsService.upsertFromWebhook).not.toHaveBeenCalled();
     });
 
-    it('silently skips payment checkout without metadata', async () => {
-      const event = makeEvent('checkout.session.completed', { mode: 'payment', metadata: {} });
+    it('handles checkout.session.completed (payment mode) — issues tokens for token package', async () => {
+      const event = makeEvent('checkout.session.completed', {
+        mode: 'payment',
+        metadata: { tokenPackageId: 'pkg_uuid_1', userId: 'u_1' },
+      });
       await service.handleEvent(event as any);
+      expect(mockSubscriptionsService.issueTokensForPurchasedPackage).toHaveBeenCalledWith('pkg_uuid_1', 'u_1');
       expect(mockSubscriptionsService.addPurchasedBook).not.toHaveBeenCalled();
     });
 
-    it('handles invoice.paid — sets status active and resets credits', async () => {
+    it('silently skips payment checkout without userId', async () => {
+      const event = makeEvent('checkout.session.completed', { mode: 'payment', metadata: {} });
+      await service.handleEvent(event as any);
+      expect(mockSubscriptionsService.addPurchasedBook).not.toHaveBeenCalled();
+      expect(mockSubscriptionsService.issueTokensForPurchasedPackage).not.toHaveBeenCalled();
+    });
+
+    it('handles invoice.paid — sets status active and issues tokens', async () => {
       const event = makeEvent('invoice.paid', {
         subscription: 'sub_1',
         customer: 'cus_1',
@@ -93,7 +105,7 @@ describe('WebhooksService', () => {
         expect.any(Date),
         null,
       );
-      expect(mockSubscriptionsService.resetCreditsForSubscription).toHaveBeenCalledWith('sub_1');
+      expect(mockSubscriptionsService.issueTokensForNewSubscription).toHaveBeenCalledWith('sub_1');
     });
 
     it('skips invoice.paid when subscription or customer id missing', async () => {

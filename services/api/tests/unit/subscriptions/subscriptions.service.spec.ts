@@ -61,6 +61,7 @@ const mockUsersService = {
 const mockPlansService = {
   findById: jest.fn(),
   findAll: jest.fn(),
+  findTokenPackageById: jest.fn(),
 };
 
 const mockConfig = {
@@ -311,6 +312,60 @@ describe('SubscriptionsService', () => {
       mockTokenRepo.findOne.mockResolvedValue({ id: 'tok1', status: 'active' });
       mockUserBookRepo.existsBy.mockResolvedValue(true);
       await expect(service.redeemToken('u1', 'bk1')).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('createTokenPackageSession', () => {
+    it('returns checkout url for valid token package', async () => {
+      mockPlansService.findTokenPackageById.mockResolvedValue({
+        id: 'pkg1',
+        stripePriceId: 'price_live_abc123XYZ',
+        tokenCount: 1,
+        active: true,
+      });
+      mockUsersService.findById.mockResolvedValue({ id: 'u1', stripeCustomerId: 'cus_1' });
+      mockStripe.checkout.sessions.create.mockResolvedValue({ url: 'https://checkout.stripe.com/tok' });
+
+      const result = await service.createTokenPackageSession('u1', 'pkg1');
+      expect(result).toEqual({ url: 'https://checkout.stripe.com/tok' });
+      expect(mockStripe.checkout.sessions.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          mode: 'payment',
+          metadata: { tokenPackageId: 'pkg1', userId: 'u1' },
+        }),
+      );
+    });
+
+    it('throws BadRequestException for unknown package id', async () => {
+      mockPlansService.findTokenPackageById.mockResolvedValue(null);
+      await expect(service.createTokenPackageSession('u1', 'ghost')).rejects.toThrow(BadRequestException);
+    });
+
+    it('throws BadRequestException when price ID is still a placeholder', async () => {
+      mockPlansService.findTokenPackageById.mockResolvedValue({
+        id: 'pkg1',
+        stripePriceId: 'price_token_1_placeholder',
+        tokenCount: 1,
+        active: true,
+      });
+      await expect(service.createTokenPackageSession('u1', 'pkg1')).rejects.toThrow(BadRequestException);
+    });
+  });
+
+  describe('issueTokensForPurchasedPackage', () => {
+    it('issues the correct number of tokens for the package', async () => {
+      mockPlansService.findTokenPackageById.mockResolvedValue({ id: 'pkg1', tokenCount: 3, name: '3 Tokens', active: true });
+      mockTokenRepo.create.mockImplementation((d: any) => d);
+      mockTokenRepo.save.mockResolvedValue([]);
+
+      await service.issueTokensForPurchasedPackage('pkg1', 'u1');
+      expect(mockTokenRepo.create).toHaveBeenCalledTimes(3);
+    });
+
+    it('does nothing when package not found', async () => {
+      mockPlansService.findTokenPackageById.mockResolvedValue(null);
+      await service.issueTokensForPurchasedPackage('ghost', 'u1');
+      expect(mockTokenRepo.save).not.toHaveBeenCalled();
     });
   });
 

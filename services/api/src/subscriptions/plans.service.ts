@@ -22,4 +22,12 @@ export class PlansService {
   findActiveTokenPackages(): Promise<TokenPackage[]> {
     return this.packageRepo.find({ where: { active: true }, order: { tokenCount: 'ASC' } });
   }
+
+  findTokenPackageById(id: string): Promise<TokenPackage | null> {
+    return this.packageRepo.findOneBy({ id, active: true });
+  }
+
+  findTokenPackageByStripePriceId(stripePriceId: string): Promise<TokenPackage | null> {
+    return this.packageRepo.findOneBy({ stripePriceId, active: true });
+  }
 }

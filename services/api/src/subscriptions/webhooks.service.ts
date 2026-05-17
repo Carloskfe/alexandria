@@ -35,9 +35,14 @@ export class WebhooksService {
 
   private async handlePaymentCompleted(event: any): Promise<void> {
     const session = event.data.object;
-    const { bookId, userId } = session.metadata ?? {};
-    if (!bookId || !userId) return;
-    await this.subscriptionsService.addPurchasedBook(userId, bookId);
+    const { bookId, tokenPackageId, userId } = session.metadata ?? {};
+    if (!userId) return;
+
+    if (tokenPackageId) {
+      await this.subscriptionsService.issueTokensForPurchasedPackage(tokenPackageId, userId);
+    } else if (bookId) {
+      await this.subscriptionsService.addPurchasedBook(userId, bookId);
+    }
   }
 
   private async handleCheckoutCompleted(event: any): Promise<void> {

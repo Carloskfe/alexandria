@@ -207,18 +207,33 @@ export class SubscriptionsService {
   }
 
   async createTokenPackageSession(userId: string, packageId: string): Promise<{ url: string }> {
+    const pkg = await this.plansService.findTokenPackageById(packageId);
+    if (!pkg) throw new BadRequestException({ error: 'invalid_token_package' });
+    if (!pkg.stripePriceId || pkg.stripePriceId.startsWith('price_token_')) {
+      throw new BadRequestException({ error: 'payments_not_configured' });
+    }
     const customerId = await this.getOrCreateStripeCustomer(userId);
-    // packageId is the Stripe price ID for a token package
     const session = await this.requireStripe().checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],
-      line_items: [{ price: packageId, quantity: 1 }],
+      line_items: [{ price: pkg.stripePriceId, quantity: 1 }],
       mode: 'payment',
-      metadata: { tokenPackageId: packageId, userId },
+      metadata: { tokenPackageId: pkg.id, userId },
       success_url: `${this.webUrl}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${this.webUrl}/billing/cancel`,
     });
     return { url: session.url! };
+  }
+
+  async issueTokensForPurchasedPackage(tokenPackageId: string, userId: string): Promise<void> {
+    const pkg = await this.plansService.findTokenPackageById(tokenPackageId);
+    if (!pkg) {
+      this.logger.warn(`Token package not found for id: ${tokenPackageId}`);
+      return;
+    }
+    await this.issueTokens(userId, pkg.tokenCount, 'paid', {
+      reason: `Purchased ${pkg.name}`,
+    });
   }
 
   async addPurchasedBook(userId: string, bookId: string): Promise<void> {
